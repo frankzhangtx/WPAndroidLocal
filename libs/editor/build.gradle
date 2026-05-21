@@ -1,0 +1,92 @@
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.kotlinx.kover)
+    alias(libs.plugins.dependency.analysis)
+}
+
+android {
+    namespace "org.wordpress.android.editor"
+
+    defaultConfig {
+        minSdkVersion rootProject.minSdkVersion
+        targetSdkVersion rootProject.targetSdkVersion
+        compileSdk rootProject.compileSdkVersion
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.toVersion(libs.versions.java.get())
+        targetCompatibility JavaVersion.toVersion(libs.versions.java.get())
+    }
+
+    packaging {
+        resources {
+            excludes += 'LICENSE.txt'
+            excludes += 'META-INF/LICENSE.txt'
+            excludes += 'META-INF/LICENSE'
+            excludes += 'META-INF/NOTICE'
+            excludes += 'META-INF/NOTICE.txt'
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+}
+
+dependencies {
+    implementation("$gradle.ext.wputilsBinaryPath") {
+        version {
+            strictly libs.wordpress.utils.get().version
+        }
+    }
+    api("$gradle.ext.aztecAndroidAztecPath") {
+        exclude group: "com.android.volley"
+        exclude group: 'org.wordpress', module: 'utils'
+        version {
+            strictly libs.versions.wordpress.aztec.get()
+        }
+    }
+    api("$gradle.ext.aztecAndroidWordPressShortcodesPath:${libs.versions.wordpress.aztec.get()}") {
+        version {
+            strictly libs.versions.wordpress.aztec.get()
+        }
+    }
+    api("$gradle.ext.aztecAndroidWordPressCommentsPath:${libs.versions.wordpress.aztec.get()}") {
+        version {
+            strictly libs.versions.wordpress.aztec.get()
+        }
+    }
+
+    implementation(libs.facebook.react.android.hermes)
+    implementation(libs.facebook.react.android.main)
+
+    // This dependency will be substituted if the `local-builds.gradle` file contains
+    // `localGutenbergMobilePath`. Details for this can be found in the `settings.gradle` file.
+    implementation("$rootProject.gradle.ext.gutenbergMobileBinaryPath:${libs.versions.gutenberg.mobile.get()}") {
+        // We exclude React Native modules from older and newer versions.
+        // This is needed to avoid Duplicate class errors when building using local Gutenberg Mobile path.
+        exclude module: 'hermes-engine'
+        exclude module: 'react-native'
+        exclude module: 'hermes-android'
+        exclude module: 'react-android'
+    }
+
+    // This dependency will be substituted if the `local-builds.gradle` file contains
+    // `localGutenbergKitPath`. Details for this can be found in the `settings.gradle` file.
+    //noinspection UseTomlInstead - path is dynamic for local/remote substitution
+    implementation("$rootProject.gradle.ext.gutenbergKitBinaryPath:${libs.versions.gutenberg.kit.get()}")
+
+    implementation(libs.wordpress.utils)
+
+    implementation(libs.androidx.lifecycle.common)
+    implementation(libs.androidx.lifecycle.livedata.core)
+    implementation(libs.androidx.core.main)
+    implementation(libs.androidx.fragment.main)
+    implementation(libs.androidx.appcompat.main)
+    implementation(libs.androidx.preference)
+    implementation(libs.google.material)
+    implementation(libs.android.volley)
+    implementation(libs.google.gson)
+    implementation(libs.automattic.tracks.crashlogging)
+}

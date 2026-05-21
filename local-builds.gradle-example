@@ -1,0 +1,20 @@
+/*
+This file is completely optional, but its usage makes it easier to work with libraries
+in local path. This example file needs to be copied as `local-builds.gradle` to take
+effect.
+
+`settings.gradle` will check these properties and if the given path is valid, it'll include it
+in the project and substitute the binary dependency with the local one.
+
+Once this file is updated Gradle will need to re-configure the project. (sync)
+
+Please note that some included builds may be slow to compile.
+*/
+ext {
+    //localAboutAutomatticPath = "../about-automattic-android"
+    //localWPUtilsPath = "../WordPress-Utils-Android"
+    //localGutenbergMobilePath = "../gutenberg-mobile"
+    //localGutenbergKitPath = "../GutenbergKit"
+    //localAztecAndroidPath = "../AztecEditor-Android"
+    //localGravatarAndroidPath = "../Gravatar-SDK-Android"
+}

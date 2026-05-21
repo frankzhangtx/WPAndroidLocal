@@ -1,0 +1,59 @@
+package org.wordpress.android.ui.prefs.experimentalfeatures
+
+import org.wordpress.android.R
+import org.wordpress.android.ui.prefs.AppPrefsWrapper
+import javax.inject.Inject
+
+class ExperimentalFeatures @Inject constructor(
+    private val appPrefsWrapper: AppPrefsWrapper
+) {
+    fun isEnabled(feature: Feature) : Boolean {
+        return appPrefsWrapper.getExperimentalFeatureConfig(feature.prefKey)
+    }
+
+    fun setEnabled(feature: Feature, isEnabled: Boolean) {
+        appPrefsWrapper.setExperimentalFeatureConfig(isEnabled, feature.prefKey)
+    }
+
+    enum class Feature(
+        val prefKey: String,
+        val labelResId: Int,
+        val descriptionResId: Int
+    ) {
+        DISABLE_EXPERIMENTAL_BLOCK_EDITOR(
+            "disable_experimental_block_editor",
+            R.string.disable_experimental_block_editor,
+            R.string.disable_experimental_block_editor_description
+        ),
+        EXPERIMENTAL_BLOCK_EDITOR(
+            "experimental_block_editor",
+            R.string.experimental_block_editor,
+            R.string.experimental_block_editor_description
+        ),
+        MODERN_SUPPORT(
+            "modern_support",
+            R.string.modern_support,
+            R.string.modern_support_description
+        ),
+        NETWORK_DEBUGGING(
+            "network_debugging",
+            R.string.experimental_network_debugging,
+            R.string.experimental_network_debugging_description
+        ),
+        EXPERIMENTAL_POST_TYPES(
+            "experimental_post_types",
+            R.string.experimental_post_types,
+            R.string.experimental_post_types_description
+        ),
+        NEW_STATS(
+            "new_stats",
+            R.string.experimental_new_stats,
+            R.string.experimental_new_stats_description
+        ),
+        RS_POST_LIST(
+            "rs_post_list",
+            R.string.experimental_rs_post_list,
+            R.string.experimental_rs_post_list_description
+        );
+    }
+}

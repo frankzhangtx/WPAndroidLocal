@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools" >
+
+    <item
+        android:id="@+id/menu_undo_action"
+        android:title="@string/menu_undo"
+        android:icon="@drawable/undo"
+        app:contentDescription="@string/menu_undo_context"
+        app:showAsAction="always"
+        tools:ignore="AlwaysShowAction" />
+
+    <item
+        android:id="@+id/menu_redo_action"
+        android:title="@string/menu_redo"
+        android:icon="@drawable/redo"
+        app:contentDescription="@string/menu_redo_context"
+        app:showAsAction="always"
+        tools:ignore="AlwaysShowAction" />
+
+    <item
+        android:id="@+id/menu_primary_action"
+        android:title="@string/post_status_publish_post"
+        app:showAsAction="always"
+        tools:ignore="AlwaysShowAction" >
+    </item>
+
+    <group
+        android:orderInCategory="1" >
+
+        <item
+            android:id="@+id/menu_switch_to_gutenberg"
+            android:title="@string/menu_switch_to_gutenberg_editor">
+        </item>
+
+        <item
+            android:id="@+id/menu_secondary_action"
+            android:title="@string/menu_save_as_draft" >
+        </item>
+
+        <item
+            android:id="@+id/menu_preview_post"
+            android:title="@string/menu_preview" >
+        </item>
+
+        <item
+            android:id="@+id/menu_html_mode"
+            android:title="@string/menu_html_mode" >
+        </item>
+
+        <item
+            android:id="@+id/menu_history"
+            android:title="@string/menu_history" >
+        </item>
+
+        <item
+            android:id="@+id/menu_content_info"
+            android:title="@string/menu_content_info" >
+        </item>
+
+        <item
+            android:id="@+id/menu_post_settings"
+            android:title="@string/post_settings" >
+        </item>
+
+        <item
+            android:id="@+id/menu_editor_help"
+            android:title="@string/help_and_support" >
+        </item>
+
+        <item
+            android:id="@+id/menu_editor_send_feedback"
+            android:title="@string/send_feedback" >
+        </item>
+
+    </group>
+</menu>

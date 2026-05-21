@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/coordinator_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/view_pager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+    <include
+        android:id="@+id/jetpack_banner"
+        layout="@layout/jetpack_banner" />
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar_main"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/toolbar_height"
+            app:layout_scrollFlags="scroll|enterAlways"
+            app:theme="@style/WordPress.ActionBar" />
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tab_layout"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:visibility="visible"
+            app:layout_scrollFlags="scroll|enterAlways"
+            app:tabMode="scrollable" />
+
+        <LinearLayout
+            android:id="@+id/notification_permission_warning"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tab_height"
+            android:background="@color/warning_0"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="@dimen/margin_extra_large"
+                android:layout_weight="1"
+                android:gravity="start|center_vertical"
+                android:text="@string/notifications_permission_off_desc"
+                android:textAppearance="?attr/textAppearanceBody2"
+                android:textColor="@android:color/black" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/min_touch_target_sz"
+                android:gravity="center"
+                android:minWidth="@dimen/min_touch_target_sz"
+                android:text="@string/notifications_permission_fix"
+                android:textAppearance="?attr/textAppearanceSubtitle2"
+                android:textColor="@color/warning_60" />
+
+            <ImageView
+                android:id="@+id/permission_dismiss_button"
+                android:layout_width="@dimen/min_touch_target_sz"
+                android:layout_height="@dimen/min_touch_target_sz"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="@string/notifications_permission_dismiss_content_description"
+                android:padding="@dimen/margin_large"
+                android:src="@drawable/ic_cross_small_white_24dp"
+                app:tint="@android:color/black" />
+        </LinearLayout>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <LinearLayout
+        android:id="@+id/connect_jetpack"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="@dimen/toolbar_height"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="invisible"
+        tools:visibility="visible">
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:ignore="UselessParent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/margin_extra_large"
+                    android:contentDescription="@string/content_description_person_reading_device_notification"
+                    android:src="@drawable/img_illustration_notifications_152dp" />
+
+                <org.wordpress.android.widgets.WPTextView
+                    style="@style/JetpackConnectionText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxWidth="@dimen/jetpack_text_width"
+                    android:text="@string/notifications_jetpack_connection_setup_info"
+                    android:textAlignment="center"
+                    app:fixWidowWords="true" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/jetpack_setup"
+                    style="@style/JetpackConnectionButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/margin_extra_large"
+                    android:text="@string/stats_jetpack_connection_setup" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/jetpack_terms_and_conditions"
+                    style="@style/JetpackTermsAndConditionsButton"
+                    android:layout_width="@dimen/jetpack_terms_and_conditions_width"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/margin_extra_large"
+                    android:textAlignment="center"
+                    tools:text="@string/jetpack_connection_terms_and_conditions" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/jetpack_faq"
+                    style="@style/JetpackFaqButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:text="@string/stats_jetpack_connection_faq" />
+
+            </LinearLayout>
+
+        </androidx.core.widget.NestedScrollView>
+
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

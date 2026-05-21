@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/StatsBlockLine"
+    android:layout_width="match_parent"
+    android:layout_height="200dp"
+    android:importantForAccessibility="no"
+    android:paddingEnd="16dp"
+    android:paddingStart="16dp">
+
+    <org.wordpress.android.ui.WPWebView
+        android:layerType="software"
+        android:id="@+id/web_view"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:orientation="horizontal"/>
+</FrameLayout>

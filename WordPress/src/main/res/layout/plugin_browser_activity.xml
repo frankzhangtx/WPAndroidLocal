@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appbar_main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:liftOnScrollTargetViewId="@+id/scroll_view">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar_main"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:theme="@style/WordPress.ActionBar" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/toolbar"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <RelativeLayout
+                android:id="@+id/installed_plugins_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_installed"
+                    style="@style/PluginDirectoryTitle"
+                    android:layout_toStartOf="@+id/text_manage"
+                    android:text="@string/plugin_caption_installed" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_manage"
+                    style="@style/PluginDirectoryListButton"
+                    android:text="@string/plugin_manage" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/installed_plugins_recycler"
+                    style="@style/PluginDirectoryList"
+                    android:layout_below="@+id/text_manage" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/featured_plugins_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin_extra_large"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/text_featured"
+                    style="@style/PluginDirectoryTitle"
+                    android:layout_toStartOf="@+id/text_all_featured"
+                    android:text="@string/plugin_caption_featured" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_all_featured"
+                    style="@style/PluginDirectoryListButton"
+                    android:text="@string/plugin_see_all" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/featured_plugins_recycler"
+                    style="@style/PluginDirectoryList"
+                    android:layout_below="@+id/text_all_featured" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/popular_plugins_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin_extra_large"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_popular"
+                    style="@style/PluginDirectoryTitle"
+                    android:layout_toStartOf="@+id/text_all_popular"
+                    android:text="@string/plugin_caption_popular" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_all_popular"
+                    style="@style/PluginDirectoryListButton"
+                    android:text="@string/plugin_see_all" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/popular_plugins_recycler"
+                    style="@style/PluginDirectoryList"
+                    android:layout_below="@+id/text_all_popular" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/new_plugins_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin_extra_large"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_new"
+                    style="@style/PluginDirectoryTitle"
+                    android:layout_toStartOf="@+id/text_all_new"
+                    android:text="@string/plugin_caption_new" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_all_new"
+                    style="@style/PluginDirectoryListButton"
+                    android:text="@string/plugin_see_all" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/new_plugins_recycler"
+                    style="@style/PluginDirectoryList"
+                    android:layout_below="@+id/text_all_new" />
+            </RelativeLayout>
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+    <FrameLayout
+        android:id="@+id/fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+    <ProgressBar
+        android:id="@+id/progress"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

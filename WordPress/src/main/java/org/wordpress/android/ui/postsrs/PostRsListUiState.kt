@@ -1,0 +1,217 @@
+package org.wordpress.android.ui.postsrs
+
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
+import org.wordpress.android.R
+import org.wordpress.android.util.DateTimeUtils
+import org.wordpress.android.util.HtmlUtils
+import uniffi.wp_api.AnyPostWithEditContext
+import uniffi.wp_api.PostCommentStatus
+import uniffi.wp_api.PostStatus
+import uniffi.wp_mobile.FullEntityAnyPostWithEditContext
+import uniffi.wp_mobile.PostItemState
+
+data class SnackbarMessage(
+    val message: String,
+    val actionLabel: String? = null,
+    val onAction: (() -> Unit)? = null
+)
+
+sealed interface PendingConfirmation {
+    data class Trash(val postId: Long) : PendingConfirmation
+    data class Delete(val postId: Long) : PendingConfirmation
+    data class MoveToDraft(val postId: Long) : PendingConfirmation
+}
+
+data class ConfirmationDialogState(
+    val pending: PendingConfirmation? = null,
+    val onConfirm: () -> Unit = {},
+    val onDismiss: () -> Unit = {}
+)
+
+data class PostTabUiState(
+    val posts: List<PostRsUiModel> = emptyList(),
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val isLoadingMore: Boolean = false,
+    val canLoadMore: Boolean = false,
+    val error: String? = null,
+    val isAuthError: Boolean = false
+)
+
+enum class PostDisplayState {
+    NORMAL,
+    FETCHING_WITH_DATA,
+    FAILED_WITH_DATA,
+    PLACEHOLDER,
+    ERROR
+}
+
+data class PostRsUiModel(
+    val remotePostId: Long,
+    val title: String,
+    val excerpt: String,
+    val date: String,
+    val lastModified: String = "",
+    val link: String = "",
+    val hasPassword: Boolean = false,
+    val commentsOpen: Boolean = false,
+    val status: PostStatus? = null,
+    @StringRes val statusLabelResId: Int = 0,
+    val authorId: Long = 0L,
+    val authorDisplayName: String? = null,
+    val featuredImageId: Long = 0L,
+    val featuredImageUrl: String? = null,
+    val actions: List<PostRsMenuAction> = emptyList(),
+    val badges: List<Int> = emptyList(),
+    val displayState: PostDisplayState =
+        PostDisplayState.NORMAL
+)
+
+enum class PostRsMenuAction(
+    @StringRes val labelResId: Int,
+    @DrawableRes val iconResId: Int,
+    val isDestructive: Boolean = false
+) {
+    SETTINGS(
+        R.string.post_settings,
+        R.drawable.ic_settings_white_24dp
+    ),
+    VIEW(R.string.button_view, R.drawable.gb_ic_external),
+    READ(
+        R.string.button_read,
+        R.drawable.ic_reader_glasses_white_24dp
+    ),
+    PUBLISH(
+        R.string.button_publish,
+        R.drawable.gb_ic_globe
+    ),
+    MOVE_TO_DRAFT(
+        R.string.button_move_to_draft,
+        R.drawable.gb_ic_move_to
+    ),
+    DUPLICATE(R.string.button_copy, R.drawable.gb_ic_copy),
+    SHARE(R.string.button_share, R.drawable.gb_ic_share),
+    BLAZE(
+        R.string.button_promote_with_blaze,
+        R.drawable.ic_blaze_flame_24dp
+    ),
+    STATS(R.string.button_stats, R.drawable.gb_ic_chart_bar),
+    COMMENTS(
+        R.string.button_comments,
+        R.drawable.gb_ic_comment
+    ),
+    TRASH(
+        R.string.button_trash,
+        R.drawable.gb_ic_trash,
+        isDestructive = true
+    ),
+    DELETE_PERMANENTLY(
+        R.string.button_delete_permanently,
+        R.drawable.gb_ic_trash,
+        isDestructive = true
+    ),
+}
+
+fun PostItemState.toUiModel(
+    postId: Long,
+    showStatus: Boolean = false
+): PostRsUiModel {
+    return when (this) {
+        is PostItemState.Fresh ->
+            data.toUiModel(showStatus)
+        is PostItemState.Stale ->
+            data.toUiModel(showStatus)
+        is PostItemState.FetchingWithData ->
+            data.toUiModel(
+                showStatus,
+                PostDisplayState.FETCHING_WITH_DATA
+            )
+        is PostItemState.FailedWithData ->
+            data.toUiModel(
+                showStatus,
+                PostDisplayState.FAILED_WITH_DATA
+            )
+        is PostItemState.Missing,
+        is PostItemState.Fetching -> PostRsUiModel(
+            remotePostId = postId,
+            title = "",
+            excerpt = "",
+            date = "",
+            displayState = PostDisplayState.PLACEHOLDER
+        )
+        is PostItemState.Failed -> PostRsUiModel(
+            remotePostId = postId,
+            title = "",
+            excerpt = "",
+            date = "",
+            displayState = PostDisplayState.ERROR
+        )
+    }
+}
+
+private fun FullEntityAnyPostWithEditContext.toUiModel(
+    showStatus: Boolean,
+    displayState: PostDisplayState = PostDisplayState.NORMAL
+): PostRsUiModel {
+    val post: AnyPostWithEditContext = data
+    return PostRsUiModel(
+        remotePostId = post.id,
+        title = post.title?.raw?.takeIf { it.isNotBlank() }
+            ?: post.title?.rendered
+            ?: "",
+        excerpt = (
+            post.excerpt?.raw?.takeIf { it.isNotBlank() }
+                ?: post.excerpt?.rendered
+                ?: ""
+            ).let { HtmlUtils.fastStripHtml(it).trim() },
+        date = PostRsDateFormatter.format(
+            post.dateGmt, post.status
+        ),
+        lastModified = DateTimeUtils.iso8601UTCFromDate(
+            post.modifiedGmt
+        ),
+        link = post.link,
+        authorId = post.author ?: 0L,
+        featuredImageId = post.featuredMedia ?: 0L,
+        hasPassword = !post.password.isNullOrEmpty(),
+        commentsOpen =
+            post.commentStatus is PostCommentStatus.Open,
+        status = post.status,
+        statusLabelResId = if (showStatus) {
+            post.status.toLabel()
+        } else {
+            0
+        },
+        badges = buildList {
+            if (post.status is PostStatus.Private) {
+                add(R.string.post_status_post_private)
+            }
+            if (post.status is PostStatus.Pending) {
+                add(R.string.post_status_pending_review)
+            }
+            if (post.sticky == true) {
+                add(R.string.post_status_sticky)
+            }
+        },
+        displayState = displayState
+    )
+}
+
+@StringRes
+internal fun PostStatus?.toLabel(): Int = when (this) {
+    is PostStatus.Publish ->
+        R.string.post_status_post_published
+    is PostStatus.Draft -> R.string.post_status_draft
+    is PostStatus.Pending ->
+        R.string.post_status_pending_review
+    is PostStatus.Private ->
+        R.string.post_status_post_private
+    is PostStatus.Future ->
+        R.string.post_status_post_scheduled
+    is PostStatus.Trash ->
+        R.string.post_status_post_trashed
+    is PostStatus.Any -> 0
+    is PostStatus.Custom -> 0
+    null -> 0
+}

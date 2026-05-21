@@ -1,0 +1,84 @@
+package org.wordpress.android.ui.posts.prepublishing.home.usecases
+
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.Before
+import org.junit.Test
+import org.mockito.Mock
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
+import org.wordpress.android.BaseUnitTest
+import org.wordpress.android.fluxc.model.PostModel
+import org.wordpress.android.fluxc.model.post.PostStatus
+import org.wordpress.android.ui.posts.EditPostRepository
+import org.wordpress.android.util.DateTimeUtilsWrapper
+
+@ExperimentalCoroutinesApi
+class PublishPostImmediatelyUseCaseTest : BaseUnitTest() {
+    private lateinit var useCase: PublishPostImmediatelyUseCase
+    private lateinit var editPostRepository: EditPostRepository
+
+    @Mock
+    lateinit var dateTimeUtilsWrapper: DateTimeUtilsWrapper
+
+    @Before
+    fun setup() {
+        useCase = PublishPostImmediatelyUseCase(dateTimeUtilsWrapper)
+        editPostRepository = EditPostRepository(
+            mock(),
+            mock(),
+            mock(),
+            testDispatcher(),
+            testDispatcher()
+        )
+        editPostRepository.set { PostModel() }
+    }
+
+    @Test
+    fun `if newPost is true then the PostStatus should be a DRAFT`() {
+        // arrange
+        val isNewPost = true
+        val expectedPostStatus = PostStatus.DRAFT
+
+        // act
+        useCase.updatePostToPublishImmediately(editPostRepository, isNewPost)
+
+        assertThat(editPostRepository.status.toString()).isEqualTo(expectedPostStatus.toString())
+    }
+
+    @Test
+    fun `if newPost is false then the PostStatus should be a PUBLISHED`() {
+        // arrange
+        val isNewPost = false
+        val expectedPostStatus = PostStatus.PUBLISHED
+
+        // act
+        useCase.updatePostToPublishImmediately(editPostRepository, isNewPost)
+
+        assertThat(editPostRepository.status.toString()).isEqualTo(expectedPostStatus.toString())
+    }
+
+    @Test
+    fun `EditPostRepository's PostModel should be set with the currentDate if PostStatus is SCHEDULED`() {
+        // arrange
+        val currentDate = "2020-05-05T20:33:20+0200"
+        whenever(dateTimeUtilsWrapper.currentTimeInIso8601()).thenReturn(currentDate)
+        editPostRepository.set { PostModel().apply { setStatus(PostStatus.SCHEDULED.toString()) } }
+
+        // act
+        useCase.updatePostToPublishImmediately(editPostRepository, false)
+
+        assertThat(editPostRepository.dateCreated).isEqualTo(currentDate)
+    }
+
+    @Test
+    fun `EditPostRepository's PostModel should not be set with the currentDate if PostStatus is not SCHEDULED`() {
+        // arrange
+        editPostRepository.set { PostModel().apply { setStatus(PostStatus.DRAFT.toString()) } }
+
+        // act
+        useCase.updatePostToPublishImmediately(editPostRepository, false)
+
+        assertThat(editPostRepository.dateCreated).isEmpty()
+    }
+}

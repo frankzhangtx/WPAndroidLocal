@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/margin_extra_medium_large"
+    android:paddingTop="@dimen/margin_extra_medium_large"
+    android:paddingEnd="@dimen/margin_extra_medium_large">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/post_settings_input_dialog_input_layout"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:theme="@style/PostSettingsTheme"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/margin_large">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/post_settings_input_dialog_edit_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:importantForAutofill="no"
+            android:maxLines="6" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <org.wordpress.android.widgets.WPTextView
+        android:id="@+id/post_settings_input_dialog_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+</LinearLayout>

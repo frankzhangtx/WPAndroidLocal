@@ -1,0 +1,37 @@
+package org.wordpress.android.util
+
+import android.os.Build
+import org.wordpress.android.BuildConfig
+import javax.inject.Inject
+
+class BuildConfigWrapper @Inject constructor() {
+    fun getAppVersionCode(): Int {
+        return BuildConfig.VERSION_CODE
+    }
+
+    fun getAppVersionName(): String {
+        return BuildConfig.VERSION_NAME
+    }
+
+    fun isDebug(): Boolean {
+        return BuildConfig.DEBUG
+    }
+
+    fun getApplicationId(): String {
+        return BuildConfig.APPLICATION_ID
+    }
+
+    fun isDebugSettingsEnabled(): Boolean = BuildConfig.ENABLE_DEBUG_SETTINGS
+
+    val isJetpackApp = BuildConfig.IS_JETPACK_APP
+
+    val isSiteCreationEnabled = BuildConfig.ENABLE_SITE_CREATION
+
+    val isCreateFabEnabled = BuildConfig.ENABLE_CREATE_FAB
+
+    val isFollowedSitesSettingsEnabled = BuildConfig.ENABLE_FOLLOWED_SITES_SETTINGS
+
+    val isWhatsNewFeatureEnabled = BuildConfig.ENABLE_WHATS_NEW_FEATURE
+
+    val androidVersion: String = Build.VERSION.RELEASE
+}

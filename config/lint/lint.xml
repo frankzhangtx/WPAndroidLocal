@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- CORRECTNESS -->
+    <issue id="MissingTranslation" severity="ignore" />
+    <issue id="ExtraTranslation" severity="error" />
+    <issue id="PluralsCandidate" severity="ignore" /> <!-- GlotPress doesn't support plurals -->
+    <issue id="CredentialDependency" severity="ignore" /> <!-- False positive, fixed in AGP 8.6.0: https://issuetracker.google.com/issues/339841694 -->
+    <!-- TODO: https://github.com/wordpress-mobile/WordPress-Android/issues/18226 -->
+    <issue id="LocaleFolder">
+        <!-- MAIN -->
+        <ignore path="**/src/main/res/values-he" />
+        <ignore path="**/src/main/res/values-id" />
+        <!-- JETPACK -->
+        <ignore path="**/src/jetpack/res/values-he" />
+        <ignore path="**/src/jetpack/res/values-id" />
+    </issue>
+    <issue id="Typos">
+        <ignore regexp=".*\/values\-([a-z]|[A-Z]|\-){2,6}\/strings\.xml$"/>
+    </issue>
+    <!-- TODO: https://github.com/wordpress-mobile/WordPress-Android/issues/18185 -->
+    <issue id="MissingFirebaseInstanceTokenRefresh">
+        <!-- GCM -->
+        <ignore path="**/generated/ksp/**/org/wordpress/android/push/Hilt_GCMMessageService.java" />
+    </issue>
+    <issue id="AndroidGradlePluginVersion" severity="ignore" /> <!-- The AGP update is done manually -->
+    <issue id="GradleDependency" severity="ignore" /> <!-- Dependabot will take care of this -->
+    <issue id="MissingNullAnnotationOnField" severity="ignore" />
+    <issue id="MissingNullAnnotationOnConstructorParameter" severity="ignore" />
+    <issue id="MissingNullAnnotationOnMethodParameter" severity="ignore" />
+    <issue id="MissingNullAnnotationOnMethodReturnType" severity="ignore" />
+    <issue id="Aligned16KB" severity="ignore" /> <!-- Will be addressed by removing Gutenberg Mobile -->
+    <issue id="VectorRaster" severity="warning" /> <!--    fluxc-->
+    <!-- SECURITY -->
+    <issue id="TrustAllX509TrustManager">
+        <!-- EDITOR -->
+        <ignore path="**/org.jsoup/**" /> <!-- jsoup -->
+    </issue>
+    <!--  TODO: After addressing them, remove the below set of security issues from this list  -->
+    <issue id="MissingAutoVerifyAttribute" severity="warning" />
+    <issue id="SensitiveExternalPath" severity="warning" />
+    <issue id="WeakPrng" severity="warning" />
+    <issue id="TapjackingVulnerable" severity="warning" />
+    <issue id="InsecurePermissionProtectionLevel" severity="warning" />
+    <issue id="CustomX509TrustManager" severity="warning" /> <!--    fluxc-->
+    <!-- PERFORMANCE -->
+    <issue id="UnusedResources">
+        <!-- EDITOR -->
+        <ignore path="**/libs/editor/src/main/res/drawable/**" /> <!-- 9 errors -->
+        <ignore path="**/libs/editor/src/main/res/drawable-hdpi/**" />  <!-- 6 errors -->
+        <!-- Resources used by editor library (not visible with checkDependencies=false) -->
+        <ignore path="**/res/color/aztec_format_button_selector_color.xml" />
+        <ignore path="**/res/color/primary_on_surface_disabled_selector.xml" />
+        <ignore path="**/res/values-night/colors_aztec.xml" />
+        <ignore regexp="R\.style\.FormatBarButton" />
+        <ignore regexp="R\.style\.DividerSourceView" />
+        <!-- GOOGLE SERVICES -->
+        <ignore path="**/generated/res/google-services/**/values/values.xml" />
+        <ignore path="**/xml/global_tracker.xml" />
+        <ignore regexp="ga_trackingId|project_id" />
+        <!-- LOCALIZATION -->
+        <ignore regexp=".*\/values\-([a-z]|[A-Z]|\-){2,6}\/strings\.xml$"/>
+        <ignore regexp=".*\/values\/strings\.xml$"/>
+    </issue>
+    <!-- USABILITY -->
+    <issue id="IconDipSize">
+        <!-- EDITOR -->
+        <ignore path="**/libs/editor/src/main/res/drawable-hdpi/format_bar_chevron.png" />
+    </issue>
+    <issue id="IconMissingDensityFolder">
+        <!-- EDITOR -->
+        <ignore path="**/libs/editor/src/main/res" /> <!-- drawable-mdpi -->
+        <!-- WORDPRESS -->
+        <ignore path="**/src/wordpress/res" /> <!-- drawable-hdpi, drawable-xxhdpi -->
+    </issue>
+    <issue id="ObsoleteSdkInt">
+        <ignore path="**/generated/ksp/**/org/wordpress/android/ui/main/Hilt_WPMainNavigationView.java" />
+    </issue>
+    <issue id="UseRequiresApi"> <!-- Hilt's View codegen emits @TargetApi instead of @RequiresApi -->
+        <ignore path="**/generated/ksp/**/org/wordpress/android/ui/main/Hilt_WPMainNavigationView.java" />
+    </issue>
+    <issue id="IconDensities" severity="warning" /> <!--    fluxc-->
+    <!-- INTEROPERABILITY -->
+    <!-- TODO: https://github.com/wordpress-mobile/WordPress-Android/pull/21430 -->
+    <issue id="ObsoleteLintCustomCheck" severity="warning" />
+</lint>

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center">
+
+    <Space
+        android:id="@+id/topspace"
+        android:layout_width="0dp"
+        android:layout_height="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- text area -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/final_text_unit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginEnd="16dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/topspace">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/post_info"
+            style="@style/PostList.Item.Body"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/more"
+            app:layout_constraintHorizontal_bias="0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constrainedWidth="true"
+            tools:text="Private · Local Changes Private · FirstName LastName" />
+
+        <ImageButton
+            android:id="@+id/more"
+            android:layout_width="@dimen/post_list_more_icon_size"
+            android:layout_height="@dimen/post_list_more_icon_size"
+            android:src="@drawable/gb_ic_more_vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/more"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?attr/colorOnSurface" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- mid section area -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/final_mid_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/final_text_unit">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/text_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/space_between"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/title"
+                style="@style/PostList.Item.Title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="3"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="My Title is super duper long and longer than the fox that is running into the area of large text and will have to cut off the remaining" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/excerpt"
+                style="@style/PostList.Item.Body"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="3"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/title"
+                tools:text="this is the excerpt that will possibly show in this area" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <Space
+            android:id="@+id/space_between"
+            android:layout_width="8dp"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/image_featured"
+            app:layout_constraintStart_toEndOf="@+id/text_container"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/image_featured"
+            android:layout_width="@dimen/postlist_featured_image_height"
+            android:layout_height="@dimen/postlist_featured_image_height"
+            android:importantForAccessibility="no"
+            android:scaleType="centerCrop"
+            app:layout_constraintBottom_toBottomOf="@+id/text_container"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/text_container"
+            tools:srcCompat="@tools:sample/avatars" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <FrameLayout
+        android:id="@+id/disabled_overlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:alpha="@dimen/material_emphasis_medium"
+        android:background="?attr/colorSurface"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/statuses_label"
+        style="@style/PostList.Item.Body"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/margin_extra_large"
+        android:layout_marginStart="@dimen/margin_extra_large"
+        app:layout_constraintBottom_toTopOf="@+id/upload_progress"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/final_mid_section"
+        app:layout_constraintVertical_bias="0.0"
+        tools:text="Private · Local Changes Private · Local Changes Private · Local Changes Private · Local Changes Private · Local Changes " />
+
+    <ProgressBar
+        android:id="@+id/upload_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginStart="16dp"
+        android:indeterminate="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/statuses_label" />
+
+    <Space
+        android:id="@+id/space2"
+        android:layout_width="0dp"
+        android:layout_height="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/upload_progress" />
+
+    <View
+        android:id="@+id/divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginEnd="0dp"
+        android:layout_marginStart="16dp"
+        android:background="?android:attr/listDivider"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/space2" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

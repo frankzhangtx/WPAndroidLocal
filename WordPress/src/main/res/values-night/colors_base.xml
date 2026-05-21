@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">@color/primary_30</color>
+    <color name="colorPrimaryVariant">@color/primary_50</color>
+    <color name="colorSecondary">@color/primary_30</color>
+    <color name="colorSecondaryVariant">@color/primary_50</color>
+
+    <color name="colorPrimaryEditor">@color/colorPrimary</color>
+
+    <color name="nav_bar">@color/colorPrimary</color>
+
+    <color name="fab_container">@color/blue_70</color>
+    <color name="fab_on_container">@color/blue_5</color>
+</resources>

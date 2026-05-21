@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/page_item"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="@dimen/page_list_content_margin"
+    android:layout_marginStart="@dimen/page_list_content_margin">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/page_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:minHeight="@dimen/page_list_row_min_height"
+        android:paddingVertical="@dimen/page_list_row_vertical_padding"
+        android:background="?selectableItemBackground">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/page_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            style="@style/Pages.Item.Title"
+            android:layout_marginEnd="@dimen/margin_medium"
+            android:layout_marginStart="@dimen/page_item_horizontal_padding"
+            android:layout_marginTop="@dimen/margin_small"
+            android:ellipsize="end"
+            android:fontFamily="serif"
+            android:maxLines="3"
+            android:textAlignment="textStart"
+            app:layout_constraintBottom_toTopOf="@+id/page_subtitle"
+            app:layout_constraintEnd_toStartOf="@+id/featured_image"
+            app:layout_constraintHorizontal_bias="0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/disabled_overlay"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed"
+            tools:text="Porro totam quia architecto ducimus laudantium minus autem"/>
+
+        <ImageView
+            android:id="@+id/page_subtitle_icon"
+            android:layout_width="@dimen/page_list_prefix_icon_size"
+            android:layout_height="@dimen/page_list_prefix_icon_size"
+            android:layout_marginStart="@dimen/page_item_horizontal_padding"
+            app:layout_constraintBottom_toBottomOf="@+id/page_subtitle_suffix"
+            app:layout_constraintStart_toEndOf="@+id/page_subtitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/page_subtitle_suffix"
+            app:layout_goneMarginBottom="@dimen/margin_large"
+            tools:ignore="ContentDescription"
+            app:tint="#787C82"
+            tools:src="@drawable/ic_posts_white_24dp" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/page_subtitle_suffix"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/margin_small"
+            android:layout_marginTop="@dimen/margin_extra_small"
+            android:ellipsize="end"
+            android:maxLines="1"
+            style="@style/PagesList.Item.Body"
+            app:layout_constraintBottom_toTopOf="@+id/labels"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toEndOf="@+id/page_subtitle_icon"
+            app:layout_constraintEnd_toStartOf="@+id/featured_image"
+            app:layout_constraintTop_toBottomOf="@+id/page_title"
+            app:layout_goneMarginBottom="@dimen/margin_large"
+            app:layout_goneMarginStart="@dimen/page_item_horizontal_padding"
+            tools:text="@string/site_settings_posts_page" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/page_subtitle"
+            style="@style/PagesList.Item.Body"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/margin_extra_small"
+            android:ellipsize="end"
+            android:maxLines="1"
+            app:layout_constraintBottom_toTopOf="@+id/labels"
+            app:layout_constraintEnd_toStartOf="@+id/featured_image"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toEndOf="@+id/page_subtitle_suffix"
+            app:layout_constraintTop_toBottomOf="@+id/page_title"
+            app:layout_goneMarginBottom="@dimen/margin_large"
+            app:layout_goneMarginStart="@dimen/page_item_horizontal_padding"
+            tools:text="99 days ago • Eulah Kuvalis •" />
+
+        <ImageView
+            android:id="@+id/featured_image"
+            android:layout_width="@dimen/page_list_featured_image_size"
+            android:layout_height="@dimen/page_list_featured_image_size"
+            android:layout_marginEnd="@dimen/page_item_horizontal_padding"
+            android:background="@color/transparent"
+            android:contentDescription="@string/featured_image_desc"
+            app:layout_constraintBottom_toBottomOf="@+id/page_subtitle"
+            app:layout_constraintEnd_toStartOf="@+id/page_more"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/page_title"
+            tools:srcCompat="@tools:sample/avatars"/>
+
+        <ImageButton
+            android:id="@+id/page_more"
+            android:layout_width="@dimen/page_list_menu_button_size"
+            android:layout_height="@dimen/page_list_menu_button_size"
+            android:layout_marginEnd="@dimen/page_item_horizontal_padding"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/more"
+            android:src="@drawable/gb_ic_more_vertical"
+            app:tint="?attr/colorOnSurface"
+            app:layout_constraintBottom_toBottomOf="@+id/featured_image"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/featured_image"/>
+
+        <FrameLayout
+            android:id="@+id/disabled_overlay"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@color/white_translucent_65"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/labels"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textAlignment="textStart"
+            android:maxLines="3"
+            android:ellipsize="end"
+            style="@style/PagesList.Item.Body"
+            android:layout_marginTop="@dimen/margin_extra_small"
+            android:layout_marginBottom="@dimen/margin_large"
+            app:layout_constraintStart_toStartOf="@+id/page_title"
+            app:layout_constraintEnd_toEndOf="@+id/page_title"
+            app:layout_constraintHorizontal_bias="0"
+            app:layout_constraintTop_toBottomOf="@+id/page_subtitle"
+            app:layout_constraintBottom_toTopOf="@+id/upload_progress"
+            tools:text="Facere molestiae est maxime. Laborum nihil voluptatem qui est aut ut. Nisi eveniet id sit voluptatem. Id doloribus itaque sequi eum molestias id repellendus."/>
+
+        <ProgressBar
+            android:id="@+id/upload_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1.0"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?android:attr/listDivider" />
+
+
+</LinearLayout>
+

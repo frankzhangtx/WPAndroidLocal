@@ -1,0 +1,24 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlinx.kover)
+    alias(libs.plugins.dependency.analysis)
+}
+
+java {
+    sourceCompatibility = JavaVersion.toVersion(libs.versions.java.get())
+    targetCompatibility = JavaVersion.toVersion(libs.versions.java.get())
+}
+
+dependencies {
+    implementation project(":libs:annotations")
+
+    implementation(libs.squareup.kotlin.poet.main)
+    implementation(libs.squareup.kotlin.poet.ksp)
+    implementation(libs.ksp.api)
+
+    testImplementation(libs.kotlin.compile.testing.main)
+    testImplementation(libs.kotlin.compile.testing.ksp)
+    testImplementation(libs.junit)
+    testImplementation(libs.assertj.core)
+    testImplementation(libs.kotlin.reflect)
+}

@@ -1,0 +1,32 @@
+package org.wordpress.android.modules;
+
+import androidx.annotation.NonNull;
+
+import com.android.volley.toolbox.ImageLoader.ImageCache;
+
+import org.wordpress.android.WordPress;
+import org.wordpress.android.fluxc.network.rest.wpcom.auth.AccessToken;
+import org.wordpress.android.networking.OAuthAuthenticator;
+
+import javax.inject.Singleton;
+
+import dagger.Module;
+import dagger.Provides;
+import dagger.hilt.InstallIn;
+import dagger.hilt.components.SingletonComponent;
+
+@InstallIn(SingletonComponent.class)
+@Module
+public class LegacyModule {
+    @Singleton
+    @Provides
+    ImageCache provideImageCache() {
+        return WordPress.getBitmapCache();
+    }
+
+    @Singleton
+    @Provides
+    OAuthAuthenticator provideOAuthAuthenticator(@NonNull AccessToken accessToken) {
+        return new OAuthAuthenticator(accessToken);
+    }
+}

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/header_root_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/margin_extra_large"
+        android:paddingTop="@dimen/comment_avatar_margin_top"
+        android:paddingEnd="@dimen/margin_extra_large"
+        android:paddingBottom="@dimen/margin_medium">
+
+        <ImageView
+            android:id="@+id/header_avatar"
+            android:layout_width="@dimen/avatar_sz_small"
+            android:layout_height="@dimen/avatar_sz_small"
+            tools:ignore="ContentDescription" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/notifications_adjusted_font_margin"
+            android:orientation="vertical">
+
+            <org.wordpress.android.widgets.WPTextView
+                android:id="@+id/header_user"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceSubtitle1"
+                tools:text="Bob Ross" />
+
+            <org.wordpress.android.widgets.WPTextView
+                android:id="@+id/header_snippet"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:singleLine="true"
+                android:textAppearance="?attr/textAppearanceSubtitle1"
+                android:textColor="?attr/colorPrimary"
+                tools:text="www.bobross.com" />
+
+        </LinearLayout>
+    </LinearLayout>
+    <!-- Two footer views, one is used specifically for comments -->
+    <LinearLayout
+        android:id="@+id/header_footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/divider_size"
+            android:background="@drawable/notifications_list_divider_full_width" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/margin_medium" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/header_footer_comment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/divider_size"
+            android:layout_marginStart="@dimen/margin_extra_large"
+            android:layout_marginEnd="@dimen/margin_extra_large"
+            android:background="@drawable/notifications_list_divider_full_width" />
+    </LinearLayout>
+</LinearLayout>

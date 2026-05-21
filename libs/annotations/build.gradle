@@ -1,0 +1,9 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.dependency.analysis)
+}
+
+java {
+    sourceCompatibility = JavaVersion.toVersion(libs.versions.java.get())
+    targetCompatibility = JavaVersion.toVersion(libs.versions.java.get())
+}

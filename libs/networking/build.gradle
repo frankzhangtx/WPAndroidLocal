@@ -1,0 +1,29 @@
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.dependency.analysis)
+}
+
+android {
+    namespace "org.wordpress.android.networking"
+
+    defaultConfig {
+        minSdkVersion rootProject.minSdkVersion
+        targetSdkVersion rootProject.targetSdkVersion
+        compileSdk rootProject.compileSdkVersion
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.toVersion(libs.versions.java.get())
+        targetCompatibility JavaVersion.toVersion(libs.versions.java.get())
+    }
+}
+
+dependencies {
+    implementation(libs.automattic.rest) {
+        exclude group: 'com.mcxiaoke.volley'
+    }
+    implementation(libs.wordpress.utils)
+
+    implementation(libs.android.volley)
+    implementation(libs.androidx.annotation)
+}

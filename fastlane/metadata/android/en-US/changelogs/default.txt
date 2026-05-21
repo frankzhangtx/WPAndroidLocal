@@ -1,0 +1,2 @@
+- Button colors are now consistent across different areas of the app.
+- We fixed an infinite loop that sometimes appeared when opening certain types of links.

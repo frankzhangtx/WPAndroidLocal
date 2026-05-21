@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <color name="accent">@color/pink_50</color>
+    <color name="accent_30">@color/pink_30</color>
+    <color name="accent_50">@color/pink_50</color>
+
+    <color name="error">@color/red_50</color>
+    <color name="error_50">@color/red_50</color>
+
+    <color name="neutral">@color/gray_50</color>
+    <color name="neutral_0">@color/gray_0</color>
+    <color name="neutral_5">@color/gray_5</color>
+    <color name="neutral_10">@color/gray_10</color>
+    <color name="neutral_20">@color/gray_20</color>
+    <color name="neutral_30">@color/gray_30</color>
+    <color name="neutral_40">@color/gray_40</color>
+    <color name="neutral_50">@color/gray_50</color>
+    <color name="neutral_60">@color/gray_60</color>
+    <color name="neutral_70">@color/gray_70</color>
+    <color name="neutral_80">@color/gray_80</color>
+
+    <color name="success">@color/green_50</color>
+    <color name="success_50">@color/green_50</color>
+
+    <color name="warning">@color/yellow_20</color>
+    <color name="warning_0">@color/yellow_0</color>
+    <color name="warning_50">@color/yellow_50</color>
+    <color name="warning_60">@color/yellow_60</color>
+    <color name="warning_dark">@color/yellow_40</color>
+
+    <color name="divider">@color/gray_5</color>
+
+    <color name="text">@color/gray_80</color>
+</resources>

@@ -1,0 +1,19 @@
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.dependency.analysis)
+}
+
+android {
+    namespace "org.wordpress.android.mocks"
+
+    defaultConfig {
+        minSdkVersion rootProject.minSdkVersion
+        targetSdkVersion rootProject.targetSdkVersion
+        compileSdk rootProject.compileSdkVersion
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.toVersion(libs.versions.java.get())
+        targetCompatibility JavaVersion.toVersion(libs.versions.java.get())
+    }
+}

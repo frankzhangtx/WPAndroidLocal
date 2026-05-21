@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="row_post_id" />
+    <item type="id" name="drag_handle" />
+    <item type="id" name="click_remove" />
+    <item type="id" name="stats_tags" />
+    <item type="id" name="stats_geoviews" />
+    <item type="id" name="stats_comments" />
+    <item type="id" name="stats_referrers" />
+    <item type="id" name="stats_clicks" />
+    <item type="id" name="stats_search" />
+    <item type="id" name="stats_top_authors" />
+    <item type="id" name="stats_top_posts" />
+    <item type="id" name="note_block_tag_id" />
+    <item type="id" name="bottom_nav_reader_button" />
+    <item type="id" name="bottom_nav_new_post_button" />
+    <item type="id" name="bottom_nav_notifications_button" />
+    <item type="id" name="media_grid_remote_thumb_extract_id" />
+    <item type="id" name="post_menu_item_view_layout_type" />
+    <item type="id" name="original_view_pager_fragment_id_tag_key" />
+    <item type="id" name="pages_search_recycler_view_id" />
+    <item type="id" name="pages_non_search_recycler_view_id_tag_key" />
+    <item type="id" name="posts_search_recycler_view_id" />
+    <item type="id" name="posts_non_search_recycler_view_id_tag_key" />
+    <item type="id" name="appbar_layout_original_animator_tag_key" />
+</resources>

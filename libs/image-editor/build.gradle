@@ -1,0 +1,72 @@
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.androidx.navigation.safeargs)
+    alias(libs.plugins.kotlinx.kover)
+    alias(libs.plugins.dependency.analysis)
+}
+
+android {
+    namespace "org.wordpress.android.imageeditor"
+
+    defaultConfig {
+        minSdkVersion rootProject.minSdkVersion
+        targetSdkVersion rootProject.targetSdkVersion
+        compileSdk rootProject.compileSdkVersion
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+        test.java.srcDirs += 'src/test/kotlin'
+        androidTest.java.srcDirs += 'src/androidTest/kotlin'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.toVersion(libs.versions.java.get())
+        targetCompatibility JavaVersion.toVersion(libs.versions.java.get())
+    }
+
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+        }
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.core.main)
+    implementation(libs.androidx.activity.main)
+    implementation(libs.androidx.fragment.main)
+    implementation(libs.androidx.appcompat.main)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.constraintlayout.main)
+    implementation(libs.androidx.viewpager2)
+    implementation(libs.google.material)
+    implementation(libs.androidx.navigation.fragment)
+    implementation(libs.androidx.navigation.ui)
+    implementation(libs.androidx.lifecycle.common)
+    implementation(libs.androidx.lifecycle.viewmodel.main)
+    implementation(libs.androidx.lifecycle.viewmodel.savedstate)
+    implementation(libs.androidx.lifecycle.livedata.core)
+    implementation(libs.automattic.ucrop) {
+        exclude group: 'com.squareup.okhttp3'
+        exclude group: 'androidx.core', module: 'core'
+        exclude group: 'androidx.constraintlayout', module: 'constraintlayout'
+        exclude group: 'androidx.appcompat', module: 'appcompat'
+    }
+
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.junit)
+    testImplementation(libs.assertj.core)
+    testImplementation(libs.androidx.arch.core.testing) {
+        exclude group: 'com.android.support', module: 'support-compat'
+        exclude group: 'com.android.support', module: 'support-annotations'
+        exclude group: 'com.android.support', module: 'support-core-utils'
+    }
+}

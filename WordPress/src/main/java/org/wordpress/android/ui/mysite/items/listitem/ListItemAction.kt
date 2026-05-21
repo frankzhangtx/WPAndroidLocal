@@ -1,0 +1,28 @@
+package org.wordpress.android.ui.mysite.items.listitem
+
+enum class ListItemAction (val trackingLabel: String) {
+    ACTIVITY_LOG("activity_log"),
+    BACKUP("backup"),
+    SCAN("scan"),
+    POSTS("posts"),
+    PAGES("pages"),
+    POST_TYPES("post_types"),
+    ADMIN("admin"),
+    PEOPLE("people"),
+    SUBSCRIBERS("subscribers"),
+    SELF_HOSTED_USERS("self_hosted_users"),
+    SHARING("sharing"),
+    DOMAINS("domains"),
+    SITE_SETTINGS("site_settings"),
+    THEMES("themes"),
+    PLUGINS("plugins"),
+    STATS("stats"),
+    MEDIA("media"),
+    COMMENTS("comments"),
+    BLAZE("blaze"),
+    ME("me"),
+    MORE("more"),
+    SITE_MONITORING("site_monitoring"),
+    APPLICATION_PASSWORDS("application_passwords"),
+    MENUS("menus"),
+}

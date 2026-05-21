@@ -1,0 +1,74 @@
+package org.wordpress.android.ui.domains
+
+import android.os.Bundle
+import android.view.View
+import androidx.activity.addCallback
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.text.HtmlCompat.FROM_HTML_MODE_COMPACT
+import androidx.core.text.parseAsHtml
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import org.wordpress.android.R
+import org.wordpress.android.WordPress
+import org.wordpress.android.databinding.PlansPurchaseSuccessFragmentBinding
+import javax.inject.Inject
+
+class DomainRegistrationResultFragment : Fragment(R.layout.plans_purchase_success_fragment) {
+    @Inject
+    lateinit var viewModelFactory: ViewModelProvider.Factory
+    private lateinit var mainViewModel: DomainRegistrationMainViewModel
+
+    companion object {
+        private const val EXTRA_REGISTERED_DOMAIN_NAME = "extra_registered_domain_name"
+        private const val EXTRA_REGISTERED_DOMAIN_EMAIL = "extra_registered_domain_email"
+        const val TAG = "DOMAIN_REGISTRATION_RESULT_FRAGMENT"
+
+        fun newInstance(domainName: String, email: String?) = DomainRegistrationResultFragment().apply {
+            arguments = Bundle().apply {
+                putString(EXTRA_REGISTERED_DOMAIN_NAME, domainName)
+                putString(EXTRA_REGISTERED_DOMAIN_EMAIL, email)
+            }
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        (requireActivity().application as WordPress).component().inject(this)
+
+        mainViewModel = ViewModelProvider(requireActivity(), viewModelFactory)
+            .get(DomainRegistrationMainViewModel::class.java)
+
+        val domainName = requireArguments().getString(EXTRA_REGISTERED_DOMAIN_NAME).orEmpty()
+        val email = requireArguments().getString(EXTRA_REGISTERED_DOMAIN_EMAIL).orEmpty()
+
+        setupToolbar()
+
+        with(PlansPurchaseSuccessFragmentBinding.bind(view)) {
+            setupViews(domainName, email)
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
+            finishRegistration(domainName, email)
+        }
+    }
+
+    private fun setupToolbar() = with(requireAppCompatActivity()) {
+        supportActionBar?.hide()
+    }
+
+    private fun PlansPurchaseSuccessFragmentBinding.setupViews(domainName: String, email: String) {
+        doneButton.setOnClickListener {
+            finishRegistration(domainName, email)
+        }
+
+        subtitle.text = getString(
+            R.string.dashboard_card_plans_checkout_success_subtitle,
+            domainName
+        ).parseAsHtml(FROM_HTML_MODE_COMPACT)
+    }
+
+    private fun finishRegistration(domainName: String, email: String) {
+        mainViewModel.finishDomainRegistration(DomainRegistrationCompletedEvent(domainName, email))
+    }
+
+    private fun requireAppCompatActivity() = requireActivity() as AppCompatActivity
+}

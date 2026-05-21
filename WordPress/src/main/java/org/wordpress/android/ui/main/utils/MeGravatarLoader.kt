@@ -1,0 +1,66 @@
+package org.wordpress.android.ui.main.utils
+
+import android.graphics.drawable.Drawable
+import android.widget.ImageView
+import org.wordpress.android.R
+import org.wordpress.android.WordPress
+import org.wordpress.android.ui.prefs.AppPrefsWrapper
+import org.wordpress.android.util.WPAvatarUtils
+import org.wordpress.android.util.image.ImageManager
+import org.wordpress.android.util.image.ImageManager.RequestListener
+import org.wordpress.android.util.image.ImageType
+import org.wordpress.android.viewmodel.ResourceProvider
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class MeGravatarLoader @Inject constructor(
+    private val appPrefsWrapper: AppPrefsWrapper,
+    private val imageManager: ImageManager,
+    private val resourceProvider: ResourceProvider
+) {
+    fun load(
+        newAvatarSelected: Boolean,
+        avatarUrl: String,
+        injectFilePath: String?,
+        imageView: ImageView,
+        imageType: ImageType,
+        listener: RequestListener<Drawable>? = null
+    ) {
+        if (newAvatarSelected) {
+            // invalidate the specific gravatar entry from the bitmap cache. It will be updated via the injected
+            // request cache.
+            WordPress.getBitmapCache().removeSimilar(avatarUrl)
+            // Changing the signature invalidates Glide's cache
+            appPrefsWrapper.avatarVersion += 1
+        }
+
+        val bitmap = WordPress.getBitmapCache()[avatarUrl]
+        // Avatar's API doesn't synchronously update the image at avatarUrl. There is a replication lag
+        // (cca 5s), before the old avatar is replaced with the new avatar. Therefore we need to use this workaround,
+        // which temporary saves the new image into a local bitmap cache.
+        if (bitmap != null) {
+            imageManager.load(imageView, bitmap)
+        } else {
+            imageManager.loadIntoCircle(
+                imageView,
+                imageType,
+                if (newAvatarSelected && injectFilePath != null) {
+                    injectFilePath
+                } else {
+                    // If new avatar selected we force refresh the avatar
+                    val constructGravatarUrl = constructGravatarUrl(avatarUrl, newAvatarSelected)
+                    constructGravatarUrl
+                },
+                listener,
+                appPrefsWrapper.avatarVersion
+            )
+        }
+    }
+
+    fun constructGravatarUrl(rawAvatarUrl: String, forceRefresh: Boolean = false): String {
+        val avatarSz = resourceProvider.getDimensionPixelSize(R.dimen.avatar_sz_extra_small)
+        val cacheBuster = if (forceRefresh) System.currentTimeMillis().toString() else null
+        return WPAvatarUtils.rewriteAvatarUrl(rawAvatarUrl, avatarSz, cacheBuster)
+    }
+}

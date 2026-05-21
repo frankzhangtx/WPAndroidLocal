@@ -1,0 +1,3227 @@
+@file:Suppress("DEPRECATION")
+package org.wordpress.android.ui.posts
+
+import android.annotation.SuppressLint
+import android.app.ProgressDialog
+import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.drawable.Drawable
+import android.net.Uri
+import androidx.core.net.toUri
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.preference.PreferenceManager
+import android.text.Editable
+import android.text.TextUtils
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.MimeTypeMap
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
+import androidx.appcompat.app.ActionBar
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.Toolbar
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.util.Consumer
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.FragmentPagerAdapter
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.distinctUntilChanged
+import com.automattic.android.tracks.crashlogging.CrashLogging
+import com.automattic.android.tracks.crashlogging.JsException
+import com.automattic.android.tracks.crashlogging.JsExceptionCallback
+import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
+import kotlinx.parcelize.parcelableCreator
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
+import org.wordpress.android.R
+import org.wordpress.android.WordPress
+import org.wordpress.android.WordPress.Companion.getContext
+import org.wordpress.android.analytics.AnalyticsTracker
+import org.wordpress.android.analytics.AnalyticsTracker.Stat
+import org.wordpress.android.editor.EditorEditMediaListener
+import org.wordpress.android.editor.EditorFragmentAbstract
+import org.wordpress.android.ui.posts.editor.GutenbergKitEditorFragmentBase
+import org.wordpress.android.ui.posts.editor.GutenbergKitEditorFragmentBase.EditorFragmentListener
+import org.wordpress.android.editor.EditorImageMetaData
+import org.wordpress.android.editor.EditorImagePreviewListener
+import org.wordpress.android.editor.EditorImageSettingsListener
+import org.wordpress.android.editor.ExceptionLogger
+import org.wordpress.android.editor.gutenberg.DialogVisibility
+import org.wordpress.android.ui.posts.editor.GutenbergKitEditorFragment
+import org.wordpress.android.ui.posts.editor.GutenbergKitNetworkLogger
+import org.wordpress.android.editor.savedinstance.SavedInstanceDatabase
+import org.wordpress.android.editor.savedinstance.SavedInstanceDatabase.Companion.getDatabase
+import org.wordpress.android.fluxc.Dispatcher
+import org.wordpress.android.fluxc.action.AccountAction
+import org.wordpress.android.fluxc.generated.AccountActionBuilder
+import org.wordpress.android.fluxc.generated.EditorSettingsActionBuilder
+import org.wordpress.android.fluxc.generated.PostActionBuilder
+import org.wordpress.android.fluxc.generated.SiteActionBuilder
+import org.wordpress.android.fluxc.model.AccountModel
+import org.wordpress.android.fluxc.model.CauseOfOnPostChanged
+import org.wordpress.android.fluxc.model.MediaModel
+import org.wordpress.android.fluxc.model.MediaModel.MediaUploadState
+import org.wordpress.android.fluxc.model.PostImmutableModel
+import org.wordpress.android.fluxc.model.PostModel
+import org.wordpress.android.fluxc.model.SiteModel
+import org.wordpress.android.fluxc.model.post.PostStatus
+import org.wordpress.android.fluxc.network.UserAgent
+import org.wordpress.android.fluxc.network.rest.wpcom.site.PrivateAtomicCookie
+import org.wordpress.android.fluxc.store.AccountStore
+import org.wordpress.android.fluxc.store.AccountStore.OnAccountChanged
+import org.wordpress.android.fluxc.store.EditorSettingsStore.FetchEditorSettingsPayload
+import org.wordpress.android.fluxc.store.EditorSettingsStore.OnEditorSettingsChanged
+import org.wordpress.android.fluxc.store.EditorThemeStore
+import org.wordpress.android.fluxc.store.MediaStore
+import org.wordpress.android.fluxc.store.MediaStore.MediaErrorType
+import org.wordpress.android.fluxc.store.MediaStore.OnMediaChanged
+import org.wordpress.android.fluxc.store.MediaStore.OnMediaListFetched
+import org.wordpress.android.fluxc.store.MediaStore.OnMediaUploaded
+import org.wordpress.android.fluxc.store.PostStore
+import org.wordpress.android.fluxc.store.PostStore.OnPostChanged
+import org.wordpress.android.fluxc.store.PostStore.OnPostUploaded
+import org.wordpress.android.fluxc.store.PostStore.RemotePostPayload
+import org.wordpress.android.fluxc.store.QuickStartStore
+import org.wordpress.android.fluxc.store.SiteStore
+import org.wordpress.android.fluxc.store.SiteStore.OnPrivateAtomicCookieFetched
+import org.wordpress.android.fluxc.store.UploadStore
+import org.wordpress.android.fluxc.store.bloggingprompts.BloggingPromptsStore
+import org.wordpress.android.fluxc.tools.FluxCImageLoader
+import org.wordpress.android.imageeditor.preview.PreviewImageFragment
+import org.wordpress.android.imageeditor.preview.PreviewImageFragment.Companion.EditImageData.InputData
+import org.wordpress.android.support.ZendeskHelper
+import org.wordpress.android.ui.ActivityId
+import org.wordpress.android.ui.ActivityLauncher
+import org.wordpress.android.ui.ActivityNavigator
+import org.wordpress.android.ui.PrivateAtCookieRefreshProgressDialog.Companion.dismissIfNecessary
+import org.wordpress.android.ui.PrivateAtCookieRefreshProgressDialog.Companion.isShowing
+import org.wordpress.android.ui.PrivateAtCookieRefreshProgressDialog.Companion.showIfNecessary
+import org.wordpress.android.ui.PrivateAtCookieRefreshProgressDialog.PrivateAtCookieProgressDialogOnDismissListener
+import org.wordpress.android.ui.RequestCodes
+import org.wordpress.android.ui.Shortcut
+import org.wordpress.android.ui.WPWebViewActivity
+import org.wordpress.android.ui.history.HistoryDetailContainerFragment.KEY_REVISION
+import org.wordpress.android.ui.history.HistoryListItem.Revision
+import org.wordpress.android.ui.jetpackoverlay.JetpackFeatureRemovalPhaseHelper
+import org.wordpress.android.ui.main.BaseAppCompatActivity
+import org.wordpress.android.ui.media.MediaBrowserActivity
+import org.wordpress.android.ui.media.MediaBrowserType
+import org.wordpress.android.ui.media.MediaPreviewActivity
+import org.wordpress.android.ui.media.MediaSettingsActivity
+import org.wordpress.android.ui.pages.SnackbarMessageHolder
+import org.wordpress.android.ui.photopicker.MediaPickerConstants
+import org.wordpress.android.ui.photopicker.MediaPickerLauncher
+import org.wordpress.android.ui.posts.EditPostPublishSettingsFragment.Companion.newInstance
+import org.wordpress.android.ui.posts.EditPostRepository.UpdatePostResult
+import org.wordpress.android.ui.posts.EditPostRepository.UpdatePostResult.Updated
+import org.wordpress.android.ui.posts.EditorBloggingPromptsViewModel.EditorLoadedPrompt
+import org.wordpress.android.ui.posts.EditorConstants.RestartEditorOptions
+import org.wordpress.android.ui.posts.EditorJetpackSocialViewModel.ActionEvent.OpenEditShareMessage
+import org.wordpress.android.ui.posts.EditorJetpackSocialViewModel.ActionEvent.OpenSocialConnectionsList
+import org.wordpress.android.ui.posts.EditorJetpackSocialViewModel.ActionEvent.OpenSubscribeJetpackSocial
+import org.wordpress.android.ui.posts.FeaturedImageHelper.EnqueueFeaturedImageResult
+import org.wordpress.android.ui.posts.HistoryListFragment.Companion.newInstance
+import org.wordpress.android.ui.posts.HistoryListFragment.HistoryItemClickInterface
+import org.wordpress.android.ui.posts.PostEditorAnalyticsSession.Outcome
+import org.wordpress.android.ui.posts.RemotePreviewLogicHelper.PreviewLogicOperationResult
+import org.wordpress.android.ui.posts.RemotePreviewLogicHelper.RemotePreviewHelperFunctions
+import org.wordpress.android.ui.posts.RemotePreviewLogicHelper.RemotePreviewType
+import org.wordpress.android.ui.posts.editor.EditorActionsProvider
+import org.wordpress.android.ui.posts.editor.EditorMediaActions
+import org.wordpress.android.ui.posts.editor.EditorMenuHelper
+import org.wordpress.android.ui.posts.editor.EditorPhotoPicker
+import org.wordpress.android.ui.posts.editor.EditorPhotoPickerListener
+import org.wordpress.android.ui.posts.editor.EditorTracker
+import org.wordpress.android.ui.posts.editor.ImageEditorTracker
+import org.wordpress.android.ui.posts.editor.PostLoadingState
+import org.wordpress.android.ui.posts.editor.PostLoadingState.Companion.fromInt
+import org.wordpress.android.ui.posts.editor.PrimaryEditorAction
+import org.wordpress.android.ui.posts.editor.SecondaryEditorAction
+import org.wordpress.android.ui.posts.editor.StorePostViewModel
+import org.wordpress.android.ui.posts.editor.StorePostViewModel.ActivityFinishState
+import org.wordpress.android.ui.posts.editor.StorePostViewModel.UpdateFromEditor
+import org.wordpress.android.ui.posts.editor.StorePostViewModel.UpdateFromEditor.PostFields
+import org.wordpress.android.ui.posts.editor.XPostsCapabilityChecker
+import org.wordpress.android.ui.posts.editor.media.AddExistingMediaSource
+import org.wordpress.android.ui.posts.editor.media.EditorMedia
+import org.wordpress.android.ui.posts.editor.media.EditorMedia.AddMediaToPostUiState
+import org.wordpress.android.ui.posts.editor.media.EditorMediaListener
+import org.wordpress.android.ui.posts.prepublishing.PrepublishingBottomSheetFragment
+import org.wordpress.android.ui.posts.prepublishing.PrepublishingBottomSheetFragment.Companion.newInstance
+import org.wordpress.android.ui.posts.prepublishing.home.usecases.PublishPostImmediatelyUseCase
+import org.wordpress.android.ui.posts.reactnative.ReactNativeRequestHandler
+import org.wordpress.android.ui.posts.sharemessage.EditJetpackSocialShareMessageActivity
+import org.wordpress.android.ui.posts.sharemessage.EditJetpackSocialShareMessageActivity.Companion.createIntent
+import org.wordpress.android.ui.prefs.AppPrefs
+import org.wordpress.android.ui.prefs.SiteSettingsInterface
+import org.wordpress.android.ui.prefs.SiteSettingsInterface.SiteSettingsListener
+import org.wordpress.android.ui.reader.utils.ReaderUtilsWrapper
+import org.wordpress.android.ui.suggestion.SuggestionActivity
+import org.wordpress.android.ui.suggestion.SuggestionType
+import org.wordpress.android.ui.uploads.PostEvents.PostOpenedInEditor
+import org.wordpress.android.ui.uploads.PostEvents.PostPreviewingInEditor
+import org.wordpress.android.ui.uploads.UploadService
+import org.wordpress.android.ui.uploads.UploadUtils
+import org.wordpress.android.ui.uploads.UploadUtilsWrapper
+import org.wordpress.android.ui.utils.AuthenticationUtils
+import org.wordpress.android.ui.utils.UiHelpers
+import org.wordpress.android.util.ActivityUtils
+import org.wordpress.android.util.AniUtils
+import org.wordpress.android.util.AppLog
+import org.wordpress.android.util.AutolinkUtils
+import org.wordpress.android.util.BuildConfigWrapper
+import org.wordpress.android.util.DateTimeUtilsWrapper
+import org.wordpress.android.util.DisplayUtils
+import org.wordpress.android.util.FluxCUtils
+import org.wordpress.android.util.MediaUtils
+import org.wordpress.android.util.NetworkUtils
+import org.wordpress.android.util.PerAppLocaleManager
+import org.wordpress.android.util.ReblogUtils
+import org.wordpress.android.util.ShortcutUtils
+import org.wordpress.android.util.SiteUtils
+import org.wordpress.android.util.StorageUtilsProvider
+import org.wordpress.android.util.StringUtils
+import org.wordpress.android.util.ToastUtils
+import org.wordpress.android.util.UrlUtils
+import org.wordpress.android.util.WPMediaUtils
+import org.wordpress.android.util.WPPermissionUtils
+import org.wordpress.android.util.WPUrlUtils
+import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper
+import org.wordpress.android.util.analytics.AnalyticsUtils
+import org.wordpress.android.util.analytics.AnalyticsUtils.BlockEditorEnabledSource
+import org.wordpress.android.util.config.ContactSupportFeatureConfig
+import org.wordpress.android.util.config.GutenbergKitPluginsFeature
+import org.wordpress.android.util.config.PostConflictResolutionFeatureConfig
+import org.wordpress.android.util.extensions.setLiftOnScrollTargetViewIdAndRequestLayout
+import org.wordpress.android.util.helpers.MediaFile
+import org.wordpress.android.util.image.BlavatarShape
+import org.wordpress.android.util.image.ImageManager
+import org.wordpress.android.util.image.ImageType
+import org.wordpress.android.viewmodel.Event
+import org.wordpress.android.viewmodel.helpers.ToastMessageHolder
+import org.wordpress.android.viewmodel.storage.StorageUtilsViewModel
+import org.wordpress.android.ui.posts.navigation.EditPostNavigationViewModel
+import org.wordpress.android.ui.posts.prepublishing.PrepublishingViewModel
+import org.wordpress.android.ui.posts.navigation.EditPostDestination
+import org.wordpress.android.widgets.AppReviewManager.incrementInteractions
+import org.wordpress.android.widgets.WPSnackbar.Companion.make
+import org.wordpress.android.widgets.WPViewPager
+import org.wordpress.gutenberg.GutenbergView
+import org.wordpress.gutenberg.RecordedNetworkRequest
+import java.io.File
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+import javax.inject.Inject
+import kotlin.math.max
+import androidx.core.view.isNotEmpty
+
+// ViewPager configuration constants
+private const val VIEW_PAGER_PAGE_CONTENT = 0
+private const val VIEW_PAGER_PAGE_SETTINGS = 1
+private const val VIEW_PAGER_PAGE_PUBLISH_SETTINGS = 2
+private const val VIEW_PAGER_PAGE_HISTORY = 3
+private const val VIEW_PAGER_OFFSCREEN_PAGE_LIMIT = 4
+
+private const val MEDIA_ID_NO_FEATURED_IMAGE_SET = 0
+private const val DISABLED_ALPHA = 0.5f
+
+@Suppress("LargeClass")
+class GutenbergKitActivity : BaseAppCompatActivity(), EditorImageSettingsListener,
+    EditorImagePreviewListener, EditorEditMediaListener, EditorFragmentListener,
+    ActivityCompat.OnRequestPermissionsResultCallback, EditorMediaActions,
+    EditorPhotoPickerListener, EditorMediaListener, EditPostSettingsFragment.EditorDataProvider,
+    HistoryItemClickInterface, PrivateAtCookieProgressDialogOnDismissListener, ExceptionLogger,
+    SiteSettingsListener {
+    private var restartEditorOption: RestartEditorOptions = RestartEditorOptions.NO_RESTART
+    private var postEditorAnalyticsSession: PostEditorAnalyticsSession? = null
+    private var isConfigChange: Boolean = false
+
+    /**
+     * The PagerAdapter that will provide
+     * fragments for each of the sections. We use a
+     * FragmentPagerAdapter derivative, which will keep every
+     * loaded fragment in memory. If this becomes too memory intensive, it
+     * may be best to switch to a
+     * FragmentStatePagerAdapter.
+     */
+    private var sectionsPagerAdapter: SectionsPagerAdapter? = null
+
+    /**
+     * The ViewPager that will host the section contents.
+     */
+    var viewPager: WPViewPager? = null
+    private var revision: Revision? = null
+    private var editorFragment: GutenbergKitEditorFragment? = null
+    private var editPostSettingsFragment: EditPostSettingsFragment? = null
+    private var editorPhotoPicker: EditorPhotoPicker? = null
+    private var progressDialog: ProgressDialog? = null
+    private var addingMediaToEditorProgressDialog: ProgressDialog? = null
+    private var isNewPost: Boolean = false
+    private var isPage: Boolean = false
+    private var isLandingEditor: Boolean = false
+    private var hasSetPostContent: Boolean = false
+    private var postLoadingState: PostLoadingState = PostLoadingState.NONE
+    private var isXPostsCapable: Boolean? = null
+    private var onGetSuggestionResult: Consumer<String?>? = null
+    private var isVoiceContentSet = false
+
+    // For opening the context menu after permissions have been granted
+    private var menuView: View? = null
+    private var appBarLayout: AppBarLayout? = null
+    private var toolbar: Toolbar? = null
+    private var menuHasUndo: Boolean = false
+    private var menuHasRedo: Boolean = false
+    private var isModalDialogOpen: Boolean = false
+    private var backPressedCallback: OnBackPressedCallback? = null
+    private var closeButton: View? = null
+    private var showPrepublishingBottomSheetHandler: Handler? = null
+    private var showPrepublishingBottomSheetRunnable: Runnable? = null
+    private var htmlModeMenuStateOn: Boolean = false
+    private var updatingPostArea: FrameLayout? = null
+
+    @Inject lateinit var dispatcher: Dispatcher
+
+    @Inject lateinit var userAgent: UserAgent
+
+    @Inject lateinit var accountStore: AccountStore
+
+    @Inject lateinit var siteStore: SiteStore
+
+    @Inject lateinit var postStore: PostStore
+
+    @Inject lateinit var mediaStore: MediaStore
+
+    @Inject lateinit var uploadStore: UploadStore
+
+    @Inject lateinit var editorThemeStore: EditorThemeStore
+
+    @Inject lateinit var imageLoader: FluxCImageLoader
+
+    @Inject lateinit var shortcutUtils: ShortcutUtils
+
+    @Inject lateinit var quickStartStore: QuickStartStore
+
+    @Inject lateinit var imageManager: ImageManager
+
+    @Inject lateinit var uiHelpers: UiHelpers
+
+    @Inject lateinit var remotePreviewLogicHelper: RemotePreviewLogicHelper
+
+    @Inject lateinit var progressDialogHelper: ProgressDialogHelper
+
+    @Inject lateinit var featuredImageHelper: FeaturedImageHelper
+
+    @Inject lateinit var editorCameraHelper: EditorCameraHelper
+
+    @Inject lateinit var reactNativeRequestHandler: ReactNativeRequestHandler
+
+    @Inject lateinit var editorMedia: EditorMedia
+
+    @Inject lateinit var perAppLocaleManager: PerAppLocaleManager
+
+    @Inject internal lateinit var editPostRepository: EditPostRepository
+
+    @Inject lateinit var postUtilsWrapper: PostUtilsWrapper
+
+    @Inject lateinit var editorTracker: EditorTracker
+
+    @Inject lateinit var uploadUtilsWrapper: UploadUtilsWrapper
+
+    @Inject lateinit var editorActionsProvider: EditorActionsProvider
+
+    @Inject lateinit var buildConfigWrapper: BuildConfigWrapper
+
+    @Inject lateinit var dateTimeUtils: DateTimeUtilsWrapper
+
+    @Inject lateinit var readerUtilsWrapper: ReaderUtilsWrapper
+
+    @Inject lateinit var privateAtomicCookie: PrivateAtomicCookie
+
+    @Inject lateinit var imageEditorTracker: ImageEditorTracker
+
+    @Inject lateinit var reblogUtils: ReblogUtils
+
+    @Inject lateinit var analyticsTrackerWrapper: AnalyticsTrackerWrapper
+
+    @Inject lateinit var publishPostImmediatelyUseCase: PublishPostImmediatelyUseCase
+
+    @Inject lateinit var xPostsCapabilityChecker: XPostsCapabilityChecker
+
+    @Inject lateinit var crashLogging: CrashLogging
+
+    @Inject lateinit var mediaPickerLauncher: MediaPickerLauncher
+
+    @Inject lateinit var updateFeaturedImageUseCase: UpdateFeaturedImageUseCase
+
+    @Inject lateinit var zendeskHelper: ZendeskHelper
+
+    @Inject lateinit var bloggingPromptsStore: BloggingPromptsStore
+
+    @Inject lateinit var jetpackFeatureRemovalPhaseHelper: JetpackFeatureRemovalPhaseHelper
+
+    @Inject lateinit var contactSupportFeatureConfig: ContactSupportFeatureConfig
+
+    @Inject lateinit var postConflictResolutionFeatureConfig: PostConflictResolutionFeatureConfig
+
+    @Inject lateinit var gutenbergKitPluginsFeature: GutenbergKitPluginsFeature
+
+    @Inject lateinit var activityNavigator: ActivityNavigator
+
+    @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
+    @Inject lateinit var storePostViewModel: StorePostViewModel
+    @Inject lateinit var storageUtilsViewModel: StorageUtilsViewModel
+    @Inject lateinit var editorBloggingPromptsViewModel: EditorBloggingPromptsViewModel
+    @Inject lateinit var editorJetpackSocialViewModel: EditorJetpackSocialViewModel
+    @Inject lateinit var gutenbergKitNetworkLogger: GutenbergKitNetworkLogger
+    private lateinit var editPostNavigationViewModel: EditPostNavigationViewModel
+    private lateinit var editPostSettingsViewModel: EditPostSettingsViewModel
+    private lateinit var prepublishingViewModel: PrepublishingViewModel
+    private lateinit var editPostAuthViewModel: EditPostAuthViewModel
+
+    private lateinit var siteModel: SiteModel
+
+    private var siteSettings: SiteSettingsInterface? = null
+    private var isJetpackSsoEnabled: Boolean = false
+    private var networkErrorOnLastMediaFetchAttempt: Boolean = false
+    private var editShareMessageActivityResultLauncher: ActivityResultLauncher<Intent>? = null
+    private val hideUpdatingPostAreaHandler: Handler = Handler(Looper.getMainLooper())
+    private var hideUpdatingPostAreaRunnable: Runnable? = null
+    private var updatingPostStartTime: Long = 0L
+
+    private fun newPostSetup(title: String? = null, content: String? = null) {
+        isNewPost = true
+        // Create a new post
+        editPostRepository.set {
+            val post = postStore.instantiatePostModel(
+                siteModel, isPage, title, content,
+                PostStatus.DRAFT.toString(), null, null, false
+            )
+            post
+        }
+        editPostRepository.savePostSnapshot()
+        EventBus.getDefault().postSticky(
+            PostOpenedInEditor(editPostRepository.localSiteId, editPostRepository.id)
+        )
+        shortcutUtils.reportShortcutUsed(Shortcut.CREATE_NEW_POST)
+    }
+
+    private fun newPostFromShareAction() {
+        if (EditorUnitFunctions.isMediaTypeIntent(intent, null)) {
+            newPostSetup()
+            setPostMediaFromShareAction()
+        } else {
+            val title = intent.getStringExtra(Intent.EXTRA_SUBJECT)
+            val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+            val content = EditorUnitFunctions.migrateToGutenbergEditor(AutolinkUtils.autoCreateLinks(text?:""))
+            newPostSetup(title, content)
+        }
+    }
+
+    private fun newReblogPostSetup() {
+        val title = intent.getStringExtra(EditorConstants.EXTRA_REBLOG_POST_TITLE)
+        val quote = intent.getStringExtra(EditorConstants.EXTRA_REBLOG_POST_QUOTE)
+        val citation = intent.getStringExtra(EditorConstants.EXTRA_REBLOG_POST_CITATION)
+        val image = intent.getStringExtra(EditorConstants.EXTRA_REBLOG_POST_IMAGE)
+        val content = reblogUtils.reblogContent(image, quote ?: "", title, citation)
+        newPostSetup(title, content)
+    }
+
+    private fun newPageFromLayoutPickerSetup(title: String?, layoutSlug: String?) {
+        val content = siteStore.getBlockLayoutContent(siteModel, layoutSlug ?: "")
+        newPostSetup(title, content)
+    }
+
+    private fun createPostEditorAnalyticsSessionTracker(
+        post: PostImmutableModel?,
+        site: SiteModel,
+        isNewPost: Boolean
+    ) {
+        if (postEditorAnalyticsSession == null) {
+            val editor = PostEditorAnalyticsSession.Editor.GUTENBERG_KIT
+            postEditorAnalyticsSession = PostEditorAnalyticsSession(
+                editor, post, site, isNewPost, analyticsTrackerWrapper
+            )
+        }
+    }
+
+    private fun createEditShareMessageActivityResultLauncher() {
+        editShareMessageActivityResultLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result: ActivityResult ->
+            if (result.resultCode == RESULT_OK) {
+                val data: Intent? = result.data
+                data?.let { intent ->
+                    val shareMessage: String? =
+                        intent.getStringExtra(EditJetpackSocialShareMessageActivity.RESULT_UPDATED_SHARE_MESSAGE)
+                    shareMessage?.let { message ->
+                        editorJetpackSocialViewModel.onJetpackSocialShareMessageChanged(message)
+                    }
+                }
+            }
+        }
+    }
+
+    @Suppress("LongMethod", "ComplexMethod", "ReturnCount")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        (application as WordPress).component().inject(this)
+        initializeViewModels()
+
+        // Track if this editor launch came via EditorLauncher (only on initial creation)
+        if (savedInstanceState == null
+            && intent.getBooleanExtra(EditorLauncher.EXTRA_LAUNCHED_VIA_EDITOR_LAUNCHER, false)) {
+            analyticsTrackerWrapper.track(Stat.EDITOR_LAUNCHED_VIA_EDITOR_LAUNCHER)
+        }
+
+        setContentView(R.layout.new_edit_post_activity)
+
+        // Handle edge-to-edge with IME insets for keyboard management
+        setupEdgeToEdgeWithImeInsets()
+
+        backPressedCallback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (isModalDialogOpen) {
+                    editorFragment?.dismissTopModal()
+                } else {
+                    handleBackPressed()
+                }
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, backPressedCallback!!)
+        dispatcher.register(this)
+
+        createEditShareMessageActivityResultLauncher()
+
+        if (!initializeSiteModel(savedInstanceState)) {
+            ToastUtils.showToast(this, R.string.blog_not_found, ToastUtils.Duration.SHORT)
+            finish()
+            return
+        }
+
+        if (shouldRequireApplicationPassword()) {
+            activityNavigator.navigateToApplicationPasswordRequired(
+                this,
+                siteModel,
+                resources.getString(R.string.application_password_required_block_editor)
+            )
+            finish()
+            return
+        }
+
+        isLandingEditor = intent.extras?.getBoolean(EditorConstants.EXTRA_IS_LANDING_EDITOR) ?: false
+
+        refreshMobileEditorFromSiteSetting()
+
+        // Initialize navigation state management
+        initializeNavigation()
+
+        // Initialize editor settings and UI components based on the siteModel
+        setupEditor()
+        setupToolbar()
+
+        val fragmentManager: FragmentManager = supportFragmentManager
+        val isRestarting = EditorLauncher.checkToRestart(intent)
+
+        if (savedInstanceState == null) {
+            handleIntentExtras(intent.extras, isRestarting)
+        } else {
+            retrieveSavedInstanceState(savedInstanceState)
+        }
+
+        // Ensure we have a valid post
+        if (!editPostRepository.hasPost()) {
+            showErrorAndFinish(R.string.post_not_found)
+            return
+        }
+        editorMedia.start(siteModel, this)
+        startObserving()
+        editorFragment?.let {
+            hasSetPostContent = true
+            it.setImageLoader(imageLoader)
+        }
+
+        // ok now we are sure to have both a valid Post, let's start the editing session tracker
+        createPostEditorAnalyticsSessionTracker(
+            post = editPostRepository.getPost(),
+            site = siteModel,
+            isNewPost = isNewPost
+        )
+        logTemplateSelection()
+
+        // Bump post created analytics only once, first time the editor is opened
+        if (isNewPost && (savedInstanceState == null) && !isRestarting) {
+            AnalyticsUtils.trackEditorCreatedPost(
+                intent.action,
+                intent,
+                siteStore.getSiteByLocalId(editPostRepository.localSiteId),
+                editPostRepository.getPost()
+            )
+        }
+        if (!isNewPost) {
+            // if we are opening a Post for which an error notification exists, we need to remove it from the dashboard
+            // to prevent the user from tapping RETRY on a Post that is being currently edited
+            UploadService.cancelFinalNotification(this, editPostRepository.getPost())
+        }
+        sectionsPagerAdapter = SectionsPagerAdapter(fragmentManager)
+
+        // Ensure cookies are available for private sites, so that protected media loads successfully
+        when {
+            siteModel.isPrivateWPComAtomic && privateAtomicCookie.isCookieRefreshRequired() -> {
+                showIfNecessary(fragmentManager)
+                dispatcher.dispatch(
+                    SiteActionBuilder.newFetchPrivateAtomicCookieAction(
+                        SiteStore.FetchPrivateAtomicCookiePayload(siteModel.siteId)
+                    )
+                )
+            }
+            siteModel.isWPCom && !siteModel.isWPComAtomic && siteModel.isPrivate -> {
+                val currentAuthState = editPostAuthViewModel.wpComCookieAuthState.value
+                if (currentAuthState !is EditPostAuthViewModel.WpComCookieAuthState.Success) {
+                    showIfNecessary(fragmentManager)
+                    editPostAuthViewModel.fetchWpComCookies()
+                } else {
+                    handleSuccessfulWpComCookieAuthState()
+                }
+            }
+            else -> {
+                setupViewPager()
+            }
+        }
+        ActivityId.trackLastActivity(ActivityId.POST_EDITOR)
+        setupPrepublishingBottomSheetRunnable()
+
+        // The check on savedInstanceState should allow to show the dialog only on first start
+        // (even in cases when the VM could be re-created like when activity is destroyed in the background)
+        storageUtilsViewModel.start(savedInstanceState == null)
+        editorJetpackSocialViewModel.start(siteModel, (editPostRepository))
+        customizeToolbar()
+        updatingPostArea = findViewById(R.id.updating)
+
+        // check if post content needs updating
+        if (postConflictResolutionFeatureConfig.isEnabled()) {
+            storePostViewModel.checkIfUpdatedPostVersionExists((editPostRepository), siteModel)
+        }
+    }
+
+    /**
+     * Enables edge-to-edge display with proper IME (keyboard) inset handling.
+     * This ensures the editor toolbar remains visible above the keyboard on all devices.
+     */
+    private fun setupEdgeToEdgeWithImeInsets() {
+        val rootView = findViewById<View>(R.id.editor_activity)
+
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, insets ->
+            val systemBarsInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+
+            // Apply system bar insets to keep content within safe areas
+            view.setPadding(
+                systemBarsInsets.left,
+                systemBarsInsets.top,
+                systemBarsInsets.right,
+                // Use IME insets for bottom padding when keyboard is visible, otherwise system bars
+                maxOf(systemBarsInsets.bottom, imeInsets.bottom)
+            )
+
+            WindowInsetsCompat.CONSUMED
+        }
+    }
+
+    private fun initializeViewModels() {
+        editPostNavigationViewModel = ViewModelProvider(this, viewModelFactory)[EditPostNavigationViewModel::class.java]
+        editPostSettingsViewModel = ViewModelProvider(this, viewModelFactory)[EditPostSettingsViewModel::class.java]
+        prepublishingViewModel = ViewModelProvider(this, viewModelFactory)[PrepublishingViewModel::class.java]
+        editPostAuthViewModel = ViewModelProvider(this, viewModelFactory)[EditPostAuthViewModel::class.java]
+    }
+
+    private fun initializeSiteModel(savedInstanceState: Bundle?): Boolean {
+        // Initialize siteModel based on intent or savedInstanceState and set it only once
+        val tempSiteModel = if (savedInstanceState == null) {
+            val site = intent.getSerializableExtra(WordPress.SITE) as SiteModel?
+            val siteFromQuickPressBlogId = getSiteModelForExtraQuickPressBlogIdIfRequested(intent.extras)
+            siteFromQuickPressBlogId ?: site
+        } else {
+            savedInstanceState.getSerializable(WordPress.SITE) as SiteModel?
+        }
+        tempSiteModel?.let { siteModel = it }?: return false
+
+        return true
+    }
+
+    private fun shouldRequireApplicationPassword(): Boolean {
+        return !siteModel.isUsingSelfHostedRestApi &&
+                !siteModel.isWPCom && // WPCOM Simple sites use bearer tokens
+                !siteModel.isPrivateWPComAtomic // App passwords don't support private Atomic sites
+    }
+
+    private fun refreshMobileEditorFromSiteSetting() {
+        // Make sure to use the latest fresh info about the site we've in the DB set only the editor setting for now
+        siteStore.getSiteByLocalId(siteModel.id)?.let {
+                siteModel.mobileEditor = it.mobileEditor
+            siteSettings = SiteSettingsInterface.getInterface(this, siteModel, this)
+            // initialize settings with locally cached values, fetch remote on first pass
+            fetchSiteSettings()
+        }
+    }
+    private fun getSiteModelForExtraQuickPressBlogIdIfRequested(extras: Bundle?): SiteModel? {
+        if (extras == null || extras.containsKey(EditorConstants.EXTRA_POST_LOCAL_ID)) {
+            return null
+        }
+
+        val isActionSendOrNewMedia = EditorUnitFunctions.isActionSendOrNewMedia(intent.action)
+        val hasQuickPressFlag = extras.containsKey(EditorConstants.EXTRA_IS_QUICKPRESS)
+        val hasQuickPressBlogId = extras.containsKey(EditorConstants.EXTRA_QUICKPRESS_BLOG_ID)
+
+        // QuickPress might want to use a different blog than the current blog
+        return if ((isActionSendOrNewMedia || hasQuickPressFlag) && hasQuickPressBlogId) {
+            val localSiteId = intent.getIntExtra(EditorConstants.EXTRA_QUICKPRESS_BLOG_ID, -1)
+            siteStore.getSiteByLocalId(localSiteId)
+        } else {
+            null
+        }
+    }
+
+    @Suppress("CyclomaticComplexMethod")
+    private fun handleIntentExtras(extras: Bundle?, isRestarting: Boolean) {
+        extras ?: return
+        val action = intent.action
+
+        if (!extras.containsKey(EditorConstants.EXTRA_POST_LOCAL_ID) ||
+            EditorUnitFunctions.isActionSendOrNewMedia(intent.action) ||
+            extras.containsKey(EditorConstants.EXTRA_IS_QUICKPRESS)
+        ) {
+            isPage = extras.getBoolean(EditorConstants.EXTRA_IS_PAGE)
+            if (isPage && !TextUtils.isEmpty(extras.getString(EditorConstants.EXTRA_PAGE_TITLE))) {
+                newPageFromLayoutPickerSetup(
+                    extras.getString(EditorConstants.EXTRA_PAGE_TITLE),
+                    extras.getString(EditorConstants.EXTRA_PAGE_TEMPLATE)
+                )
+            } else if ((Intent.ACTION_SEND == action)) {
+                newPostFromShareAction()
+            } else if ((EditorConstants.ACTION_REBLOG == action)) {
+                newReblogPostSetup()
+            } else {
+                newPostSetup()
+            }
+        } else {
+            editPostRepository.loadPostByLocalPostId(extras.getInt(EditorConstants.EXTRA_POST_LOCAL_ID))
+            // Load post from extra's
+            if (editPostRepository.hasPost()) {
+                if (extras.getBoolean(EditorConstants.EXTRA_LOAD_AUTO_SAVE_REVISION)) {
+                    editPostRepository.update { postModel: PostModel ->
+                        val updateTitle = !TextUtils.isEmpty(postModel.autoSaveTitle)
+                        if (updateTitle) {
+                            postModel.setTitle(postModel.autoSaveTitle)
+                        }
+                        val updateContent = !TextUtils.isEmpty(postModel.autoSaveContent)
+                        if (updateContent) {
+                            postModel.setContent(postModel.autoSaveContent)
+                        }
+                        val updateExcerpt = !TextUtils.isEmpty(postModel.autoSaveExcerpt)
+                        if (updateExcerpt) {
+                            postModel.setExcerpt(postModel.autoSaveExcerpt)
+                        }
+                        updateTitle || updateContent || updateExcerpt
+                    }
+                    editPostRepository.savePostSnapshot()
+                }
+                initializePostObject()
+            } else if (isRestarting) {
+                newPostSetup()
+            }
+        }
+
+        if (isRestarting && extras.getBoolean(EditorConstants.EXTRA_IS_NEW_POST)) {
+            // editor was on a new post before the switch so, keep that signal.
+            // Fixes https://github.com/wordpress-mobile/gutenberg-mobile/issues/2072
+            isNewPost = true
+        }
+
+        // retrieve Editor session data if switched editors
+        if (isRestarting && extras.containsKey(EditorConstants.STATE_KEY_EDITOR_SESSION_DATA)) {
+            postEditorAnalyticsSession = PostEditorAnalyticsSession
+                .fromBundle(extras, EditorConstants.STATE_KEY_EDITOR_SESSION_DATA, analyticsTrackerWrapper)
+        }
+    }
+
+    private fun retrieveSavedInstanceState(savedInstanceState: Bundle?) {
+        savedInstanceState?.let { state ->
+            state.getParcelableArrayList<Uri>(EditorConstants.STATE_KEY_DROPPED_MEDIA_URIS)
+                ?.let { parcelableArrayList ->
+                    editorMedia.droppedMediaUris = parcelableArrayList
+                }
+
+            isNewPost = state.getBoolean(EditorConstants.STATE_KEY_IS_NEW_POST, false)
+            isVoiceContentSet = state.getBoolean(EditorConstants.STATE_KEY_IS_VOICE_CONTENT_SET, false)
+            updatePostLoadingAndDialogState(
+                fromInt(
+                    state.getInt(EditorConstants.STATE_KEY_POST_LOADING_STATE, 0)
+                )
+            )
+            dB?.let {
+                revision = it.getParcel(EditorConstants.STATE_KEY_REVISION, parcelableCreator())
+            }
+            postEditorAnalyticsSession = PostEditorAnalyticsSession
+                .fromBundle(
+                    state,
+                    EditorConstants.STATE_KEY_EDITOR_SESSION_DATA,
+                    analyticsTrackerWrapper
+                )
+
+            // if we have a remote id saved, let's first try that, as the local Id might have changed after FETCH_POSTS
+            if (state.containsKey(EditorConstants.STATE_KEY_POST_REMOTE_ID)) {
+                editPostRepository.loadPostByRemotePostId(
+                    state.getLong(EditorConstants.STATE_KEY_POST_REMOTE_ID),
+                    siteModel
+                )
+                initializePostObject()
+            } else if (state.containsKey(EditorConstants.STATE_KEY_POST_LOCAL_ID)) {
+                editPostRepository.loadPostByLocalPostId(
+                    state.getInt(EditorConstants.STATE_KEY_POST_LOCAL_ID)
+                )
+                initializePostObject()
+            }
+
+            (supportFragmentManager.getFragment(
+                state,
+                EditorConstants.STATE_KEY_EDITOR_FRAGMENT
+            ) as GutenbergKitEditorFragment?)?.let { frag ->
+                editorFragment = frag
+            }
+        }
+    }
+
+    private fun setupEditor() {
+        // Check whether to show the visual editor
+
+        // NOTE: Migrate to 'androidx.preference.PreferenceManager' and 'androidx.preference.Preference'
+        //  This migration is not possible at the moment for 'PreferenceManager.setDefaultValues(...)' because it
+        //  depends on the migration of 'EditTextPreferenceWithValidation', which is a type of
+        //  'android.preference.EditTextPreference', thus a type of 'android.preference.Preference', and as such it will
+        //  throw this 'java.lang.ClassCastException': 'org.wordpress.android.ui.prefs.EditTextPreferenceWithValidation
+        //  cannot be cast to androidx.preference.Preference'
+        PreferenceManager.setDefaultValues(this, R.xml.account_settings, false)
+        editorPhotoPicker = EditorPhotoPicker(
+            activity = this,
+            editorPhotoPickerListener = this,
+            editorMediaActions = this,
+            editorMedia = editorMedia,
+            mediaPickerLauncher = mediaPickerLauncher,
+            siteModelProvider = { siteModel },
+            showAztecEditor = false
+        )
+    }
+
+    private fun setupToolbar(){
+        // Set up the action bar.
+        toolbar = findViewById(R.id.toolbar_main)
+        setSupportActionBar(toolbar)
+        val actionBar: ActionBar? = supportActionBar
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(false)
+            actionBar.setDisplayShowTitleEnabled(false)
+        }
+        appBarLayout = findViewById(R.id.appbar_main)
+    }
+
+    private fun showUpdatingPostArea() {
+        updatingPostArea?.visibility = View.VISIBLE
+        updatingPostStartTime = System.currentTimeMillis()
+        // Cancel any pending hide operations to avoid conflicts
+        hideUpdatingPostAreaRunnable?.let {
+            hideUpdatingPostAreaHandler.removeCallbacks(it)
+        }
+    }
+
+    private fun hideUpdatingPostArea() {
+        val elapsedTime = System.currentTimeMillis() - updatingPostStartTime
+        val delay: Long = EditorConstants.MIN_UPDATING_POST_DISPLAY_TIME - elapsedTime
+        if (delay > 0) {
+            // Delay hiding the view if the elapsed time is less than the minimum display time
+            hideUpdatingPostAreaWithDelay(delay)
+        } else {
+            // Hide the view immediately if the minimum display time has been met or exceeded
+            updatingPostArea?.visibility = View.GONE
+        }
+    }
+
+    private fun hideUpdatingPostAreaWithDelay(delay: Long) {
+        // Define the runnable only once or ensure it's the same instance if it's already defined
+        if (hideUpdatingPostAreaRunnable == null) {
+            hideUpdatingPostAreaRunnable = Runnable {
+                updatingPostArea?.visibility = View.GONE
+            }
+        }
+        hideUpdatingPostAreaRunnable?.let {
+            hideUpdatingPostAreaHandler.postDelayed(it, delay)
+        }
+    }
+
+    private fun customizeToolbar() {
+        toolbar?.let {
+            val overflowIcon: Drawable? = ContextCompat.getDrawable(this, R.drawable.more_vertical)
+            it.overflowIcon = overflowIcon
+
+            // Custom close button
+            closeButton = it.findViewById(R.id.edit_post_header)
+            closeButton?.setOnClickListener { handleBackPressed() }
+            // Update site icon if mSite is available, if not it will use the placeholder.
+            val siteIconUrl = SiteUtils.getSiteIconUrl(
+                siteModel,
+                resources.getDimensionPixelSize(R.dimen.blavatar_sz_small)
+            )
+
+            val siteIcon: ImageView = it.findViewById(R.id.close_editor_site_icon)
+            val blavatarType: ImageType = SiteUtils.getSiteImageType(
+                siteModel.isWpForTeamsSite, BlavatarShape.SQUARE_WITH_ROUNDED_CORNERES
+            )
+            imageManager.loadImageWithCorners(
+                siteIcon, blavatarType, siteIconUrl,
+                resources.getDimensionPixelSize(R.dimen.edit_post_header_image_corner_radius)
+            )
+        }
+    }
+
+    private fun setOverflowMenuEnabled(enabled: Boolean) {
+        val currentToolbar = toolbar ?: return
+        val overflowButton = findOverflowButton(currentToolbar)
+        overflowButton?.let {
+            it.isEnabled = enabled
+            it.alpha = if (enabled) 1.0f else DISABLED_ALPHA
+        }
+    }
+
+    private fun findOverflowButton(toolbar: Toolbar): View? {
+        // Try multiple ways to find the overflow menu button
+        @SuppressLint("DiscouragedApi")
+        return toolbar.findViewById<View?>(
+            resources.getIdentifier("action_overflow_menu_button", "id", "android")
+        ) ?: toolbar.findViewById<View?>(
+            resources.getIdentifier("overflow_button", "id", packageName)
+        ) ?: findOverflowButtonInChildren(toolbar)
+    }
+
+    private fun findOverflowButtonInChildren(toolbar: Toolbar): View? {
+        // Find it by iterating through toolbar children
+        for (i in 0 until toolbar.childCount) {
+            val child = toolbar.getChildAt(i)
+            if (child.javaClass.simpleName == "ActionMenuView") {
+                val actionMenuView = child as? android.view.ViewGroup
+                // The overflow button is typically the last child of ActionMenuView
+                if (actionMenuView != null && actionMenuView.isNotEmpty()) {
+                    return actionMenuView.getChildAt(actionMenuView.childCount - 1)
+                }
+            }
+        }
+        return null
+    }
+
+    private fun fetchSiteSettings() {
+        siteSettings?.init(true)
+    }
+
+    @Suppress("unused")
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onPrivateAtomicCookieFetched(event: OnPrivateAtomicCookieFetched) {
+        // if the dialog is not showing by the time cookie fetched it means that it was dismissed and content was loaded
+        if (isShowing(supportFragmentManager)) {
+            setupViewPager()
+            dismissIfNecessary(supportFragmentManager)
+        }
+        if (event.isError) {
+            AppLog.e(
+                AppLog.T.EDITOR,
+                "Failed to load private AT cookie. " + event.error.type + " - " + event.error.message
+            )
+            make(findViewById(R.id.editor_activity), R.string.media_accessing_failed, Snackbar.LENGTH_LONG)
+                .show()
+        }
+    }
+
+    override fun onCookieProgressDialogCancelled() {
+        make(findViewById(R.id.editor_activity), R.string.media_accessing_failed, Snackbar.LENGTH_LONG)
+            .show()
+        setupViewPager()
+    }
+
+    // SiteSettingsListener
+    override fun onSaveError(error: Exception?) { /* No Op */ }
+    override fun onFetchError(error: Exception?) { /* No Op */ }
+    override fun onSettingsUpdated() {
+        // Let's hold the value in local variable as listener is too noisy
+        val isJetpackSsoEnabled = siteModel.isJetpackConnected && siteSettings?.isJetpackSsoEnabled == true
+        if (this.isJetpackSsoEnabled != isJetpackSsoEnabled) {
+            this.isJetpackSsoEnabled = isJetpackSsoEnabled
+        }
+    }
+
+    override fun onSettingsSaved() { /* No Op */ }
+    override fun onCredentialsValidated(error: Exception?) { /* No Op */ }
+
+    /**
+     * Initialize navigation state management for the edit post flow.
+     */
+    private fun initializeNavigation() {
+        AppLog.d(AppLog.T.POSTS, "GutenbergKitActivity: Initializing navigation state management")
+
+        // Observe navigation events to update ViewPager position
+        editPostNavigationViewModel.navigationEvents.observe(this) { event ->
+            event.getContentIfNotHandled()?.let { destination ->
+                AppLog.d(AppLog.T.POSTS, "GutenbergKitActivity: Handling navigation event to $destination")
+                updateViewPagerPosition(destination)
+            }
+        }
+
+        // Observe current destination changes for UI updates
+        editPostNavigationViewModel.currentDestination.observe(this) { destination ->
+            AppLog.d(AppLog.T.POSTS, "GutenbergKitActivity: Current destination changed to $destination")
+            updateUIForDestination(destination)
+        }
+
+        editPostAuthViewModel.wpComCookieAuthState.distinctUntilChanged().observe(this) { authState ->
+            when (authState) {
+                is EditPostAuthViewModel.WpComCookieAuthState.Loading -> {
+                    showIfNecessary(supportFragmentManager)
+                }
+                is EditPostAuthViewModel.WpComCookieAuthState.Success -> {
+                    handleSuccessfulWpComCookieAuthState()
+                }
+                is EditPostAuthViewModel.WpComCookieAuthState.Error -> {
+                    if (isShowing(supportFragmentManager)) {
+                        setupViewPager()
+                        dismissIfNecessary(supportFragmentManager)
+                    }
+                    make(
+                        findViewById(R.id.editor_activity),
+                        R.string.media_accessing_failed,
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+                is EditPostAuthViewModel.WpComCookieAuthState.Idle -> {
+                    // Do nothing - wait for actual authentication to be triggered
+                }
+            }
+        }
+    }
+
+    /**
+     * Updates ViewPager position based on navigation destination.
+     */
+    private fun updateViewPagerPosition(destination: EditPostDestination) {
+        val targetPage = when (destination) {
+            EditPostDestination.Editor -> VIEW_PAGER_PAGE_CONTENT
+            EditPostDestination.Settings -> VIEW_PAGER_PAGE_SETTINGS
+            EditPostDestination.PublishSettings -> VIEW_PAGER_PAGE_PUBLISH_SETTINGS
+            EditPostDestination.History -> VIEW_PAGER_PAGE_HISTORY
+        }
+
+        viewPager?.let { pager ->
+            if (pager.currentItem != targetPage) {
+                AppLog.d(
+                    AppLog.T.POSTS,
+                    "GutenbergKitActivity: Moving ViewPager from ${pager.currentItem} to $targetPage"
+                )
+                pager.currentItem = targetPage
+            }
+        }
+    }
+
+    /**
+     * Updates UI elements based on current navigation destination.
+     */
+    private fun updateUIForDestination(destination: EditPostDestination) {
+        when (destination) {
+            EditPostDestination.Editor -> {
+                title = SiteUtils.getSiteNameOrHomeURL(siteModel)
+                appBarLayout?.setLiftOnScrollTargetViewIdAndRequestLayout(View.NO_ID)
+                toolbar?.setBackgroundResource(R.drawable.tab_layout_background)
+            }
+
+            EditPostDestination.Settings -> {
+                setTitle(if (editPostRepository.isPage) R.string.page_settings else R.string.post_settings)
+                editorPhotoPicker?.hidePhotoPicker()
+                appBarLayout?.liftOnScrollTargetViewId = R.id.settings_fragment_root
+                toolbar?.background = null
+            }
+
+            EditPostDestination.PublishSettings -> {
+                setTitle(R.string.publish_date)
+                editorPhotoPicker?.hidePhotoPicker()
+                appBarLayout?.setLiftOnScrollTargetViewIdAndRequestLayout(View.NO_ID)
+                toolbar?.background = null
+            }
+
+            EditPostDestination.History -> {
+                setTitle(R.string.history_title)
+                editorPhotoPicker?.hidePhotoPicker()
+                appBarLayout?.liftOnScrollTargetViewId = R.id.empty_recycler_view
+                toolbar?.background = null
+            }
+        }
+
+        // Refresh options menu as visibility may change based on destination
+        invalidateOptionsMenu()
+    }
+
+    private fun handleSuccessfulWpComCookieAuthState() {
+        if (isShowing(supportFragmentManager)) {
+            setupViewPager()
+            dismissIfNecessary(supportFragmentManager)
+        } else {
+            setupViewPager()
+        }
+    }
+
+    private fun setupViewPager() {
+        // Check if ViewPager is already configured
+        if (viewPager?.adapter != null) {
+            AppLog.e(
+                AppLog.T.EDITOR,
+                "GutenbergKitActivity: setupViewPager() called but ViewPager already has adapter" +
+                        " - possible duplicate setup"
+            )
+            return
+        }
+
+        // Set up the ViewPager with the sections adapter.
+        viewPager = findViewById(R.id.pager)
+        viewPager?.adapter = sectionsPagerAdapter
+        viewPager?.offscreenPageLimit = VIEW_PAGER_OFFSCREEN_PAGE_LIMIT
+        viewPager?.setPagingEnabled(false)
+
+        // UI updates are now handled by the navigation system in updateUIForDestination()
+        // ViewPager is only used for displaying content, not managing navigation state
+    }
+
+    @Suppress("LongMethod")
+    private fun startObserving() {
+        editorMedia.uiState.observe(this
+        ) { uiState: AddMediaToPostUiState? ->
+            if (uiState != null) {
+                updateAddingMediaToEditorProgressDialogState(uiState.progressDialogUiState)
+                if (uiState.editorOverlayVisibility) {
+                    showOverlay(false)
+                } else {
+                    hideOverlay()
+                }
+            }
+        }
+        editorMedia.snackBarMessage.observe(this
+        ) { event: Event<SnackbarMessageHolder?> ->
+            val messageHolder: SnackbarMessageHolder? = event.getContentIfNotHandled()
+            if (messageHolder != null) {
+                make(
+                    findViewById(R.id.editor_activity),
+                    uiHelpers.getTextOfUiString(this, messageHolder.message),
+                    Snackbar.LENGTH_SHORT
+                )
+                    .show()
+            }
+        }
+        editorMedia.toastMessage.observe(this) { event: Event<ToastMessageHolder?> ->
+            event.getContentIfNotHandled()?.show(this)
+        }
+        storePostViewModel.onSavePostTriggered.observe(this) { unitEvent: Event<Unit> ->
+            unitEvent.applyIfNotHandled {
+                updateAndSavePostAsync()
+            }
+        }
+        storePostViewModel.onFinish.observe(this) { finishEvent ->
+            finishEvent.applyIfNotHandled {
+                when (this) {
+                    ActivityFinishState.SAVED_ONLINE -> saveResult(saved = true, uploadNotStarted = false)
+                    ActivityFinishState.SAVED_LOCALLY -> saveResult(saved = true, uploadNotStarted = true)
+                    ActivityFinishState.CANCELLED -> saveResult(saved = false, uploadNotStarted = true)
+                }
+                removePostOpenInEditorStickyEvent()
+                editorMedia.definitelyDeleteBackspaceDeletedMediaItemsAsync()
+                finish()
+            }
+        }
+        editPostRepository.postChanged.observe(this
+        ) { postEvent: Event<PostImmutableModel?> ->
+            postEvent.applyIfNotHandled {
+                storePostViewModel.savePostToDb(editPostRepository, siteModel)
+            }
+        }
+        storageUtilsViewModel.checkStorageWarning.observe(this
+        ) { event: Event<Unit> ->
+            event.applyIfNotHandled {
+                storageUtilsViewModel.onStorageWarningCheck(
+                    supportFragmentManager,
+                    StorageUtilsProvider.Source.EDITOR
+                )
+            }
+        }
+        editorBloggingPromptsViewModel.onBloggingPromptLoaded.observe(this
+        ) { event: Event<EditorLoadedPrompt> ->
+            event.applyIfNotHandled {
+                editPostRepository.updateAsync({ postModel: PostModel ->
+                    postModel.setContent(this.content)
+                    postModel.answeredPromptId = this.promptId
+                    postModel.setTagNameList(this.tags)
+                    true
+                }) { _: PostImmutableModel?, _: UpdatePostResult? ->
+                    refreshEditorContent()
+                }
+            }
+        }
+        editorJetpackSocialViewModel.actionEvents.observe(this
+        ) { actionEvent: EditorJetpackSocialViewModel.ActionEvent? ->
+            if (actionEvent is OpenEditShareMessage) {
+                val intent: Intent = createIntent(
+                    this, actionEvent.shareMessage
+                )
+                editShareMessageActivityResultLauncher?.launch(intent)
+            } else if (actionEvent is OpenSocialConnectionsList) {
+                ActivityLauncher.viewBlogSharing(this, actionEvent.siteModel)
+            } else if (actionEvent is OpenSubscribeJetpackSocial) {
+                WPWebViewActivity.openUrlByUsingGlobalWPCOMCredentials(
+                    this, actionEvent.url
+                )
+            }
+        }
+        storePostViewModel.onPostUpdateUiVisible.observe(this) { isVisible: Boolean ->
+            if (isVisible) {
+                showUpdatingPostArea()
+            } else {
+                hideUpdatingPostArea()
+            }
+        }
+        storePostViewModel.onPostUpdateResult.observe(this) { isSuccess: Boolean ->
+            if (isSuccess) {
+                editPostRepository.loadPostByLocalPostId(editPostRepository.id)
+                refreshEditorContent()
+            } else {
+                ToastUtils.showToast(
+                    this@GutenbergKitActivity,
+                    getString(R.string.editor_updating_content_failed),
+                    ToastUtils.Duration.SHORT
+                )
+            }
+        }
+
+        // Observe prepublishing submit button events
+        prepublishingViewModel.triggerOnSubmitButtonClickedListener.observe(this) { event ->
+            event.getContentIfNotHandled()?.let { publishPost ->
+                AppLog.d(AppLog.T.POSTS, "GutenbergKitActivity: Handling prepublishing submit event")
+                uploadPost(publishPost)
+                if (publishPost) {
+                    incrementInteractions(Stat.APP_REVIEWS_EVENT_INCREMENTED_BY_PUBLISHING_POST_OR_PAGE)
+                }
+            }
+        }
+    }
+
+    private fun initializePostObject() {
+        if (editPostRepository.hasPost()) {
+            editPostRepository.savePostSnapshotWhenEditorOpened()
+            editPostRepository.replace { post: PostModel? ->
+                UploadService.updatePostWithCurrentlyCompletedUploads(
+                    post
+                )
+            }
+            isPage = editPostRepository.isPage
+            EventBus.getDefault().postSticky(
+                PostOpenedInEditor(
+                    editPostRepository.localSiteId,
+                    editPostRepository.id
+                )
+            )
+            editorMedia.purgeMediaToPostAssociationsIfNotInPostAnymoreAsync()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        EventBus.getDefault().register(this)
+
+        // Bump editor opened event every time the activity is resumed, to match the EDITOR_CLOSED event onPause
+        PostUtils.trackOpenEditorAnalytics(editPostRepository.getPost(), siteModel)
+        isConfigChange = false
+    }
+
+    override fun onPause() {
+        super.onPause()
+        EventBus.getDefault().unregister(this)
+        AnalyticsTracker.track(Stat.EDITOR_CLOSED)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        showPrepublishingBottomSheetRunnable?.let {
+            showPrepublishingBottomSheetHandler?.removeCallbacks(it)
+        }
+
+        hideUpdatingPostAreaRunnable?.let {
+            hideUpdatingPostAreaHandler.removeCallbacks(it)
+        }
+    }
+
+    override fun onDestroy() {
+        if (!isConfigChange && (restartEditorOption == RestartEditorOptions.NO_RESTART)) {
+            postEditorAnalyticsSession?.end()
+        }
+        dispatcher.unregister(this)
+        editorMedia.cancelAddMediaToEditorActions()
+        removePostOpenInEditorStickyEvent()
+        reactNativeRequestHandler.destroy()
+        super.onDestroy()
+    }
+
+    private fun removePostOpenInEditorStickyEvent() {
+        val stickyEvent: PostOpenedInEditor? = EventBus.getDefault().getStickyEvent(
+            PostOpenedInEditor::class.java
+        )
+        if (stickyEvent != null) {
+            // "Consume" the sticky event
+            EventBus.getDefault().removeStickyEvent(stickyEvent)
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Saves both post objects so we can restore them in onCreate()
+        updateAndSavePostAsync()
+        outState.putInt(EditorConstants.STATE_KEY_POST_LOCAL_ID, editPostRepository.id)
+        if (!editPostRepository.isLocalDraft) {
+            outState.putLong(EditorConstants.STATE_KEY_POST_REMOTE_ID, editPostRepository.remotePostId)
+        }
+        outState.putInt(EditorConstants.STATE_KEY_POST_LOADING_STATE, postLoadingState.value)
+        outState.putBoolean(EditorConstants.STATE_KEY_IS_NEW_POST, isNewPost)
+        outState.putBoolean(EditorConstants.STATE_KEY_IS_VOICE_CONTENT_SET, isVoiceContentSet)
+        outState.putBoolean(
+            EditorConstants.STATE_KEY_IS_PHOTO_PICKER_VISIBLE,
+            editorPhotoPicker?.isPhotoPickerShowing() ?: false
+        )
+        outState.putBoolean(EditorConstants.STATE_KEY_HTML_MODE_ON, htmlModeMenuStateOn)
+        outState.putBoolean(EditorConstants.STATE_KEY_UNDO, menuHasUndo)
+        outState.putBoolean(EditorConstants.STATE_KEY_REDO, menuHasRedo)
+        outState.putSerializable(WordPress.SITE, siteModel)
+        dB?.addParcel(EditorConstants.STATE_KEY_REVISION, revision)
+        outState.putSerializable(EditorConstants.STATE_KEY_EDITOR_SESSION_DATA, postEditorAnalyticsSession)
+        isConfigChange = true // don't call sessionData.end() in onDestroy() if this is an Android config change
+        outState.putParcelableArrayList(
+            EditorConstants.STATE_KEY_DROPPED_MEDIA_URIS, editorMedia.droppedMediaUris
+        )
+
+        editorFragment?.let {
+            supportFragmentManager.putFragment(outState, EditorConstants.STATE_KEY_EDITOR_FRAGMENT, it)
+        }
+        // We must save the media capture path when the activity is destroyed to handle orientation changes during
+        // photo capture (see: https://github.com/wordpress-mobile/WordPress-Android/issues/11296)
+        outState.putString(EditorConstants.STATE_KEY_MEDIA_CAPTURE_PATH, mediaCapturePath)
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        htmlModeMenuStateOn = savedInstanceState.getBoolean(EditorConstants.STATE_KEY_HTML_MODE_ON)
+        menuHasUndo = savedInstanceState.getBoolean(EditorConstants.STATE_KEY_UNDO)
+        menuHasRedo = savedInstanceState.getBoolean(EditorConstants.STATE_KEY_REDO)
+        if (savedInstanceState.getBoolean(EditorConstants.STATE_KEY_IS_PHOTO_PICKER_VISIBLE, false)) {
+            editorPhotoPicker?.showPhotoPicker(siteModel)
+        }
+
+        // Restore media capture path for orientation changes during photo capture
+        mediaCapturePath = savedInstanceState.getString(EditorConstants.STATE_KEY_MEDIA_CAPTURE_PATH, "")
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        editorPhotoPicker?.onOrientationChanged(newConfig.orientation)
+    }
+
+    private val primaryAction: PrimaryEditorAction
+        get() = editorActionsProvider
+            .getPrimaryAction(editPostRepository.status, UploadUtils.userCanPublish(siteModel), isLandingEditor)
+    private val primaryActionText: String
+        get() {
+            return getString(primaryAction.titleResource)
+        }
+    private val secondaryAction: SecondaryEditorAction
+        get() {
+            return editorActionsProvider
+                .getSecondaryAction(editPostRepository.status, UploadUtils.userCanPublish(siteModel))
+        }
+    private val secondaryActionText: String?
+        get() {
+            @StringRes val titleResource = secondaryAction.titleResource
+            return if (titleResource != null) getString(titleResource) else null
+        }
+
+    @Suppress("SwallowedException")
+    private fun shouldSwitchToGutenbergBeVisible(
+        editorFragment: GutenbergKitEditorFragmentBase?,
+        site: SiteModel
+    ): Boolean {
+        // Some guard conditions
+        val message: String? = if (!editPostRepository.hasPost())
+            "shouldSwitchToGutenbergBeVisible got a null post parameter."
+        else if (editorFragment == null)
+            "shouldSwitchToGutenbergBeVisible got a null editorFragment parameter."
+        else null
+
+        message?.let {
+            AppLog.w(AppLog.T.EDITOR, it)
+            return false
+        }
+
+        // Check whether the content has blocks.
+        var hasBlocks = false
+        var isEmpty = false
+        try {
+            val content = editorFragment?.getContent(editPostRepository.content) as String
+            hasBlocks = PostUtils.contentContainsGutenbergBlocks(content)
+            isEmpty = TextUtils.isEmpty(content)
+        } catch (e: EditorFragmentAbstract.EditorFragmentNotAddedException) {
+            // legacy exception; just ignore.
+        }
+
+        // if content has blocks or empty, offer the switch to Gutenberg. The block editor doesn't have good
+        //  "Classic Block" support yet so, don't offer a switch to it if content doesn't have blocks. If the post
+        //  is empty but the user hasn't enabled "Use Gutenberg for new posts" in Site Setting,
+        //  don't offer the switch.
+        return hasBlocks || (SiteUtils.isBlockEditorDefaultForNewPost(site) && isEmpty)
+    }
+
+    /*
+     * shows/hides the overlay which appears atop the editor, which effectively disables it
+     */
+    private fun showOverlay(animate: Boolean) {
+        val overlay = findViewById<View>(R.id.view_overlay)
+        if (animate) {
+            AniUtils.fadeIn(overlay, AniUtils.Duration.MEDIUM)
+        } else {
+            overlay.visibility = View.VISIBLE
+        }
+    }
+
+    private fun hideOverlay() {
+        val overlay = findViewById<View>(R.id.view_overlay)
+        overlay.visibility = View.GONE
+    }
+
+    override fun onPhotoPickerShown() {
+        // animate in the editor overlay
+        showOverlay(true)
+    }
+
+    override fun onPhotoPickerHidden() {
+        hideOverlay()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        super.onCreateOptionsMenu(menu)
+        menuInflater.inflate(R.menu.edit_post, menu)
+        return true
+    }
+
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "SwallowedException")
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        val currentDestination = editPostNavigationViewModel.currentDestination.value ?: EditPostDestination.default()
+
+        val helpMenuItem = menu.findItem(R.id.menu_editor_help)
+        val sendFeedbackItem = menu.findItem(R.id.menu_editor_send_feedback)
+
+        EditorMenuHelper.prepareMenu(
+            menu = menu,
+            state = EditorMenuHelper.MenuState(
+                currentDestination = currentDestination,
+                hasPost = editPostRepository.hasPost(),
+                menuHasUndo = menuHasUndo,
+                menuHasRedo = menuHasRedo,
+                htmlModeMenuStateOn = htmlModeMenuStateOn,
+                isNewPost = isNewPost,
+                isPage = isPage,
+                isUsingWpComRestApi = siteModel.isUsingWpComRestApi,
+                secondaryActionVisible = secondaryAction.isVisible,
+                secondaryActionText = secondaryActionText,
+                primaryActionText = primaryActionText,
+                isModalDialogOpen = isModalDialogOpen
+            ),
+            checkModalForUndoRedo = true,
+            disablePrimaryWhenModal = true
+        )
+
+        // Note: This menu is shared with EditPostActivity. The following items are not needed
+        // for GutenbergKitActivity but are hidden rather than removed to avoid duplicating
+        // menu resources until a more comprehensive menu cleanup is undertaken.
+
+        // Hide "Switch to Gutenberg" - not needed since we're already using GutenbergKit
+        menu.findItem(R.id.menu_switch_to_gutenberg)?.isVisible = false
+
+        // Hide "Content Info" - not supported in GutenbergKit editor
+        menu.findItem(R.id.menu_content_info)?.isVisible = false
+
+        // Hide "Help" - not supported in GutenbergKit editor
+        helpMenuItem?.isVisible = false
+
+        if (sendFeedbackItem != null) {
+            sendFeedbackItem.isVisible = editorFragment is GutenbergKitEditorFragment
+        }
+
+        return super.onPrepareOptionsMenu(menu)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        val allGranted = WPPermissionUtils.setPermissionListAsked(
+            this, requestCode, permissions, grantResults, true
+        )
+        if (allGranted) {
+            when (requestCode) {
+                WPPermissionUtils.EDITOR_MEDIA_PERMISSION_REQUEST_CODE -> if (menuView != null) {
+                    super.openContextMenu(menuView)
+                    menuView = null
+                }
+            }
+        }
+        editorCameraHelper.handleCameraPermissionResult(requestCode, allGranted) { launchCamera() }
+    }
+
+    private fun handleBackPressed(): Boolean {
+        when {
+            editorPhotoPicker?.isPhotoPickerShowing() == true -> {
+                editorPhotoPicker?.hidePhotoPicker()
+            }
+            editPostNavigationViewModel.canNavigateBack() -> {
+                // Handle navigation-specific logic before navigating
+                val currentDest = editPostNavigationViewModel.currentDestination.value
+                if (currentDest == EditPostDestination.Settings) {
+                    editorFragment?.setFeaturedImageId(editPostRepository.featuredImageId)
+                }
+
+                // Let the navigation ViewModel handle the back navigation
+                editPostNavigationViewModel.handleBackNavigation()
+            }
+            else -> {
+                savePostAndOptionallyFinish(doFinish = true, forceSave = false)
+            }
+        }
+        return true
+    }
+
+    private val editPostActivityStrategyFunctions: RemotePreviewHelperFunctions
+        get() {
+            return object : RemotePreviewHelperFunctions {
+                override fun notifyUploadInProgress(post: PostImmutableModel): Boolean {
+                    return if (UploadService.hasInProgressMediaUploadsForPost(post)) {
+                        ToastUtils.showToast(
+                            this@GutenbergKitActivity,
+                            getString(R.string.editor_toast_uploading_please_wait), ToastUtils.Duration.SHORT
+                        )
+                        true
+                    } else {
+                        false
+                    }
+                }
+
+                override fun notifyEmptyDraft() {
+                    ToastUtils.showToast(
+                        this@GutenbergKitActivity,
+                        getString(R.string.error_preview_empty_draft), ToastUtils.Duration.SHORT
+                    )
+                }
+
+                override fun startUploading(isRemoteAutoSave: Boolean, post: PostImmutableModel) {
+                    if (isRemoteAutoSave) {
+                        updatePostLoadingAndDialogState(PostLoadingState.REMOTE_AUTO_SAVING_FOR_PREVIEW, post)
+                        savePostAndOptionallyFinish(doFinish = false, forceSave = true)
+                    } else {
+                        updatePostLoadingAndDialogState(PostLoadingState.UPLOADING_FOR_PREVIEW, post)
+                        savePostAndOptionallyFinish(doFinish= false, forceSave = false)
+                    }
+                }
+
+                override fun notifyEmptyPost() {
+                    val message =
+                        getString(if (isPage) R.string.error_preview_empty_page else R.string.error_preview_empty_post)
+                    ToastUtils.showToast(this@GutenbergKitActivity, message, ToastUtils.Duration.SHORT)
+                }
+            }
+        }
+
+    // Menu actions
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        val itemId = item.itemId
+        if (itemId == android.R.id.home) {
+            return handleBackPressed()
+        }
+        editorPhotoPicker?.hidePhotoPicker()
+
+        if (itemId == R.id.menu_primary_action) {
+            performPrimaryAction()
+        } else {
+            if (itemId == R.id.menu_history) {
+                AnalyticsTracker.track(Stat.REVISIONS_LIST_VIEWED)
+                ActivityUtils.hideKeyboard(this)
+                editPostNavigationViewModel.navigateTo(EditPostDestination.History)
+            } else if (itemId == R.id.menu_preview_post) {
+                if (!showPreview()) {
+                    return false
+                }
+            } else if (itemId == R.id.menu_post_settings) {
+                editPostSettingsFragment?.refreshViews()
+                ActivityUtils.hideKeyboard(this)
+                editPostNavigationViewModel.navigateTo(EditPostDestination.Settings)
+            } else if (itemId == R.id.menu_secondary_action) {
+                return performSecondaryAction()
+            } else if (itemId == R.id.menu_html_mode) {
+                // toggle HTML mode
+                editorFragment?.onToggleHtmlMode()
+            } else if (itemId == R.id.menu_switch_to_gutenberg) {
+                // The following boolean check should be always redundant but was added to manage
+                // an odd behaviour recorded with Android 8.0.0
+                // (see https://github.com/wordpress-mobile/WordPress-Android/issues/9748 for more information)
+                if (shouldSwitchToGutenbergBeVisible(editorFragment, siteModel)) {
+                    // let's finish this editing instance and start again, but let GB be used
+                    restartEditorOption = RestartEditorOptions.RESTART_DONT_SUPPRESS_GUTENBERG
+                    postEditorAnalyticsSession?.switchEditor(PostEditorAnalyticsSession.Editor.GUTENBERG)
+                    postEditorAnalyticsSession?.setOutcome(Outcome.SAVE)
+                    storePostViewModel.finish(ActivityFinishState.SAVED_LOCALLY)
+                } else {
+                    logWrongMenuState("Wrong state in menu_switch_to_gutenberg: menu should not be visible.")
+                }
+            } else if (itemId == R.id.menu_editor_help) {
+                // No-op because it was GutenbergEditor only
+            } else if (itemId == R.id.menu_editor_send_feedback) {
+                ActivityLauncher.viewFeedbackForm(this@GutenbergKitActivity, "Editor")
+            } else if (itemId == R.id.menu_undo_action) {
+                editorFragment?.onUndoPressed()
+            } else if (itemId == R.id.menu_redo_action) {
+                editorFragment?.onRedoPressed()
+            }
+        }
+        return false
+    }
+
+    private fun logWrongMenuState(logMsg: String) {
+        AppLog.w(AppLog.T.EDITOR, logMsg)
+    }
+
+    private fun showEmptyPostErrorForSecondaryAction() {
+        var message =
+            getString(if (isPage) R.string.error_publish_empty_page else R.string.error_publish_empty_post)
+        if ((secondaryAction === SecondaryEditorAction.SAVE_AS_DRAFT
+                    || secondaryAction === SecondaryEditorAction.SAVE)
+        ) {
+            message = getString(R.string.error_save_empty_draft)
+        }
+        ToastUtils.showToast(this@GutenbergKitActivity, message, ToastUtils.Duration.SHORT)
+    }
+
+    private fun saveAsDraft() {
+        editPostSettingsFragment?.updatePostStatus(PostStatus.DRAFT)
+        ToastUtils.showToast(
+            this@GutenbergKitActivity,
+            getString(R.string.editor_post_converted_back_to_draft), ToastUtils.Duration.SHORT
+        )
+        uploadUtilsWrapper.showSnackbar(
+            findViewById(R.id.editor_activity),
+            R.string.editor_uploading_post
+        )
+        savePostAndOptionallyFinish(doFinish = false, forceSave = false)
+    }
+
+    @Suppress("UseCheckOrError", "ReturnCount")
+    private fun performSecondaryAction(): Boolean {
+        if (UploadService.hasInProgressMediaUploadsForPost(editPostRepository.getPost())) {
+            ToastUtils.showToast(
+                this@GutenbergKitActivity,
+                getString(R.string.editor_toast_uploading_please_wait), ToastUtils.Duration.SHORT
+            )
+            return false
+        }
+        if (isDiscardable) {
+            showEmptyPostErrorForSecondaryAction()
+            return false
+        }
+        when (secondaryAction) {
+            SecondaryEditorAction.SAVE_AS_DRAFT -> {
+                // Force the new Draft status
+                saveAsDraft()
+                return true
+            }
+
+            SecondaryEditorAction.SAVE -> {
+                uploadPost(false)
+                return true
+            }
+
+            SecondaryEditorAction.PUBLISH_NOW -> {
+                analyticsTrackerWrapper.track(Stat.EDITOR_POST_PUBLISH_TAPPED)
+                publishPostImmediatelyUseCase.updatePostToPublishImmediately((editPostRepository), isNewPost)
+                showPrepublishingNudgeBottomSheet()
+                return true
+            }
+
+            SecondaryEditorAction.NONE ->
+                throw IllegalStateException("Switch in `secondaryAction` shouldn't go through the NONE case")
+        }
+    }
+
+    private fun refreshEditorContent() {
+        hasSetPostContent = false
+        fillContentEditorFields()
+    }
+
+    private fun setPreviewingInEditorSticky(enable: Boolean, post: PostImmutableModel?) {
+        if (enable) {
+            if (post != null) {
+                EventBus.getDefault().postSticky(
+                    PostPreviewingInEditor(post.localSiteId, post.id)
+                )
+            }
+        } else {
+            val stickyEvent: PostPreviewingInEditor? = EventBus.getDefault().getStickyEvent(
+                PostPreviewingInEditor::class.java
+            )
+            if (stickyEvent != null) {
+                EventBus.getDefault().removeStickyEvent(stickyEvent)
+            }
+        }
+    }
+
+    private fun managePostLoadingStateTransitions(
+        postLoadingState: PostLoadingState,
+        post: PostImmutableModel?
+    ) {
+        when (postLoadingState) {
+            PostLoadingState.NONE -> setPreviewingInEditorSticky(false, post)
+            PostLoadingState.UPLOADING_FOR_PREVIEW,
+            PostLoadingState.REMOTE_AUTO_SAVING_FOR_PREVIEW,
+            PostLoadingState.PREVIEWING,
+            PostLoadingState.REMOTE_AUTO_SAVE_PREVIEW_ERROR -> setPreviewingInEditorSticky(
+                true,
+                post
+            )
+
+            PostLoadingState.LOADING_REVISION -> {}
+        }
+    }
+
+    private fun updatePostLoadingAndDialogState(postLoadingState: PostLoadingState, post: PostImmutableModel? = null) {
+        // We need only transitions, so...
+        if (this.postLoadingState === postLoadingState) return
+        AppLog.d(
+            AppLog.T.POSTS,
+            "Editor post loading state machine: transition from ${this.postLoadingState} to $postLoadingState"
+        )
+
+        // update the state
+        this.postLoadingState = postLoadingState
+
+        // take care of exit actions on state transition
+        managePostLoadingStateTransitions(postLoadingState, post)
+
+        // update the progress dialog state
+        progressDialog = progressDialogHelper.updateProgressDialogState(
+            this,
+            progressDialog,
+            this.postLoadingState.progressDialogUiState,
+            (uiHelpers)
+        )
+    }
+
+    private fun toggleHtmlModeOnMenu() {
+        htmlModeMenuStateOn = !htmlModeMenuStateOn
+        trackPostSessionEditorModeSwitch()
+        invalidateOptionsMenu()
+    }
+
+    private fun trackPostSessionEditorModeSwitch() {
+        postEditorAnalyticsSession?.switchEditor(
+            if (htmlModeMenuStateOn) PostEditorAnalyticsSession.Editor.HTML
+            else PostEditorAnalyticsSession.Editor.GUTENBERG_KIT
+        )
+    }
+
+    private fun performPrimaryAction() {
+        when (primaryAction) {
+            PrimaryEditorAction.PUBLISH_NOW -> {
+                analyticsTrackerWrapper.track(Stat.EDITOR_POST_PUBLISH_TAPPED)
+                showPrepublishingNudgeBottomSheet()
+                return
+            }
+
+            PrimaryEditorAction.UPDATE,
+            PrimaryEditorAction.CONTINUE,
+            PrimaryEditorAction.SCHEDULE,
+            PrimaryEditorAction.SUBMIT_FOR_REVIEW -> {
+                showPrepublishingNudgeBottomSheet()
+                return
+            }
+
+            PrimaryEditorAction.SAVE -> uploadPost(false)
+        }
+    }
+
+    private fun showGutenbergInformativeDialog() {
+        // We are no longer showing the dialog, but we are leaving all the surrounding logic because
+        // this is going in shortly before release, and we're going to remove all this logic in the
+        // very near future.
+        AppPrefs.setGutenbergInfoPopupDisplayed(siteModel.url, true)
+    }
+
+    private fun showGutenbergRolloutV2InformativeDialog() {
+        // We are no longer showing the dialog, but we are leaving all the surrounding logic because
+        // this is going in shortly before release, and we're going to remove all this logic in the
+        // very near future.
+        AppPrefs.setGutenbergInfoPopupDisplayed(siteModel.url, true)
+    }
+
+    private fun setGutenbergEnabledIfNeeded() {
+        if (AppPrefs.isGutenbergInfoPopupDisplayed(siteModel.url)) {
+            return
+        }
+        val showPopup = AppPrefs.shouldShowGutenbergInfoPopupForTheNewPosts(siteModel.url)
+        val showRolloutPopupPhase2 = AppPrefs.shouldShowGutenbergInfoPopupPhase2ForNewPosts(siteModel.url)
+        if (TextUtils.isEmpty(siteModel.mobileEditor) && !isNewPost) {
+            SiteUtils.enableBlockEditor(dispatcher, siteModel)
+            AnalyticsUtils.trackWithSiteDetails(
+                Stat.EDITOR_GUTENBERG_ENABLED, siteModel,
+                BlockEditorEnabledSource.ON_BLOCK_POST_OPENING.asPropertyMap()
+            )
+        }
+        if (showPopup) {
+            showGutenbergInformativeDialog()
+        } else if (showRolloutPopupPhase2) {
+            showGutenbergRolloutV2InformativeDialog()
+        }
+    }
+
+    private fun savePostOnline(isFirstTimePublish: Boolean): ActivityFinishState {
+        return storePostViewModel.savePostOnline(isFirstTimePublish, this, (editPostRepository), siteModel)
+    }
+
+    private fun onUploadSuccess(media: MediaModel?) {
+        if (media != null) {
+            // TODO Should this statement check media.getLocalPostId() == mEditPostRepository.getId()?
+            if (!media.markedLocallyAsFeatured) {
+                // Note: media upload success handling removed as GutenbergKit editor
+                // does not use EditorMediaUploadListener interface
+            } else if (media.markedLocallyAsFeatured && media.localPostId == editPostRepository.id) {
+                setFeaturedImageId(media.mediaId, imagePicked = false, isGutenbergEditor = false)
+            }
+        }
+    }
+
+    private fun showErrorAndFinish(errorMessageId: Int) {
+        ToastUtils.showToast(this, errorMessageId, ToastUtils.Duration.LONG)
+        finish()
+    }
+
+    private fun updateAndSavePostAsync() {
+        if (editorFragment == null) {
+            AppLog.e(AppLog.T.POSTS, "Fragment not initialized")
+            return
+        }
+        storePostViewModel.updatePostObjectWithUIAsync(
+            (editPostRepository),
+            { oldContent: String -> updateFromEditor(oldContent) },
+            null
+        )
+    }
+
+    private fun updateAndSavePostAsync(
+        listener: EditPostActivity.OnPostUpdatedFromUIListener?,
+        isFinishing: Boolean = false
+    ) {
+        if (editorFragment == null) {
+            AppLog.e(AppLog.T.POSTS, "Fragment not initialized")
+            return
+        }
+        storePostViewModel.updatePostObjectWithUIAsync(
+            (editPostRepository), { oldContent: String -> updateFromEditor(oldContent, isFinishing) }
+        ) { _: PostImmutableModel?, result: UpdatePostResult ->
+            storePostViewModel.isSavingPostOnEditorExit = false
+            // Ignore the result as we want to invoke the listener even when the PostModel was up-to-date
+            listener?.onPostUpdatedFromUI(result)
+        }
+    }
+
+    /**
+     * This method:
+     * 1. Shows and hides the editor's progress dialog;
+     * 2. Saves the post via [GutenbergKitActivity.updateAndSavePostAsync];
+     * 3. Invokes the listener method parameter
+     */
+    private fun updateAndSavePostAsyncOnEditorExit(listener: EditPostActivity.OnPostUpdatedFromUIListener?,
+                                                   isFinishing: Boolean = false) {
+        if (editorFragment == null) {
+            return
+        }
+        storePostViewModel.isSavingPostOnEditorExit = true
+        storePostViewModel.showSavingProgressDialog()
+        updateAndSavePostAsync(listener, isFinishing)
+    }
+
+    private fun updateFromEditor(oldContent: String, isFinishing: Boolean = false): UpdateFromEditor {
+        editorFragment?.let {
+            return try {
+                // To reduce redundant bridge events emitted to the Gutenberg editor, we get title and content at once
+                val titleAndContent = it.getTitleAndContent(oldContent, isFinishing)
+                val title = titleAndContent.first as String
+                val content = titleAndContent.second as String
+                PostFields(title, content)
+            } catch (e: EditorFragmentAbstract.EditorFragmentNotAddedException) {
+                AppLog.e(AppLog.T.EDITOR, "Impossible to save the post, we weren't able to update it.")
+                UpdateFromEditor.Failed(e)
+            }
+        }?:run { return UpdateFromEditor.Failed(java.lang.Exception("Impossible to save post, editor frag is null.")) }
+    }
+
+
+    override fun onImageSettingsRequested(editorImageMetaData: EditorImageMetaData) {
+        MediaSettingsActivity.showForResult(this, siteModel, editorImageMetaData)
+    }
+
+    override fun onImagePreviewRequested(mediaUrl: String) {
+        MediaPreviewActivity.showPreview(this, siteModel, mediaUrl)
+    }
+
+    override fun onMediaEditorRequested(mediaUrl: String) {
+        val imageUrl = UrlUtils.removeQuery(StringUtils.notNullStr(mediaUrl))
+
+        // We're using a separate cache in WPAndroid and RN's Gutenberg editor so we need to reload the image
+        // in the preview screen using WPAndroid's image loader. We create a resized url using Photon service and
+        // device's max width to display a smaller image that can load faster and act as a placeholder.
+        val displayWidth = max(
+            DisplayUtils.getWindowPixelWidth(baseContext),
+            DisplayUtils.getWindowPixelHeight(baseContext)
+        )
+        val margin = resources.getDimensionPixelSize(
+            org.wordpress.android.imageeditor.R.dimen.preview_image_view_margin
+        )
+        val maxWidth = displayWidth - (margin * 2)
+        val reducedSizeWidth = (maxWidth * PreviewImageFragment.PREVIEW_IMAGE_REDUCED_SIZE_FACTOR).toInt()
+        val resizedImageUrl = readerUtilsWrapper.getResizedImageUrl(
+            mediaUrl,
+            reducedSizeWidth,
+            0,
+            !SiteUtils.isPhotonCapable(siteModel),
+            siteModel.isWPComAtomic
+        )
+        val outputFileExtension: String = MimeTypeMap.getFileExtensionFromUrl(imageUrl)
+        val inputData: ArrayList<InputData> = ArrayList(1)
+        inputData.add(
+            InputData(
+                imageUrl,
+                StringUtils.notNullStr(resizedImageUrl),
+                outputFileExtension
+            )
+        )
+        ActivityLauncher.openImageEditor(this, inputData)
+    }
+
+    override fun onHistoryItemClicked(revision: Revision, revisions: List<Revision>) {
+        AnalyticsTracker.track(Stat.REVISIONS_DETAIL_VIEWED_FROM_LIST)
+        this.revision = revision
+        val postId = editPostRepository.remotePostId
+        this.revision?.let {
+            ActivityLauncher.viewHistoryDetailForResult(
+                this, it, EditorUnitFunctions.getRevisionsIds(revisions), postId, siteModel.siteId
+            )
+        }
+    }
+
+    private fun loadRevision() {
+        updatePostLoadingAndDialogState(PostLoadingState.LOADING_REVISION)
+        editPostRepository.saveForUndo()
+        editPostRepository.updateAsync({ postModel: PostModel ->
+            revision?.postTitle?.let {
+                postModel.setTitle(it)
+            }
+            revision?.postContent?.let {
+                postModel.setContent(it)
+            }
+            true
+        }) { _: PostImmutableModel?, result: UpdatePostResult ->
+            if (result === Updated) {
+                refreshEditorContent()
+                viewPager?.let {
+                    make(it, getString(R.string.history_loaded_revision), EditorConstants.SNACKBAR_DURATION)
+                        .setAction(getString(R.string.undo)) { _: View? ->
+                            AnalyticsTracker.track(Stat.REVISIONS_LOAD_UNDONE)
+                            val payload = RemotePostPayload(editPostRepository.getPostForUndo(), siteModel)
+                            dispatcher.dispatch(PostActionBuilder.newFetchPostAction(payload))
+                            editPostRepository.undo()
+                            refreshEditorContent()
+                        }
+                        .show()
+                }
+                updatePostLoadingAndDialogState(PostLoadingState.NONE)
+            }
+        }
+    }
+
+    private fun saveResult(saved: Boolean, uploadNotStarted: Boolean) {
+        val i = intent
+        i.putExtra(EditorConstants.EXTRA_UPLOAD_NOT_STARTED, uploadNotStarted)
+        i.putExtra(EditorConstants.EXTRA_IS_PAGE, isPage)
+        i.putExtra(EditorConstants.EXTRA_IS_LANDING_EDITOR, isLandingEditor)
+        i.putExtra(EditorConstants.EXTRA_HAS_CHANGES, saved)
+        i.putExtra(EditorConstants.EXTRA_POST_LOCAL_ID, editPostRepository.id)
+        i.putExtra(EditorConstants.EXTRA_POST_REMOTE_ID, editPostRepository.remotePostId)
+        i.putExtra(EditorConstants.EXTRA_RESTART_EDITOR, restartEditorOption.name)
+        i.putExtra(EditorConstants.STATE_KEY_EDITOR_SESSION_DATA, postEditorAnalyticsSession)
+        i.putExtra(EditorConstants.EXTRA_IS_NEW_POST, isNewPost)
+        setResult(RESULT_OK, i)
+    }
+
+    private fun setupPrepublishingBottomSheetRunnable() {
+        showPrepublishingBottomSheetHandler = Handler()
+        showPrepublishingBottomSheetRunnable = Runnable {
+            val fragment = supportFragmentManager.findFragmentByTag(
+                PrepublishingBottomSheetFragment.TAG
+            )
+            if (fragment == null) {
+                val prepublishingFragment: PrepublishingBottomSheetFragment =
+                    newInstance(site, isPage)
+                prepublishingFragment.show(supportFragmentManager, PrepublishingBottomSheetFragment.TAG)
+            }
+        }
+    }
+
+    private fun showPrepublishingNudgeBottomSheet() {
+        editPostNavigationViewModel.navigateTo(EditPostDestination.Editor)
+        ActivityUtils.hideKeyboard(this)
+        val delayMs = EditorConstants.PREPUBLISHING_NUDGE_BOTTOM_SHEET_DELAY
+        showPrepublishingBottomSheetRunnable?.let {
+            showPrepublishingBottomSheetHandler?.postDelayed(it, delayMs)
+        }
+    }
+
+    private fun uploadPost(publishPost: Boolean) {
+        updateAndSavePostAsyncOnEditorExit(object : EditPostActivity.OnPostUpdatedFromUIListener {
+            override fun onPostUpdatedFromUI(updatePostResult: UpdatePostResult) {
+                if (shouldPerformPostUpdateAndPublish()) {
+                    performPostUpdateAndPublish(publishPost)
+                }
+            }
+        })
+    }
+    @Suppress("ReturnCount")
+    private fun shouldPerformPostUpdateAndPublish() : Boolean {
+        val account: AccountModel = accountStore.account
+        // prompt user to verify e-mail before publishing
+        if (!account.emailVerified) {
+            storePostViewModel.hideSavingProgressDialog()
+            val message: String =
+                if (TextUtils.isEmpty(account.email)) getString(R.string.editor_confirm_email_prompt_message)
+                else String.format(
+                    getString(R.string.editor_confirm_email_prompt_message_with_email),
+                    account.email
+                )
+            val builder: AlertDialog.Builder = MaterialAlertDialogBuilder(this)
+            builder.setTitle(R.string.editor_confirm_email_prompt_title)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok
+                ) { _, _ ->
+                    ToastUtils.showToast(
+                        this@GutenbergKitActivity,
+                        getString(R.string.toast_saving_post_as_draft)
+                    )
+                    savePostAndOptionallyFinish(doFinish = true, forceSave = false)
+                }
+                .setNegativeButton(
+                    R.string.editor_confirm_email_prompt_negative
+                ) { _, _ ->
+                    dispatcher
+                        .dispatch(AccountActionBuilder.newSendVerificationEmailAction())
+                }
+            builder.create().show()
+            return false
+        }
+
+        editPostRepository.getPost()?.let {
+            if (!postUtilsWrapper.isPublishable(it)) {
+                storePostViewModel.hideSavingProgressDialog()
+                // TODO we don't want to show "publish" message when the user clicked on eg. save
+                editPostRepository.updateStatusFromPostSnapshotWhenEditorOpened()
+                runOnUiThread {
+                    val message: String = getString(
+                        if (isPage) R.string.error_publish_empty_page else R.string.error_publish_empty_post
+                    )
+                    ToastUtils.showToast(
+                        this@GutenbergKitActivity,
+                        message,
+                        ToastUtils.Duration.SHORT
+                    )
+                }
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun performPostUpdateAndPublish(publishPost: Boolean) {
+        storePostViewModel.showSavingProgressDialog()
+        val isFirstTimePublish: Boolean = isFirstTimePublish(publishPost)
+        editPostRepository.updateAsync( { postModel: PostModel ->
+            if (publishPost) {
+                // now set status to PUBLISHED - only do this AFTER we have run the isFirstTimePublish() check,
+                // otherwise we'd have an incorrect value
+                // also re-set the published date in case it was SCHEDULED and they want to publish NOW
+                if ((postModel.status == PostStatus.SCHEDULED.toString())) {
+                    postModel.setDateCreated(dateTimeUtils.currentTimeInIso8601())
+                }
+                if (uploadUtilsWrapper.userCanPublish(site)) {
+                    postModel.setStatus(PostStatus.PUBLISHED.toString())
+                } else {
+                    postModel.setStatus(PostStatus.PENDING.toString())
+                }
+                postEditorAnalyticsSession?.setOutcome(Outcome.PUBLISH)
+            } else {
+                postEditorAnalyticsSession?.setOutcome(Outcome.SAVE)
+            }
+            AppLog.d(
+                AppLog.T.POSTS,
+                "User explicitly confirmed changes. Post Title: " + postModel.title
+            )
+            // the user explicitly confirmed an intention to upload the post
+            postModel.setChangesConfirmedContentHashcode(postModel.contentHashcode())
+            true
+        } )
+        { _: PostImmutableModel?, result: UpdatePostResult ->
+            if (result === Updated) {
+                val activityFinishState: ActivityFinishState = savePostOnline(isFirstTimePublish)
+                storePostViewModel.finish(activityFinishState)
+            }
+        }
+    }
+
+    private fun savePostAndOptionallyFinish(doFinish: Boolean, forceSave: Boolean) {
+        if (editorFragment?.isAdded != true) {
+            AppLog.e(AppLog.T.POSTS, "Fragment not initialized")
+            return
+        }
+        val lambda: (UpdatePostResult?) -> Unit = { _ ->
+            // check if the opened post had some unsaved local changes
+            val isFirstTimePublish = isFirstTimePublish(false)
+
+            // if post was modified during this editing session, save it
+            val shouldSave = shouldSavePost() || forceSave
+            postEditorAnalyticsSession?.setOutcome(Outcome.SAVE)
+            var activityFinishState: ActivityFinishState? = ActivityFinishState.CANCELLED
+            if (shouldSave) {
+                /*
+                 * Remote-auto-save isn't supported on self-hosted sites. We can save the post online (as draft)
+                 * only when it doesn't exist in the remote yet. When it does exist in the remote, we can upload
+                 * it only when the user explicitly confirms the changes - eg. clicks on save/publish/submit. The
+                 * user didn't confirm the changes in this code path.
+                 */
+                val isWpComOrIsLocalDraft: Boolean =
+                    siteModel.isUsingWpComRestApi || editPostRepository.isLocalDraft
+                activityFinishState = if (isWpComOrIsLocalDraft) {
+                    savePostOnline(isFirstTimePublish)
+                } else if (forceSave) {
+                    savePostOnline(false)
+                } else {
+                    ActivityFinishState.SAVED_LOCALLY
+                }
+            }
+            // discard post if new & empty
+            if (isDiscardable) {
+                dispatcher.dispatch(PostActionBuilder.newRemovePostAction(editPostRepository.getEditablePost()))
+                postEditorAnalyticsSession?.setOutcome(Outcome.CANCEL)
+                activityFinishState = ActivityFinishState.CANCELLED
+            }
+            if (doFinish) {
+                activityFinishState?.let {
+                    storePostViewModel.finish(it)
+                }
+            }
+        }
+
+        // Convert the lambda to OnPostUpdatedFromUIListener and pass it to the method
+        updateAndSavePostAsyncOnEditorExit(lambdaToListener(lambda), doFinish)
+    }
+
+    // Helper function to convert a lambda to OnPostUpdatedFromUIListener
+    private fun lambdaToListener(lambda: (UpdatePostResult) -> Unit): EditPostActivity.OnPostUpdatedFromUIListener {
+        return object : EditPostActivity.OnPostUpdatedFromUIListener {
+            override fun onPostUpdatedFromUI(updatePostResult: UpdatePostResult) {
+                lambda(updatePostResult)
+            }
+        }
+    }
+
+    private fun shouldSavePost(): Boolean {
+        return editPostRepository.shouldSavePost(isNewPost)
+    }
+
+    private val isDiscardable: Boolean
+        get() {
+            return !editPostRepository.isPostPublishable() && isNewPost
+        }
+
+    private fun isFirstTimePublish(publishPost: Boolean): Boolean {
+        return editPostRepository.isFirstTimePublish(publishPost)
+    }
+
+    /**
+     * A [FragmentPagerAdapter] that returns a fragment corresponding to
+     * one of the sections/tabs/pages.
+     */
+    inner class SectionsPagerAdapter internal constructor(fm: FragmentManager) :
+        FragmentPagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
+        @Suppress("ReturnCount")
+        override fun getItem(position: Int): Fragment {
+            return when (position) {
+                VIEW_PAGER_PAGE_CONTENT -> createGutenbergKitEditorFragment()
+                VIEW_PAGER_PAGE_SETTINGS -> EditPostSettingsFragment.newInstance()
+                VIEW_PAGER_PAGE_PUBLISH_SETTINGS -> newInstance()
+                VIEW_PAGER_PAGE_HISTORY -> newInstance(editPostRepository.id, siteModel)
+                else -> throw IllegalArgumentException("Unexpected page type")
+            }
+        }
+
+        private fun createGutenbergKitEditorFragment(): GutenbergKitEditorFragment {
+            // Enable gutenberg on the site & show the informative popup upon opening
+            // the GB editor the first time when the remote setting value is still null
+            setGutenbergEnabledIfNeeded()
+            xPostsCapabilityChecker.retrieveCapability(siteModel) { isXpostsCapable ->
+                onXpostsSettingsCapability(isXpostsCapable)
+            }
+
+            val siteConfig = GutenbergKitSettingsBuilder.SiteConfig.fromSiteModel(siteModel)
+            val postConfig = GutenbergKitSettingsBuilder.PostConfig.fromPostModel(
+                editPostRepository.getPost()
+            )
+            val featureConfig = GutenbergKitSettingsBuilder.FeatureConfig(
+                isPluginsFeatureEnabled = gutenbergKitPluginsFeature.isEnabled(),
+                isThemeStylesFeatureEnabled = siteSettings?.useThemeStyles ?: true,
+                isNetworkLoggingEnabled = AppPrefs.isTrackNetworkRequestsEnabled()
+            )
+            val appConfig = GutenbergKitSettingsBuilder.AppConfig(
+                accessToken = accountStore.accessToken,
+                locale = perAppLocaleManager.getCurrentLocaleLanguageCode(),
+                cookies = editPostAuthViewModel.getCookiesForPrivateSites(
+                    site, privateAtomicCookie
+                ),
+                accountUserId = accountStore.account.userId,
+                accountUserName = accountStore.account.userName,
+                userAgent = userAgent,
+                isJetpackSsoEnabled = isJetpackSsoEnabled
+            )
+
+            val settings = GutenbergKitSettingsBuilder.buildSettings(
+                siteConfig = siteConfig,
+                postConfig = postConfig,
+                appConfig = appConfig,
+                featureConfig = featureConfig
+            )
+            val configuration = EditorConfigurationBuilder.build(settings)
+
+            return GutenbergKitEditorFragment.newInstance(configuration)
+        }
+
+        override fun instantiateItem(container: ViewGroup, position: Int): Any {
+            val fragment: Fragment = super.instantiateItem(container, position) as Fragment
+            when (position) {
+                VIEW_PAGER_PAGE_CONTENT -> {
+                    editorFragment = fragment as GutenbergKitEditorFragment
+                    editorFragment?.setImageLoader(imageLoader)
+                    editorFragment?.titleOrContentChanged?.observe(this@GutenbergKitActivity) { _: Editable? ->
+                        storePostViewModel.savePostWithDelay()
+                    }
+
+                    // Set up custom headers for the visual editor's internal WebView
+                    editorFragment?.setCustomHttpHeader("User-Agent", userAgent.webViewUserAgent)
+
+                    // Set up network request logging if enabled
+                    if (AppPrefs.isTrackNetworkRequestsEnabled()) {
+                        editorFragment?.setNetworkRequestListener(
+                            object : GutenbergView.NetworkRequestListener {
+                                override fun onNetworkRequest(request: RecordedNetworkRequest) {
+                                    gutenbergKitNetworkLogger.log(request)
+                                }
+                            }
+                        )
+                    }
+                }
+                VIEW_PAGER_PAGE_SETTINGS -> editPostSettingsFragment = fragment as EditPostSettingsFragment
+            }
+            return fragment
+        }
+
+        override fun getCount(): Int {
+            return numPagesInEditor
+        }
+
+        private val numPagesInEditor: Int = 4
+    }
+
+    private fun openMediaLibrary(mediaType: MediaBrowserType, initialSelection: List<Int>) {
+        mediaPickerLauncher.viewWPMediaLibraryPickerForResult(
+            activity = this,
+            site = siteModel,
+            browserType = mediaType,
+            initialSelection = initialSelection
+        )
+    }
+
+    private fun onXpostsSettingsCapability(isXpostsCapable: Boolean) {
+        isXPostsCapable = isXpostsCapable
+        val enableXPosts = siteModel.isUsingWpComRestApi && (isXPostsCapable == null || isXPostsCapable == true)
+        editorFragment?.setXPostsEnabled(enableXPosts)
+    }
+
+    private var mediaCapturePath: String? = ""
+
+    private fun migrateLegacyDraft(inputContent: String): String {
+        var content = inputContent
+        if (content.contains("<img src=\"null\" android-uri=\"")) {
+            // We must replace image tags specific to the legacy editor local drafts:
+            // <img src="null" android-uri="file:///..." />
+            // And trigger an upload action for the specific image / video
+            val pattern: Pattern = Pattern.compile("<img src=\"null\" android-uri=\"([^\"]*)\".*>")
+            val matcher: Matcher = pattern.matcher(content)
+            val stringBuffer = StringBuffer()
+            while (matcher.find()) {
+                val stringUri = matcher.group(1) ?: continue
+                FluxCUtils.mediaFileFromMediaModel(
+                    editorMedia
+                        .updateMediaUploadStateBlocking(stringUri.toUri(), MediaUploadState.FAILED)
+                )?.let { mediaFile ->
+                    val replacement = EditorUnitFunctions.getUploadErrorHtml(
+                        mediaFile.id.toString(),
+                        mediaFile.filePath,
+                        getString(R.string.tap_to_try_again)
+                    )
+                    matcher.appendReplacement(stringBuffer, replacement)
+                }
+            }
+            matcher.appendTail(stringBuffer)
+            content = stringBuffer.toString()
+        }
+        if (content.contains("[caption")) {
+            // Convert old legacy post caption formatting to new format, to avoid being stripped by the visual editor
+            val pattern = Pattern.compile("(\\[caption[^]]*caption=\"([^\"]*)\"[^]]*].+?)(\\[/caption])")
+            val matcher = pattern.matcher(content)
+            val stringBuffer = StringBuffer()
+            while (matcher.find()) {
+                val group1 = matcher.group(EditorConstants.GROUP_ONE)
+                val group2 = matcher.group(EditorConstants.GROUP_TWO)
+                val group3 = matcher.group(EditorConstants.GROUP_THREE)
+                if (group1 != null && group2 != null && group3 != null) {
+                    val replacement = group1 + group2 + group3
+                    matcher.appendReplacement(stringBuffer, replacement)
+                }
+            }
+            matcher.appendTail(stringBuffer)
+            content = stringBuffer.toString()
+        }
+        return content
+    }
+
+    private fun fillContentEditorFields() {
+        // Needed blog settings needed by the editor
+        editorFragment?.setFeaturedImageSupported(siteModel.isFeaturedImageSupported)
+
+        // Special actions - these only make sense for empty posts that are going to be populated now
+        if (editPostRepository.hasPost() && TextUtils.isEmpty(editPostRepository.content)) {
+            val action = intent.action
+            if ((Intent.ACTION_SEND_MULTIPLE == action)) {
+                setPostContentFromShareAction()
+            } else if ((EditorConstants.NEW_MEDIA_POST == action)) {
+                intent.getLongArrayExtra(EditorConstants.NEW_MEDIA_POST_EXTRA_IDS)?.let {
+                    editorMedia.addExistingMediaToEditorAsync(AddExistingMediaSource.WP_MEDIA_LIBRARY, it)
+                }
+            }
+        }
+        if (isPage) {
+            setPageContent()
+        }
+
+        // Set post title and content
+        if (editPostRepository.hasPost()) {
+            if (!TextUtils.isEmpty(editPostRepository.content) && !hasSetPostContent)  {
+                hasSetPostContent = true
+                // NOTE: Might be able to drop .replaceAll() when legacy editor is removed
+                var content = editPostRepository.content.replace("\uFFFC".toRegex(), "")
+                // Prepare eventual legacy editor local draft for the new editor
+                content = migrateLegacyDraft(content)
+                editorFragment?.setContent(content)
+            }
+            if (!TextUtils.isEmpty(editPostRepository.title)) {
+                editorFragment?.setTitle(editPostRepository.title)
+            }
+
+            // TBD: postSettingsButton.setText(post.isPage() ? R.string.page_settings : R.string.post_settings);
+            editorFragment?.setFeaturedImageId(editPostRepository.featuredImageId)
+        }
+    }
+
+    private val cameraCallback = object : EditorCameraHelper.CameraCallback {
+        override fun onMediaCapturePathReady(mediaCapturePath: String?) {
+            this@GutenbergKitActivity.mediaCapturePath = mediaCapturePath
+        }
+    }
+
+    override fun launchCamera() {
+        editorCameraHelper.launchCamera(this, cameraCallback)
+    }
+
+    override fun checkCameraPermissionAndLaunch() {
+        editorCameraHelper.checkCameraPermissionAndLaunch(this, cameraCallback)
+    }
+
+    private fun setPostContentFromShareAction() {
+        val intent: Intent = intent
+
+        // Check for shared text
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+        val title = intent.getStringExtra(Intent.EXTRA_SUBJECT)
+        if (text != null) {
+            hasSetPostContent = true
+            editPostRepository.updateAsync({ postModel: PostModel ->
+                if (title != null) {
+                    postModel.setTitle(title)
+                }
+                // Create an <a href> element around links
+                var updatedContent: String = AutolinkUtils.autoCreateLinks(text)
+
+                // Add Gutenberg block around content
+                updatedContent = EditorUnitFunctions.migrateToGutenbergEditor(updatedContent)
+
+                // update PostModel
+                postModel.setContent(updatedContent)
+                editPostRepository.updatePublishDateIfShouldBePublishedImmediately(postModel)
+                true
+            }) { postModel: PostImmutableModel, result: UpdatePostResult ->
+                if (result === Updated) {
+                    editorFragment?.setTitle(postModel.title)
+                    editorFragment?.setContent(postModel.content)
+                }
+            }
+        }
+        setPostMediaFromShareAction()
+    }
+    private fun setPostMediaFromShareAction() {
+        // Short-circuit the method if Intent.EXTRA_STREAM is not found
+        if (!intent.hasExtra(Intent.EXTRA_STREAM)) {
+            return
+        }
+
+        // Check for shared media
+        val action = intent.action
+        val sharedUris: ArrayList<Uri> = ArrayList()
+
+        if ((Intent.ACTION_SEND_MULTIPLE == action)) {
+            val potentialUris: ArrayList<Uri>? = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+            potentialUris?.forEach { uri ->
+                if (EditorUnitFunctions.isMediaTypeIntent(intent, uri)) {
+                    sharedUris.add(uri)
+                }
+            }
+        } else {
+            // For a single media share, we only allow images and video types
+            if (EditorUnitFunctions.isMediaTypeIntent(intent, null)) {
+                intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let {
+                    sharedUris.add(it)
+                }
+            }
+        }
+
+        if (sharedUris.isNotEmpty()) {
+            // removing this from the intent so it doesn't insert the media items again on each Activity re-creation
+            intent.removeExtra(Intent.EXTRA_STREAM)
+            editorMedia.addNewMediaItemsToEditorAsync(sharedUris, false)
+        }
+    }
+
+    private fun setFeaturedImageId(mediaId: Long, imagePicked: Boolean, isGutenbergEditor: Boolean) {
+        if (isGutenbergEditor) {
+            val postRepository: EditPostRepository = editPostRepository
+            val postId = editPostRepository.id
+            if (mediaId == MEDIA_ID_NO_FEATURED_IMAGE_SET.toLong()) {
+                featuredImageHelper.trackFeaturedImageEvent(
+                    FeaturedImageHelper.TrackableEvent.IMAGE_REMOVED_GUTENBERG_EDITOR,
+                    postId
+                )
+            } else {
+                featuredImageHelper.trackFeaturedImageEvent(
+                    FeaturedImageHelper.TrackableEvent.IMAGE_PICKED_GUTENBERG_EDITOR,
+                    postId
+                )
+            }
+            updateFeaturedImageUseCase.updateFeaturedImage(
+                mediaId, postRepository
+            ) { _: PostImmutableModel? ->
+             }
+        } else if (editPostSettingsFragment != null) {
+            editPostSettingsFragment?.updateFeaturedImage(mediaId, imagePicked)
+        }
+    }
+
+    /**
+     * Sets the page content
+     */
+    private fun setPageContent() {
+        val intent: Intent = intent
+        val content: String? = intent.getStringExtra(EditorConstants.EXTRA_PAGE_CONTENT)
+        if (!content.isNullOrEmpty()) {
+            hasSetPostContent = true
+            editPostRepository.updateAsync({ postModel: PostModel ->
+                postModel.setContent(content)
+                editPostRepository.updatePublishDateIfShouldBePublishedImmediately(postModel)
+                true
+            }) { postModel: PostImmutableModel, result: UpdatePostResult ->
+                if (result === Updated) {
+                    editorFragment?.setContent(postModel.content)
+                }
+            }
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        // In case of Remote Preview we need to change state even if (resultCode != Activity.RESULT_OK)
+        // so placing this here before the check
+        if (requestCode == RequestCodes.REMOTE_PREVIEW_POST) {
+            updatePostLoadingAndDialogState(PostLoadingState.NONE)
+            return
+        }
+
+        val shouldHandleRequest = (requestCode == RequestCodes.TAKE_PHOTO) ||
+                (requestCode == RequestCodes.TAKE_VIDEO) ||
+                (requestCode == RequestCodes.PHOTO_PICKER)
+
+        if (data != null || shouldHandleRequest)
+            handleRequest(requestCode, data)
+
+        if (requestCode == JetpackSecuritySettingsActivity.JETPACK_SECURITY_SETTINGS_REQUEST_CODE) {
+            fetchSiteSettings()
+        }
+    }
+
+    private fun handleRequest(requestCode: Int, data: Intent?) {
+        when (requestCode) {
+            RequestCodes.MULTI_SELECT_MEDIA_PICKER,
+            RequestCodes.SINGLE_SELECT_MEDIA_PICKER -> handleMediaPickerResult(data)
+            RequestCodes.PHOTO_PICKER,
+            RequestCodes.STOCK_MEDIA_PICKER_SINGLE_SELECT -> handlePhotoPickerResult(data)
+            RequestCodes.STOCK_MEDIA_PICKER_SINGLE_SELECT_FOR_GUTENBERG_BLOCK ->
+                handleStockMediaPickerSingleSelect(data)
+            RequestCodes.MEDIA_LIBRARY,
+            RequestCodes.PICTURE_LIBRARY,
+            RequestCodes.VIDEO_LIBRARY -> handleLibraries(data)
+            RequestCodes.TAKE_PHOTO -> addLastTakenPicture()
+            RequestCodes.TAKE_VIDEO -> handleTakeVideo(data)
+            RequestCodes.MEDIA_SETTINGS -> {
+                // No-op because it was Aztec only
+            }
+            RequestCodes.STOCK_MEDIA_PICKER_MULTI_SELECT -> handleStockMediaPickerMultiSelect(data)
+            RequestCodes.GIF_PICKER_SINGLE_SELECT,
+            RequestCodes.GIF_PICKER_MULTI_SELECT -> handleGifPicker(data)
+            RequestCodes.HISTORY_DETAIL -> handleHistoryDetail()
+            RequestCodes.IMAGE_EDITOR_EDIT_IMAGE -> handleImageEditor(data)
+            RequestCodes.SELECTED_USER_MENTION -> handleUserMention(data)
+            RequestCodes.FILE_LIBRARY,
+            RequestCodes.AUDIO_LIBRARY -> handleFileOrAudioLibrary(data)
+        }
+    }
+
+    private fun handleStockMediaPickerSingleSelect(data: Intent?) {
+        if (data?.hasExtra(MediaPickerConstants.EXTRA_MEDIA_ID) == true
+        ) {
+            // pass array with single item
+            val mediaIds = longArrayOf(data.getLongExtra(MediaPickerConstants.EXTRA_MEDIA_ID, 0))
+            editorMedia
+                .addExistingMediaToEditorAsync(AddExistingMediaSource.STOCK_PHOTO_LIBRARY, mediaIds)
+        }
+    }
+
+    private fun handleLibraries(data: Intent?) {
+        editorMedia.addNewMediaItemsToEditorAsync(
+            WPMediaUtils.retrieveMediaUris(data),
+            false
+        )
+    }
+
+    private fun handleTakeVideo(data: Intent?){
+        data?.data?.let {
+            editorMedia.addNewMediaToEditorAsync(it, true)
+        }
+    }
+
+    private fun handleStockMediaPickerMultiSelect(data: Intent?) {
+        val key = MediaBrowserActivity.RESULT_IDS
+        if (data?.hasExtra(key) == true) {
+            val mediaIds: LongArray? = data.getLongArrayExtra(key)
+            mediaIds?.let {
+                editorMedia.addExistingMediaToEditorAsync(
+                    AddExistingMediaSource.STOCK_PHOTO_LIBRARY,
+                    it
+                )
+            }
+        }
+    }
+
+    private fun handleGifPicker(data: Intent?) {
+        val localIds = data?.getIntArrayExtra(MediaPickerConstants.EXTRA_SAVED_MEDIA_MODEL_LOCAL_IDS)
+        if (localIds != null && localIds.isNotEmpty()) {
+            editorMedia.addGifMediaToPostAsync(localIds)
+        }
+    }
+
+    private fun handleHistoryDetail() {
+        if (dB?.hasParcel(KEY_REVISION) == true) {
+            editPostNavigationViewModel.navigateTo(EditPostDestination.Editor)
+            revision = dB?.getParcel(KEY_REVISION, parcelableCreator())
+            Handler().postDelayed(
+                { loadRevision() },
+                resources.getInteger(R.integer.full_screen_dialog_animation_duration).toLong()
+            )
+        }
+    }
+
+    private fun handleImageEditor(data: Intent?) {
+        val uris: List<Uri> = WPMediaUtils.retrieveImageEditorResult(data)
+        imageEditorTracker.trackAddPhoto(uris)
+        uris.forEach { item ->
+            item.let { editorMedia.addNewMediaToEditorAsync(it, false) }
+        }
+    }
+
+    private fun handleUserMention(data: Intent?) {
+        if (onGetSuggestionResult != null) {
+            val selectedMention: String? = data?.getStringExtra(SuggestionActivity.SELECTED_VALUE)
+            onGetSuggestionResult?.accept(selectedMention)
+            // Clear the callback once we have gotten a result
+            onGetSuggestionResult = null
+        }
+    }
+
+    private fun handleFileOrAudioLibrary(data: Intent?) {
+        if (data?.hasExtra(MediaPickerConstants.EXTRA_MEDIA_URIS) == true) {
+            val uriResults: List<Uri> = data.getStringArrayExtra(MediaPickerConstants.EXTRA_MEDIA_URIS)
+                ?.let { EditorUnitFunctions.convertStringArrayIntoUrisList(it) }
+                ?: emptyList()
+
+            uriResults.forEach { uri ->
+                uri.let { editorMedia.addNewMediaToEditorAsync(it, false) }
+            }
+        }
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun addLastTakenPicture() {
+        try {
+            mediaCapturePath?.let { path ->
+                WPMediaUtils.scanMediaFile(this, path)
+                val f = File(path)
+                val capturedImageUri: Uri? = Uri.fromFile(f)
+                if (capturedImageUri != null) {
+                    editorMedia.addNewMediaToEditorAsync(capturedImageUri, true)
+                } else {
+                    ToastUtils.showToast(this, R.string.gallery_error, ToastUtils.Duration.SHORT)
+                }
+            }
+        } catch (e: RuntimeException) {
+            AppLog.e(AppLog.T.EDITOR, e)
+        } catch (e: OutOfMemoryError) {
+            AppLog.e(AppLog.T.EDITOR, e)
+        } finally {
+            mediaCapturePath = null
+        }
+    }
+
+    private fun handlePhotoPickerResult(data: Intent?) {
+        // user chose a featured image
+        if (data?.hasExtra(MediaPickerConstants.EXTRA_MEDIA_ID) == true) {
+            val mediaId = data.getLongExtra(MediaPickerConstants.EXTRA_MEDIA_ID, 0L)
+            setFeaturedImageId(mediaId, true, isGutenbergEditor = false)
+        } else if (data?.hasExtra(MediaPickerConstants.EXTRA_MEDIA_QUEUED_URIS) == true) {
+            val uris: List<Uri> = EditorUnitFunctions.convertStringArrayIntoUrisList(
+                data.getStringArrayExtra(MediaPickerConstants.EXTRA_MEDIA_QUEUED_URIS)
+            )
+            val postId: Int = getImmutablePost().id
+            featuredImageHelper.trackFeaturedImageEvent(
+                FeaturedImageHelper.TrackableEvent.IMAGE_PICKED_POST_SETTINGS,
+                postId
+            )
+            for (mediaUri: Uri in uris) {
+                val mimeType: String? = contentResolver.getType(mediaUri)
+                val queueImageResult: EnqueueFeaturedImageResult = featuredImageHelper
+                    .queueFeaturedImageForUpload(
+                        postId, site, mediaUri,
+                        mimeType
+                    )
+                if (queueImageResult === EnqueueFeaturedImageResult.FILE_NOT_FOUND) {
+                    Toast.makeText(
+                        this,
+                        R.string.file_not_found, Toast.LENGTH_SHORT
+                    ).show()
+                } else if (queueImageResult === EnqueueFeaturedImageResult.INVALID_POST_ID) {
+                    Toast.makeText(
+                        this,
+                        R.string.error_generic, Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            editPostSettingsFragment?.refreshViews()
+        } else if (data?.hasExtra(MediaPickerConstants.EXTRA_MEDIA_URIS) == true) {
+            val uris: List<Uri> = EditorUnitFunctions.convertStringArrayIntoUrisList(
+                data.getStringArrayExtra(MediaPickerConstants.EXTRA_MEDIA_URIS)
+            )
+            editorMedia.addNewMediaItemsToEditorAsync(uris, false)
+        } else if (data?.hasExtra(MediaPickerConstants.EXTRA_SAVED_MEDIA_MODEL_LOCAL_IDS) == true) {
+            val localIds: IntArray? = data.getIntArrayExtra(MediaPickerConstants.EXTRA_SAVED_MEDIA_MODEL_LOCAL_IDS)
+            val postId: Int = getImmutablePost().id
+
+            localIds?.forEach { localId ->
+                val media: MediaModel? = mediaStore.getMediaWithLocalId(localId)
+                media?.let {
+                    featuredImageHelper.queueFeaturedImageForUpload(postId, it)
+                }
+            }
+            editPostSettingsFragment?.refreshViews()
+        }
+    }
+
+    private fun handleMediaPickerResult(data: Intent?) {
+        // TODO move this to EditorMedia
+        var ids = data?.getLongArrayExtra(MediaBrowserActivity.RESULT_IDS)?.toList()?.map { it }?.toMutableList()
+        if (ids.isNullOrEmpty()) {
+            val mediaId = data?.getLongExtra(MediaPickerConstants.EXTRA_MEDIA_ID, 0)
+            if (mediaId != null && mediaId != 0L) {
+                ids = mutableListOf(mediaId)
+            } else {
+                return
+            }
+        }
+
+        var allAreImages = true
+        ids.forEach { id ->
+            val media = mediaStore.getSiteMediaWithId(siteModel, id)
+            if (media != null && !MediaUtils.isValidImage(media.url)) {
+                allAreImages = false
+                return@forEach
+            }
+        }
+
+        // if allowMultipleSelection, pass all ids to addExistingMediaToEditor at once
+        editorMedia.addExistingMediaToEditorAsync(AddExistingMediaSource.WP_MEDIA_LIBRARY, ids)
+        if (editorPhotoPicker?.allowMultipleSelection == true) {
+            editorPhotoPicker?.setAllowMultipleSelection(false)
+        }
+    }
+
+    @Suppress("unused")
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onAccountChanged(event: OnAccountChanged) {
+        if (event.causeOfChange == AccountAction.SEND_VERIFICATION_EMAIL) {
+            if (!event.isError) {
+                ToastUtils.showToast(this, getString(R.string.toast_verification_email_sent))
+            } else {
+                ToastUtils.showToast(this, getString(R.string.toast_verification_email_send_error))
+            }
+        }
+    }
+
+    @Suppress("unused")
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onMediaChanged(event: OnMediaChanged) {
+        if (event.isError) {
+            val errorMessage: String
+            when (event.error.type) {
+                MediaErrorType.FS_READ_PERMISSION_DENIED -> errorMessage =
+                    getString(R.string.error_media_insufficient_fs_permissions)
+
+                MediaErrorType.NOT_FOUND -> errorMessage = getString(R.string.error_media_not_found)
+                MediaErrorType.AUTHORIZATION_REQUIRED -> errorMessage = getString(R.string.error_media_unauthorized)
+                MediaErrorType.PARSE_ERROR -> errorMessage = getString(R.string.error_media_parse_error)
+                MediaErrorType.MALFORMED_MEDIA_ARG, MediaErrorType.NULL_MEDIA_ARG, MediaErrorType.GENERIC_ERROR ->
+                    errorMessage = getString(R.string.error_refresh_media)
+                        else -> errorMessage = getString(R.string.error_refresh_media)
+            }
+            if (!TextUtils.isEmpty(errorMessage)) {
+                ToastUtils.showToast(this@GutenbergKitActivity, errorMessage, ToastUtils.Duration.SHORT)
+            }
+        }
+    }
+
+    override fun onCapturePhotoClicked() {
+        editorCameraHelper.capturePhotoIfAllowed(
+            siteModel,
+            onLaunchCamera = { launchCamera() },
+            onNoPermission = { editorPhotoPicker?.showNoUploadPermissionSnackbar() }
+        )
+    }
+
+    override fun onCaptureVideoClicked() {
+        editorCameraHelper.captureVideoIfAllowed(
+            this,
+            siteModel,
+            onNoPermission = { editorPhotoPicker?.showNoUploadPermissionSnackbar() }
+        )
+    }
+
+    override fun onAuthHeaderRequested(url: String): Map<String, String> {
+        val authHeaders: MutableMap<String, String> = HashMap()
+        val token = accountStore.accessToken
+        if ((siteModel.isPrivate && WPUrlUtils.safeToAddWordPressComAuthToken(url)
+                    && !TextUtils.isEmpty(token))
+        ) {
+            authHeaders[AuthenticationUtils.AUTHORIZATION_HEADER_NAME] = "Bearer $token"
+        }
+        if (siteModel.isPrivateWPComAtomic && privateAtomicCookie.exists() && WPUrlUtils
+                .safeToAddPrivateAtCookie(url, privateAtomicCookie.getDomain())
+        ) {
+            authHeaders[AuthenticationUtils.COOKIE_HEADER_NAME] = privateAtomicCookie.getCookieContent()
+        }
+        return authHeaders
+    }
+
+    override fun onEditorFragmentInitialized() {
+        // now that we have the Post object initialized,
+        // check whether we have media items to insert from the WRITE POST with media functionality
+        if (intent.hasExtra(EditorConstants.EXTRA_INSERT_MEDIA)) {
+            // Bump analytics
+            AnalyticsTracker.track(Stat.NOTIFICATION_UPLOAD_MEDIA_SUCCESS_WRITE_POST)
+            val serializableExtra = intent.getSerializableExtra(EditorConstants.EXTRA_INSERT_MEDIA)
+
+            val mediaList = if (serializableExtra is List<*> && serializableExtra.all { it is MediaModel } ) {
+                @Suppress("UNCHECKED_CAST")
+                serializableExtra as List<MediaModel>
+            } else {
+                null
+            }
+            // removing this from the intent so it doesn't insert the media items again on each Activity re-creation
+            intent.removeExtra(EditorConstants.EXTRA_INSERT_MEDIA)
+            if (!mediaList.isNullOrEmpty()) {
+                editorMedia.addExistingMediaToEditorAsync(mediaList, AddExistingMediaSource.WP_MEDIA_LIBRARY)
+            }
+        }
+        onEditorFinalTouchesBeforeShowing()
+    }
+
+    private fun onEditorFinalTouchesBeforeShowing() {
+        refreshEditorContent()
+        onEditorFinalTouchesBeforeShowingForGutenbergKitIfNeeded()
+    }
+
+    private fun onEditorFinalTouchesBeforeShowingForGutenbergKitIfNeeded() {
+        refreshEditorSettings()
+    }
+
+    override fun onEditorFragmentContentReady(
+        unsupportedBlocksList: ArrayList<Any>,
+        replaceBlockActionWaiting: Boolean
+    ) {
+        val entryPoint: PostUtils.EntryPoint? =
+            intent.getSerializableExtra(EditorConstants.EXTRA_ENTRY_POINT) as PostUtils.EntryPoint?
+
+        // Note that this method is also used to track startup performance
+        // It assumes this is being called when the editor has finished loading
+        // If you need to refactor this, please ensure that the startup_time_ms property
+        // is still reflecting the actual startup time of the editor
+        postEditorAnalyticsSession?.start(unsupportedBlocksList, entryPoint)
+
+        // Start VM, load prompt and populate Editor with content after edit IS ready.
+        val promptId: Int = intent.getIntExtra(EditorConstants.EXTRA_PROMPT_ID, -1)
+        editorBloggingPromptsViewModel.start(siteModel, promptId)
+    }
+
+    private fun logTemplateSelection() {
+        val template = intent.getStringExtra(EditorConstants.EXTRA_PAGE_TEMPLATE) ?: return
+        postEditorAnalyticsSession?.applyTemplate(template)
+    }
+
+    override fun showUserSuggestions(onResult: Consumer<String?>?) {
+        showSuggestions(SuggestionType.Users, onResult)
+    }
+
+    override fun showXpostSuggestions(onResult: Consumer<String?>?) {
+        showSuggestions(SuggestionType.XPosts, onResult)
+    }
+
+    private fun showSuggestions(type: SuggestionType, onResult: Consumer<String?>?) {
+        onGetSuggestionResult = onResult
+        ActivityLauncher.viewSuggestionsForResult(this, siteModel, type)
+    }
+
+    override fun onHtmlModeToggledInToolbar() {
+        toggleHtmlModeOnMenu()
+    }
+
+    @Throws(IllegalArgumentException::class)
+    override fun onTrackableEvent(event: EditorFragmentAbstract.TrackableEvent) {
+        editorFragment?.let {
+            editorTracker.trackEditorEvent(event, it.editorName)
+        }
+
+        when (event) {
+            EditorFragmentAbstract.TrackableEvent.ELLIPSIS_COLLAPSE_BUTTON_TAPPED -> {
+                AppPrefs.setAztecEditorToolbarExpanded(false)
+            }
+            EditorFragmentAbstract.TrackableEvent.ELLIPSIS_EXPAND_BUTTON_TAPPED -> {
+                AppPrefs.setAztecEditorToolbarExpanded(true)
+            }
+            EditorFragmentAbstract.TrackableEvent.HTML_BUTTON_TAPPED,
+            EditorFragmentAbstract.TrackableEvent.LINK_ADDED_BUTTON_TAPPED -> {
+                editorPhotoPicker?.hidePhotoPicker()
+            }
+            else -> { /* no-op */ }
+        }
+    }
+
+    override fun showPreview(): Boolean {
+        val post = editPostRepository.getPost() ?: return false
+
+        val opResult: PreviewLogicOperationResult = remotePreviewLogicHelper.runPostPreviewLogic(
+            this,
+            siteModel,
+            post,
+            editPostActivityStrategyFunctions
+        )
+
+        return when (opResult) {
+            PreviewLogicOperationResult.MEDIA_UPLOAD_IN_PROGRESS,
+            PreviewLogicOperationResult.CANNOT_SAVE_EMPTY_DRAFT,
+            PreviewLogicOperationResult.CANNOT_REMOTE_AUTO_SAVE_EMPTY_POST -> {
+                false
+            }
+            PreviewLogicOperationResult.OPENING_PREVIEW -> {
+                updatePostLoadingAndDialogState(PostLoadingState.PREVIEWING, post)
+                true
+            }
+            else -> true
+        }
+    }
+
+    override fun onToggleUndo(isDisabled: Boolean) {
+        if (menuHasUndo == !isDisabled) return
+        menuHasUndo = !isDisabled
+        Handler(Looper.getMainLooper()).post { invalidateOptionsMenu() }
+    }
+
+    override fun onToggleRedo(isDisabled: Boolean) {
+        if (menuHasRedo == !isDisabled) return
+        menuHasRedo = !isDisabled
+        Handler(Looper.getMainLooper()).post { invalidateOptionsMenu() }
+    }
+
+    override fun onModalDialogOpened(dialogType: String) {
+        isModalDialogOpen = true
+        closeButton?.let {
+            it.isEnabled = false
+            it.alpha = DISABLED_ALPHA
+        }
+        setOverflowMenuEnabled(false)
+        Handler(Looper.getMainLooper()).post { invalidateOptionsMenu() }
+    }
+
+    override fun onModalDialogClosed(dialogType: String) {
+        isModalDialogOpen = false
+        closeButton?.let {
+            it.isEnabled = true
+            it.alpha = 1.0f
+        }
+        setOverflowMenuEnabled(true)
+        Handler(Looper.getMainLooper()).post { invalidateOptionsMenu() }
+    }
+
+    override fun getPersistedTitle(): String = editPostRepository.title
+
+    override fun getPersistedContent(): String = editPostRepository.content
+
+    // FluxC events
+    @Suppress("unused", "CyclomaticComplexMethod")
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onMediaUploaded(event: OnMediaUploaded) {
+        if (isFinishing) {
+            return
+        }
+
+        if (event.isError && !NetworkUtils.isNetworkAvailable(this)) {
+            // Note: media upload pause handling removed as GutenbergKit editor
+            // does not use EditorMediaUploadListener interface
+            return
+        }
+
+        event.media?.let {
+            if (event.isError) {
+                handleOnMediaUploadedError(event)
+            } else if (event.completed) {
+                handleOnMediaUploadedCompleted(event)
+            }
+        } ?: run {
+            // event for unknown media, ignoring
+            AppLog.w(AppLog.T.MEDIA, "Media event carries null media object, not recognized")
+        }
+    }
+    private fun handleOnMediaUploadedError(event: OnMediaUploaded) {
+        val view: View? = editorFragment?.view
+        if (view != null) {
+            uploadUtilsWrapper.showSnackbarError(
+                view,
+                String.format(
+                    getString(R.string.error_media_upload_failed_for_reason),
+                    UploadUtils.getErrorMessageFromMedia(this, event.media as MediaModel)
+                )
+            )
+        }
+    }
+
+    private fun handleOnMediaUploadedCompleted(event: OnMediaUploaded){
+        // if the remote url on completed is null, we consider this upload wasn't successful
+        val media = event.media ?: return
+
+        if (!TextUtils.isEmpty(media.url)) {
+            onUploadSuccess(media)
+        }
+    }
+
+    // FluxC events
+    @Suppress("unused")
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onMediaListFetched(event: OnMediaListFetched?) {
+        if (event != null) {
+            networkErrorOnLastMediaFetchAttempt = event.isError
+        }
+    }
+
+    @Suppress("unused")
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onPostChanged(event: OnPostChanged) {
+        if (event.causeOfChange is CauseOfOnPostChanged.UpdatePost) {
+            if (!event.isError) {
+                // here update the menu if it's not a draft anymore
+                invalidateOptionsMenu()
+            } else {
+                updatePostLoadingAndDialogState(PostLoadingState.NONE)
+                AppLog.e(AppLog.T.POSTS, "UPDATE_POST failed: " + event.error.type + " - " + event.error.message)
+            }
+        } else if (event.causeOfChange is CauseOfOnPostChanged.RemoteAutoSavePost) {
+            if (!editPostRepository.hasPost() || ((editPostRepository.id
+                        != (event.causeOfChange as CauseOfOnPostChanged.RemoteAutoSavePost).localPostId))
+            ) {
+                AppLog.e(
+                    AppLog.T.POSTS, (
+                          "Ignoring REMOTE_AUTO_SAVE_POST in GutenbergKitActivity as mPost is null or " +
+                                  "id of the opened post doesn't match the event.")
+                )
+                return
+            }
+            if (event.isError) {
+                AppLog.e(
+                    AppLog.T.POSTS,
+                    "REMOTE_AUTO_SAVE_POST failed: " + event.error.type + " - " + event.error.message
+                )
+            }
+            editPostRepository.loadPostByLocalPostId(editPostRepository.id)
+            if (isRemotePreviewingFromEditor) {
+                handleRemotePreviewUploadResult(
+                    event.isError,
+                    RemotePreviewType.REMOTE_PREVIEW_WITH_REMOTE_AUTO_SAVE
+                )
+            }
+        }
+    }
+
+    private val isRemotePreviewingFromEditor: Boolean
+        get() {
+            return (postLoadingState === PostLoadingState.UPLOADING_FOR_PREVIEW
+                    ) || (postLoadingState === PostLoadingState.REMOTE_AUTO_SAVING_FOR_PREVIEW
+                    ) || (postLoadingState === PostLoadingState.PREVIEWING
+                    ) || (postLoadingState === PostLoadingState.REMOTE_AUTO_SAVE_PREVIEW_ERROR)
+        }
+    private val isUploadingPostForPreview: Boolean
+        get() {
+            return (postLoadingState === PostLoadingState.UPLOADING_FOR_PREVIEW
+                    || postLoadingState === PostLoadingState.REMOTE_AUTO_SAVING_FOR_PREVIEW)
+        }
+
+    private fun updateOnSuccessfulUpload() {
+        isNewPost = false
+        invalidateOptionsMenu()
+    }
+
+    private val isRemoteAutoSaveError: Boolean
+        get() {
+            return postLoadingState === PostLoadingState.REMOTE_AUTO_SAVE_PREVIEW_ERROR
+        }
+
+    private fun handleRemotePreviewUploadResult(isError: Boolean, param: RemotePreviewType) {
+        // We are in the process of remote previewing a post from the editor
+        if (!isError && isUploadingPostForPreview) {
+            // We were uploading post for preview and we got no error:
+            // update post status and preview it in the internal browser
+            updateOnSuccessfulUpload()
+            ActivityLauncher.previewPostOrPageForResult(
+                this@GutenbergKitActivity,
+                siteModel,
+                editPostRepository.getPost(),
+                param
+            )
+            updatePostLoadingAndDialogState(PostLoadingState.PREVIEWING, editPostRepository.getPost())
+        } else if (isError || isRemoteAutoSaveError) {
+            // We got an error from the uploading or from the remote auto save of a post: show snackbar error
+            updatePostLoadingAndDialogState(PostLoadingState.NONE)
+            uploadUtilsWrapper.showSnackbarError(
+                findViewById(R.id.editor_activity),
+                getString(R.string.remote_preview_operation_error)
+            )
+        }
+    }
+
+    @Suppress("unused")
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onPostUploaded(event: OnPostUploaded) {
+        val post: PostModel? = event.post
+
+        // Check if editPostRepository is initialized
+        val editPostRepositoryInitialized = this::editPostRepository.isInitialized
+        val editPostId = if (editPostRepositoryInitialized) editPostRepository.getPost()?.id else null
+
+        if (post != null && post.id == editPostId) {
+            if (!isRemotePreviewingFromEditor) {
+                // We are not remote previewing a post: show snackbar and update post status if needed
+                val snackbarAttachView = findViewById<View>(R.id.editor_activity)
+                uploadUtilsWrapper.onPostUploadedSnackbarHandler(
+                    this, snackbarAttachView, event.isError,
+                    event.isFirstTimePublish, post, if (event.isError) event.error.message else null, site
+                )
+                if (!event.isError) {
+                    editPostRepository.set {
+                        updateOnSuccessfulUpload()
+                        post
+                    }
+                }
+            } else {
+                editPostRepository.set { post }
+                handleRemotePreviewUploadResult(event.isError, RemotePreviewType.REMOTE_PREVIEW)
+            }
+        }
+    }
+
+    private fun refreshEditorSettings() {
+        val payload = FetchEditorSettingsPayload(siteModel)
+        dispatcher.dispatch(EditorSettingsActionBuilder.newFetchEditorSettingsAction(payload))
+    }
+
+    @Suppress("unused")
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
+    fun onEditorSettingsChanged(event: OnEditorSettingsChanged) {
+        // In GutenbergKit v0.15.0, the editor configuration is provided at
+        // construction time. Editor settings are no longer applied after the
+        // fact. This handler is retained for the EventBus subscription.
+    }
+
+    // EditorDataProvider methods
+    override fun getEditPostRepository() = editPostRepository
+    override fun getSite() = siteModel
+
+    override fun onMenuOpened(featureId: Int, menu: Menu): Boolean {
+        // This is a workaround for bag discovered on Chromebooks, where Enter key will not work in the toolbar menu
+        // Editor fragments are messing with window focus, which causes keyboard events to get ignored
+
+        // this fixes issue with GB editor
+        val editorFragmentView: View? = editorFragment?.view
+        editorFragmentView?.requestFocus()
+
+        return super.onMenuOpened(featureId, menu)
+    }
+
+    // EditorMediaListener
+    override fun appendMediaFiles(mediaFiles: Map<String, MediaFile>) {
+        editorFragment?.appendMediaFiles(mediaFiles.toMutableMap())
+    }
+
+    override fun getImmutablePost(): PostImmutableModel {
+        // Before conversion to Kotlin, this was wrapped by Objects.requireNonNull, which would crash the app if null
+        // The double bang serves the same purpose in Kotlin. Eventually we should revisit if the activity should
+        // just finish.
+        return editPostRepository.getPost()!!
+    }
+
+    override fun syncPostObjectWithUiAndSaveIt(listener: EditPostActivity.OnPostUpdatedFromUIListener?) {
+        updateAndSavePostAsync(listener)
+    }
+
+    override fun onMediaModelsCreatedFromOptimizedUris(oldUriToMediaFiles: Map<Uri, MediaModel>) {
+        // no op - we're not doing any special handling on MediaModels in GutenbergKitActivity
+    }
+
+    override fun showVideoDurationLimitWarning(fileName: String) {
+        val message: String = getString(R.string.error_media_video_duration_exceeds_limit)
+        make(
+            findViewById(R.id.editor_activity),
+            message,
+            Snackbar.LENGTH_LONG
+        ).show()
+    }
+
+    override fun getExceptionLogger(): Consumer<Exception> {
+        return EditorUnitFunctions.getExceptionLogger()
+    }
+
+    override fun getBreadcrumbLogger(): Consumer<String> {
+        return EditorUnitFunctions.getBreadcrumbLogger()
+    }
+
+    private fun updateAddingMediaToEditorProgressDialogState(uiState: ProgressDialogUiState) {
+        addingMediaToEditorProgressDialog = progressDialogHelper
+            .updateProgressDialogState(this, addingMediaToEditorProgressDialog, uiState, (uiHelpers))
+    }
+
+    override val savingInProgressDialogVisibility: LiveData<DialogVisibility>
+        get() {
+            return storePostViewModel.savingInProgressDialogVisibility
+        }
+    private val dB: SavedInstanceDatabase?
+        get() {
+            return getDatabase(getContext())
+        }
+
+    override fun onLogJsException(exception: JsException, onSendJsException: JsExceptionCallback) {
+        crashLogging.sendJavaScriptReport(exception, onSendJsException)
+    }
+
+    override fun onFeaturedImageIdChanged(mediaID: Long, isGutenbergEditor: Boolean) {
+        setFeaturedImageId(mediaID, false, isGutenbergEditor)
+    }
+
+    override fun onOpenMediaLibraryRequested(config: GutenbergView.OpenMediaLibraryConfig) {
+        editorPhotoPicker?.setAllowMultipleSelection(config.multiple)
+        val mediaType = EditorUnitFunctions.mapAllowedTypesToMediaBrowserType(
+            config.allowedTypes,
+            config.multiple
+        )
+        val initialSelection = when (val value = config.value) {
+            is GutenbergView.Value.Single -> listOf(value.value)
+            is GutenbergView.Value.Multiple -> value.toList()
+            else -> emptyList()
+        }
+        openMediaLibrary(mediaType, initialSelection)
+    }
+}

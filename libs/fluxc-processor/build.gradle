@@ -1,0 +1,16 @@
+plugins {
+    id "java"
+    alias(libs.plugins.dependency.analysis)
+}
+
+java {
+    sourceCompatibility = JavaVersion.toVersion(libs.versions.java.get())
+    targetCompatibility = JavaVersion.toVersion(libs.versions.java.get())
+}
+
+dependencies {
+    implementation project(':libs:fluxc-annotations')
+    implementation libs.google.autoservice
+    annotationProcessor libs.google.autoservice
+    implementation libs.squareup.java.poet
+}

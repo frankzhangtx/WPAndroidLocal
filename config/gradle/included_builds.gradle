@@ -1,0 +1,89 @@
+gradle.ext.wputilsBinaryPath = "org.wordpress:utils"
+gradle.ext.gutenbergMobileBinaryPath = "org.wordpress.gutenberg-mobile:react-native-gutenberg-bridge"
+gradle.ext.includedBuildGutenbergMobilePath = null
+gradle.ext.gutenbergKitBinaryPath = "org.wordpress.gutenbergkit:android"
+gradle.ext.includedBuildGutenbergKitPath = null
+gradle.ext.aztecAndroidAztecPath = "org.wordpress:aztec"
+gradle.ext.aztecAndroidWordPressShortcodesPath = "org.wordpress.aztec:wordpress-shortcodes"
+gradle.ext.aztecAndroidWordPressCommentsPath = "org.wordpress.aztec:wordpress-comments"
+gradle.ext.aztecAndroidGlideLoaderPath = "org.wordpress.aztec:glide-loader"
+gradle.ext.aztecAndroidPicassoLoaderPath = "org.wordpress.aztec:picasso-loader"
+gradle.ext.aboutAutomatticBinaryPath = "com.automattic:about"
+gradle.ext.gravatarBinaryPath = "com.gravatar:gravatar"
+gradle.ext.gravatarQuickEditorBinaryPath = "com.gravatar:gravatar-quickeditor"
+
+def localBuilds = new File("${rootDir}/local-builds.gradle")
+if (localBuilds.exists()) {
+    apply from: localBuilds
+
+    /*
+    In order to add a new included build:
+    1. Define a property for its path in the `local-builds.gradle-example` file.
+    2. Check if that property exists in `ext` since it may be commented out.
+    3. Include the build using the property.
+    4. Add dependencySubstitution block and substitute the binary module with the project.
+
+    Note that `project` dependencies are resolved in the context of the included build.
+    https://docs.gradle.org/current/javadoc/org/gradle/api/initialization/ConfigurableIncludedBuild.html#dependencySubstitution-org.gradle.api.Action-
+    */
+
+    if (ext.has("localWPUtilsPath")) {
+        includeBuild(ext.localWPUtilsPath) {
+            dependencySubstitution {
+                println "Substituting wputils with the local build"
+                substitute module("$gradle.ext.wputilsBinaryPath") using project(':WordPressUtils')
+            }
+        }
+    }
+
+    if (ext.has("localGutenbergMobilePath")) {
+        gradle.ext.includedBuildGutenbergMobilePath = ext.localGutenbergMobilePath
+        includeBuild("$ext.localGutenbergMobilePath/gutenberg/packages/react-native-bridge/android") {
+            dependencySubstitution {
+                println "Substituting gutenberg-mobile with the local build"
+                substitute module("$gradle.ext.gutenbergMobileBinaryPath") using project(':react-native-bridge')
+            }
+        }
+    }
+
+    if (ext.has("localGutenbergKitPath")) {
+        gradle.ext.includedBuildGutenbergKitPath = ext.localGutenbergKitPath
+        includeBuild("$ext.localGutenbergKitPath/android") {
+            dependencySubstitution {
+                println "Substituting GutenbergKit with the local build"
+                substitute module("$gradle.ext.gutenbergKitBinaryPath") using project(':Gutenberg')
+            }
+        }
+    }
+
+    if (ext.has("localAztecAndroidPath")) {
+        includeBuild(ext.localAztecAndroidPath) {
+            dependencySubstitution {
+                println "Substituting AztecEditor-Android with the local build"
+                substitute module("$gradle.ext.aztecAndroidAztecPath") using project(':aztec')
+                substitute module("$gradle.ext.aztecAndroidWordPressShortcodesPath") using project(':wordpress-shortcodes')
+                substitute module("$gradle.ext.aztecAndroidWordPressCommentsPath") using project(':wordpress-comments')
+                substitute module("$gradle.ext.aztecAndroidGlideLoaderPath") using project(':glide-loader')
+                substitute module("$gradle.ext.aztecAndroidPicassoLoaderPath") using project(':picasso-loader')
+            }
+        }
+    }
+
+    if (ext.has("localAboutAutomatticPath")) {
+        includeBuild(ext.localAboutAutomatticPath) {
+            dependencySubstitution {
+                println "Substituting about-automattic with the local build"
+                substitute module("$gradle.ext.aboutAutomatticBinaryPath") using project(':library')
+            }
+        }
+    }
+
+    if (ext.has("localGravatarAndroidPath")) {
+        includeBuild(ext.localGravatarAndroidPath) {
+            dependencySubstitution {
+                println "Substituting Gravatar-Android with the local build"
+                substitute module("$gradle.ext.gravatarBinaryPath") using project(':gravatar')
+            }
+        }
+    }
+}

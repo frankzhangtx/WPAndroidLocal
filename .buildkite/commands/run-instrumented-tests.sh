@@ -1,0 +1,40 @@
+#!/bin/bash -eu
+
+if "$(dirname "${BASH_SOURCE[0]}")/should-skip-job.sh" --job-type validation; then
+  mkdir -p buildkite-test-analytics && touch buildkite-test-analytics/empty.xml
+  exit 0
+fi
+
+"$(dirname "${BASH_SOURCE[0]}")/restore-cache.sh"
+
+echo "--- :rubygems: Setting up Gems"
+install_gems
+
+echo "--- :closed_lock_with_key: Installing Secrets"
+bundle exec fastlane run configure_apply
+
+echo "--- 🧪 Testing"
+set +e
+bundle exec fastlane build_and_run_instrumented_test app:$1
+TESTS_EXIT_STATUS=$?
+set -e
+
+if [[ "$TESTS_EXIT_STATUS" -ne 0 ]]; then
+  # Keep the (otherwise collapsed) current "Testing" section open in Buildkite logs on error. See https://buildkite.com/docs/pipelines/managing-log-output#collapsing-output
+  echo "^^^ +++"
+  echo "Instrumented Tests failed!"
+fi
+
+echo "--- 🚦 Report Tests Status"
+results_file="build/instrumented-tests/JUnitReport.xml"
+
+if [[ $BUILDKITE_BRANCH == trunk ]] || [[ $BUILDKITE_BRANCH == release/* ]]; then
+    annotate_test_failures "$results_file" --slack "build-and-ship"
+else
+    annotate_test_failures "$results_file"
+fi
+
+echo "--- 🧪 Copying test logs for test collector"
+mkdir buildkite-test-analytics && cp -r build/instrumented-tests/matrix_* buildkite-test-analytics
+
+exit $TESTS_EXIT_STATUS

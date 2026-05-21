@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- TextAppearance -->
+    <style name="TextAppearance.App.Toolbar.Title" parent="TextAppearance.MaterialComponents.Headline6"/>
+
+</resources>

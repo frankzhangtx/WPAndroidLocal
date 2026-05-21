@@ -1,0 +1,185 @@
+package org.wordpress.android.util;
+
+import android.content.Context;
+import android.net.Uri;
+import android.text.TextUtils;
+import android.webkit.MimeTypeMap;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import org.wordpress.android.fluxc.model.MediaModel;
+import org.wordpress.android.fluxc.model.MediaModel.MediaUploadState;
+import org.wordpress.android.fluxc.store.AccountStore;
+import org.wordpress.android.fluxc.store.SiteStore;
+import org.wordpress.android.util.AppLog.T;
+import org.wordpress.android.util.helpers.MediaFile;
+
+import java.io.File;
+
+public class FluxCUtils {
+    public static class FluxCUtilsLoggingException extends Exception {
+        public FluxCUtilsLoggingException(String message) {
+            super(message);
+        }
+        public FluxCUtilsLoggingException(Throwable originalException) {
+            super(originalException);
+        }
+    }
+
+    /**
+     * This method doesn't do much, but insure we're doing the same check in all parts of the app.
+     *
+     * @return true if the user is signed in a WordPress.com account or if he has a .org site.
+     */
+    public static boolean isSignedInWPComOrHasWPOrgSite(AccountStore accountStore, SiteStore siteStore) {
+        return accountStore.hasAccessToken()
+                || siteStore.hasSiteAccessedViaXMLRPC()
+                || siteStore.hasSiteAccessedViaWPAPI();
+    }
+
+    public static MediaModel mediaModelFromMediaFile(MediaFile file) {
+        if (file == null) {
+            return null;
+        }
+
+        String filePath = file.getFilePath();
+        return new MediaModel(
+                file.getId(),
+                Integer.parseInt(file.getBlogId()),
+                file.getMediaId() != null ? Long.parseLong(file.getMediaId()) : 0,
+                file.getFileURL(),
+                file.getThumbnailURL(),
+                file.getFileName(),
+                filePath,
+                org.wordpress.android.fluxc.utils.MediaUtils.getExtension(filePath),
+                file.getMimeType(),
+                file.getTitle(),
+                file.getCaption(),
+                file.getDescription(),
+                file.getAlt(),
+                file.getVideoPressGuid(),
+                MediaUploadState.fromString(file.getUploadState())
+        );
+    }
+
+    public static MediaFile mediaFileFromMediaModel(MediaModel media) {
+        if (media == null) {
+            return null;
+        }
+
+        MediaFile mediaFile = new MediaFile();
+        mediaFile.setBlogId(String.valueOf(media.getLocalSiteId()));
+        mediaFile.setMediaId(media.getMediaId() > 0 ? String.valueOf(media.getMediaId()) : null);
+        mediaFile.setId(media.getId());
+        mediaFile.setFileName(media.getFileName());
+        mediaFile.setFilePath(media.getFilePath());
+        mediaFile.setMimeType(media.getMimeType());
+        mediaFile.setThumbnailURL(media.getThumbnailUrl());
+        mediaFile.setFileUrlLargeSize(media.getFileUrlLargeSize());
+        mediaFile.setFileUrlMediumSize(media.getFileUrlMediumSize());
+        mediaFile.setFileURL(media.getUrl());
+        mediaFile.setTitle(media.getTitle());
+        mediaFile.setDescription(media.getDescription());
+        mediaFile.setCaption(media.getCaption());
+        mediaFile.setAlt(media.getAlt());
+        mediaFile.setUploadState(media.getUploadState());
+        mediaFile.setVideo(org.wordpress.android.fluxc.utils.MediaUtils.isVideoMimeType(media.getMimeType()));
+        mediaFile.setVideoPressShortCode(ShortcodeUtils.getVideoPressShortcodeFromId(media.getVideoPressGuid()));
+        mediaFile.setHeight(media.getHeight());
+        mediaFile.setWidth(media.getWidth());
+        mediaFile.setVideoPressGuid(media.getVideoPressGuid());
+        return mediaFile;
+    }
+
+    /**
+     * This method returns a FluxC MediaModel from a device media URI
+     *
+     * @return MediaModel or null in case of problems reading the URI
+     */
+    @Nullable
+    public static MediaModel mediaModelFromLocalUri(@NonNull Context context,
+                                                    @NonNull Uri uri,
+                                                    @Nullable String mimeType,
+                                                    @NonNull org.wordpress.android.fluxc.store.MediaStore mediaStore,
+                                                    int localSiteId) {
+        String path = MediaUtils.getRealPathFromURI(context, uri);
+
+        if (TextUtils.isEmpty(path)) {
+            AppLog.d(T.UTILS, "The input URI " + uri.toString() + " can't be read.");
+            return null;
+        }
+
+        File file = new File(path);
+        if (!file.exists()) {
+            AppLog.d(T.UTILS, "The input URI " + uri.toString() + ", converted locally to " + path
+                           + " doesn't exist.");
+            return null;
+        }
+
+        String filename = org.wordpress.android.fluxc.utils.MediaUtils.getFileName(path);
+        if (filename == null) filename = "";
+        String fileExtension = org.wordpress.android.fluxc.utils.MediaUtils.getExtension(path);
+
+        if (TextUtils.isEmpty(mimeType)) {
+            mimeType = UrlUtils.getUrlMimeType(uri.toString());
+            if (mimeType == null) {
+                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExtension);
+                if (mimeType == null) {
+                    // Default to image jpeg
+                    mimeType = "image/jpeg";
+                }
+            }
+        }
+
+        String title = filename;
+        // Remove extension from title
+        if (fileExtension != null && title.contains("." + fileExtension)) {
+            title = title.substring(0, title.lastIndexOf(fileExtension) - 1);
+        }
+
+        // If file extension is null, upload won't work on wordpress.com
+        if (fileExtension == null) {
+            fileExtension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+            filename += "." + fileExtension;
+        }
+
+        // Path resolution can drop the file extension when the filename contains
+        // spaces (e.g. "screenshot_one ui home123.jpg" resolves to a path ending
+        // in "screenshot_one ui home123."). Rename the on-disk file so the path
+        // includes the correct extension, allowing upload consumers to detect the
+        // MIME type from the filename.
+        if (fileExtension != null && !path.endsWith("." + fileExtension)) {
+            String correctedPath = path;
+            while (correctedPath.endsWith(".")) {
+                correctedPath = correctedPath.substring(0, correctedPath.length() - 1);
+            }
+            correctedPath = correctedPath + "." + fileExtension;
+            File renamed = new File(correctedPath);
+            if (file.renameTo(renamed)) {
+                path = correctedPath;
+            } else {
+                AppLog.w(T.UTILS,
+                    "Failed to rename cached file to include extension: " + path);
+            }
+        }
+
+        MediaModel media = new MediaModel(
+                localSiteId,
+                DateTimeUtils.iso8601UTCFromTimestamp(System.currentTimeMillis() / 1000),
+                filename,
+                path,
+                fileExtension,
+                mimeType,
+                title,
+                MediaModel.MediaUploadState.QUEUED
+        );
+        MediaModel instantiatedMedia = mediaStore.instantiateMediaModel(media);
+        if (instantiatedMedia != null) {
+            return instantiatedMedia;
+        } else {
+            AppLog.w(T.MEDIA, "The media couldn't instantiate.");
+            return null;
+        }
+    }
+}

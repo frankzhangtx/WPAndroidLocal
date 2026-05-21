@@ -1,0 +1,663 @@
+import io.sentry.android.gradle.extensions.InstrumentationFeature
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.kotlin.allopen)
+    alias(libs.plugins.sentry)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.google.dagger.hilt)
+    alias(libs.plugins.kotlinx.kover)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.fladle)
+    alias(libs.plugins.dependency.analysis)
+}
+
+fladle {
+    testTargets = [
+            "notPackage org.wordpress.android.ui.screenshots"
+    ]
+    configs {
+        wordpress {
+            def app = "wordpress"
+            debugApk.set(appPathForVariant(app))
+            instrumentationApk.set(testPathForVariant(app))
+            smartFlankGcsPath.set(pathForSmartFlankGcsPath(app))
+            /* Ignoring (already ignored by JUnit#assume) specific tests on the WordPress app to
+            prevent Fladle/Flank from scenario of executing them on a single shard.
+            This avoidance helps prevent test failures due to overly aggressive sharding that
+            could incur unnecessary costs and tests run failure. */
+            testTargets.set(testTargets.get() + [
+                    "notClass org.wordpress.android.e2e.StatsTests",
+                    "notClass org.wordpress.android.e2e.StatsGranularTabsTest",
+            ])
+        }
+        jetpack {
+            def app = "jetpack"
+            debugApk.set(appPathForVariant(app))
+            instrumentationApk.set(testPathForVariant(app))
+            smartFlankGcsPath.set(pathForSmartFlankGcsPath(app))
+        }
+    }
+    serviceAccountCredentials = new File(System.getProperty("user.home"), ".configure/wordpress-android/secrets/firebase.secrets.json")
+    devices = [
+            ["model": "Pixel2.arm", "version": "30"]
+    ]
+
+    localResultsDir = "$rootDir/build/instrumented-tests"
+
+    maxTestShards = 50
+    shardTime = 120
+}
+
+String appPathForVariant(String app) {
+    String path = "outputs/apk/${app}/debug"
+    return new File(layout.buildDirectory.dir(path).get().asFile, '*.apk').absolutePath
+}
+String testPathForVariant(String app) {
+    String path = "outputs/apk/androidTest/${app}/debug"
+    return new File(layout.buildDirectory.dir(path).get().asFile, '*.apk').absolutePath
+}
+
+static String pathForSmartFlankGcsPath(String app) {
+    return "gs://fladle/wordpress-android/${app}/smart-flank/JUnitReport.xml"
+}
+
+sentry {
+    tracingInstrumentation {
+        enabled = true
+        features = [InstrumentationFeature.DATABASE]
+        logcat.enabled = false
+    }
+    autoInstallation.enabled = false
+    includeDependenciesReport = false
+
+    includeSourceContext = gradle.ext.isCi
+    includeProguardMapping = gradle.ext.isCi
+    /* Sentry won't send source context or add performance instrumentations for debug builds
+    so we can save build times. Sending events will still work in debug builds
+    (if enabled in WPCrashLoggingDataProvider).
+    */
+    ignoredBuildTypes = ["debug"]
+    telemetry = false
+}
+
+allOpen {
+    // allows mocking for classes w/o directly opening them for release builds
+    annotation 'org.wordpress.android.testing.OpenClassAnnotation'
+}
+
+base {
+    archivesName = "org.wordpress.android"
+}
+
+android {
+    useLibrary 'android.test.runner'
+
+    useLibrary 'android.test.base'
+    useLibrary 'android.test.mock'
+
+    namespace "org.wordpress.android"
+
+    def versionProperties = loadPropertiesFromFile(file("${rootDir}/version.properties"))
+
+    compileSdk rootProject.compileSdkVersion
+
+    defaultConfig {
+        applicationId "org.wordpress.android"
+
+        versionName project.findProperty("prototypeBuildVersionName") ?: versionProperties.getProperty("versionName")
+        versionCode versionProperties.getProperty("versionCode").toInteger()
+
+        minSdkVersion rootProject.minSdkVersion
+        targetSdkVersion rootProject.targetSdkVersion
+
+        testInstrumentationRunner 'org.wordpress.android.WordPressTestRunner'
+
+        buildConfigField "boolean", "OFFER_GUTENBERG", "true"
+        buildConfigField "boolean", "ENABLE_DEBUG_SETTINGS", "true"
+        buildConfigField "boolean", "SEEN_UNSEEN_WITH_COUNTER", "false"
+        buildConfigField "boolean", "LIKES_ENHANCEMENTS", "false"
+        buildConfigField "boolean", "IS_JETPACK_APP", "false"
+        buildConfigField "String", "TRACKS_EVENT_PREFIX", '"wpandroid_"'
+        buildConfigField "String", "PUSH_NOTIFICATIONS_APP_KEY", '"org.wordpress.android"'
+        buildConfigField "boolean", "MP4_COMPOSER_VIDEO_OPTIMIZATION", "false"
+        buildConfigField "boolean", "MANAGE_CATEGORIES", "false"
+        buildConfigField "boolean", "RECOMMEND_THE_APP", "false"
+        buildConfigField "boolean", "UNIFIED_COMMENTS_DETAILS", "false"
+        buildConfigField "boolean", "COMMENTS_SNIPPET", "false"
+        buildConfigField "boolean", "READER_COMMENTS_MODERATION", "false"
+        buildConfigField "boolean", "SITE_NAME", "false"
+        buildConfigField "boolean", "LAND_ON_THE_EDITOR", "false"
+        buildConfigField "boolean", "QRCODE_AUTH_FLOW", "false"
+        buildConfigField "boolean", "BETA_SITE_DESIGNS", "false"
+        buildConfigField "boolean", "JETPACK_POWERED", "true"
+        buildConfigField "boolean", "JETPACK_POWERED_BOTTOM_SHEET", "true"
+        buildConfigField "boolean", "JETPACK_SHARED_LOGIN", "true"
+        buildConfigField "boolean", "JETPACK_LOCAL_USER_FLAGS", "true"
+        buildConfigField "boolean", "JETPACK_BLOGGING_REMINDERS_SYNC", "true"
+        buildConfigField "boolean", "JETPACK_READER_SAVED_POSTS", "true"
+        buildConfigField "boolean", "JETPACK_PROVIDER_SYNC", "true"
+        buildConfigField "boolean", "JETPACK_MIGRATION_FLOW", "false"
+        buildConfigField "boolean", "JETPACK_FEATURE_REMOVAL_PHASE_ONE", "false"
+        buildConfigField "boolean", "JETPACK_FEATURE_REMOVAL_PHASE_TWO", "false"
+        buildConfigField "boolean", "JETPACK_FEATURE_REMOVAL_PHASE_THREE", "false"
+        buildConfigField "boolean", "JETPACK_FEATURE_REMOVAL_PHASE_FOUR", "false"
+        buildConfigField "boolean", "JETPACK_FEATURE_REMOVAL_NEW_USERS", "false"
+        buildConfigField "boolean", "JETPACK_FEATURE_REMOVAL_STATIC_POSTERS", "false"
+        buildConfigField "boolean", "JETPACK_FEATURE_REMOVAL_SELF_HOSTED_USERS", "false"
+        buildConfigField "boolean", "PREVENT_DUPLICATE_NOTIFS_REMOTE_FIELD", "false"
+        buildConfigField "boolean", "OPEN_WEB_LINKS_WITH_JETPACK_FLOW", "false"
+        buildConfigField "boolean", "ENABLE_BLAZE_FEATURE", "false"
+        buildConfigField "boolean", "WP_INDIVIDUAL_PLUGIN_OVERLAY", "false"
+        buildConfigField "boolean", "SITE_EDITOR_MVP", "false"
+        buildConfigField "boolean", "CONTACT_SUPPORT_CHATBOT", "false"
+        buildConfigField "boolean", "ENABLE_DOMAIN_MANAGEMENT_FEATURE", "false"
+        buildConfigField "boolean", "PLANS_IN_SITE_CREATION", "false"
+        buildConfigField "boolean", "BLOGANUARY_DASHBOARD_NUDGE", "false"
+        buildConfigField "boolean", "DYNAMIC_DASHBOARD_CARDS", "false"
+        buildConfigField "boolean", "STATS_TRAFFIC_SUBSCRIBERS_TABS", "false"
+        buildConfigField "boolean", "READER_READING_PREFERENCES", "false"
+        buildConfigField "boolean", "READER_READING_PREFERENCES_FEEDBACK", "false"
+        buildConfigField "boolean", "READER_TAGS_FEED", "false"
+
+        buildConfigField "boolean", "VOICE_TO_CONTENT", "false"
+        buildConfigField "boolean", "READER_FLOATING_BUTTON", "false"
+        buildConfigField "boolean", "ENABLE_SELF_HOSTED_USERS", "false"
+
+        // Override these constants in jetpack product flavor to enable/ disable features
+        buildConfigField "boolean", "ENABLE_SITE_CREATION", "true"
+        buildConfigField "boolean", "ENABLE_ADD_SELF_HOSTED_SITE", "true"
+        buildConfigField "boolean", "ENABLE_READER", "true"
+        buildConfigField "boolean", "ENABLE_CREATE_FAB", "true"
+        buildConfigField "boolean", "ENABLE_FOLLOWED_SITES_SETTINGS", "true"
+        buildConfigField "boolean", "ENABLE_WHATS_NEW_FEATURE", "true"
+        buildConfigField "boolean", "ENABLE_QRCODE_AUTH_FLOW", "true"
+        buildConfigField "boolean", "ENABLE_OPEN_WEB_LINKS_WITH_JP_FLOW", "true"
+        buildConfigField "boolean", "BLAZE_MANAGE_CAMPAIGNS", "false"
+        buildConfigField "boolean", "DASHBOARD_PERSONALIZATION", "false"
+        buildConfigField "boolean", "ENABLE_SITE_MONITORING", "false"
+        buildConfigField "boolean", "SYNC_PUBLISHING", "false"
+        buildConfigField "boolean", "ENABLE_IN_APP_UPDATES", "false"
+        buildConfigField "boolean", "ENABLE_GUTENBERG_KIT", "false"
+        buildConfigField "boolean", "ENABLE_GUTENBERG_KIT_THEME_STYLES", "false"
+
+        manifestPlaceholders = [magicLinkScheme:"wordpress"]
+    }
+
+    // Java source/target compatibility (version defined in libs.versions.toml)
+    compileOptions {
+        // Enables Java 8+ API desugaring support
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility JavaVersion.toVersion(libs.versions.java.get())
+        targetCompatibility JavaVersion.toVersion(libs.versions.java.get())
+    }
+
+    flavorDimensions = ['app']
+
+
+    productFlavors {
+        wordpress {
+            dimension "app"
+
+            applicationId "org.wordpress.android"
+            buildConfigField "boolean", "IS_JETPACK_APP", "false"
+            buildConfigField "String", "TRACKS_EVENT_PREFIX", '"wpandroid_"'
+            buildConfigField "String", "PUSH_NOTIFICATIONS_APP_KEY", '"org.wordpress.android"'
+            buildConfigField "boolean", "ENABLE_QRCODE_AUTH_FLOW", "false"
+            buildConfigField "boolean", "ENABLE_OPEN_WEB_LINKS_WITH_JP_FLOW", "true"
+            buildConfigField "String", "WPCOM_REDIRECT_URI", '"wordpress://wpcom-authorize"'
+
+            manifestPlaceholders = [magicLinkScheme:"wordpress"]
+        }
+
+        jetpack {
+            isDefault true
+            dimension "app"
+
+            applicationId "com.jetpack.android"
+            buildConfigField "boolean", "IS_JETPACK_APP", "true"
+            buildConfigField "boolean", "ENABLE_SITE_CREATION", "true"
+            buildConfigField "boolean", "ENABLE_ADD_SELF_HOSTED_SITE", "true"
+            buildConfigField "boolean", "ENABLE_READER", "true"
+            buildConfigField "boolean", "ENABLE_CREATE_FAB", "true"
+            buildConfigField "boolean", "ENABLE_FOLLOWED_SITES_SETTINGS", "true"
+            buildConfigField "boolean", "ENABLE_WHATS_NEW_FEATURE", "true"
+            buildConfigField "String", "TRACKS_EVENT_PREFIX", '"jpandroid_"'
+            buildConfigField "String", "PUSH_NOTIFICATIONS_APP_KEY", '"com.jetpack.android"'
+            buildConfigField "boolean", "ENABLE_QRCODE_AUTH_FLOW", "true"
+            buildConfigField "boolean", "ENABLE_OPEN_WEB_LINKS_WITH_JP_FLOW", "false"
+            buildConfigField "String", "WPCOM_REDIRECT_URI", '"jetpack://wpcom-authorize"'
+
+            manifestPlaceholders = [magicLinkScheme:"jetpack"]
+
+            // Limit string resources to Mag16 only for Jetpack
+            // Note 1: this only affects included _locales_; variants for `values-night`, `values-land` and other configs are _still_ preserved in Jetpack and not filtered by this.
+            resourceConfigurations = ["ar", "de", "es", "fr", "he", "id", "it", "ja", "ko", "nl", "pt-rBR", "ru", "sv", "tr", "zh-rCN", "zh-rTW"]
+            // Note 2: `in` is the legacy locale code for `id` and `iw` is the legacy locale code for `he`.
+            // We need to include those to make sure users with older Android versions and still using those legacy codes still have those translations show up at runtime.
+            resourceConfigurations += ["in", "iw"]
+        }
+
+        // Also dynamically add additional `buildConfigFields` to our app flavors from any `wp.`/`jp.`-prefixed property in `secrets.properties`
+        addBuildConfigFieldsFromPrefixedProperties(wordpress, gradle.ext.secretProperties, ['wp'])
+        addBuildConfigFieldsFromPrefixedProperties(jetpack, gradle.ext.secretProperties, ['wp', 'jp']) // Inherit same properties used from WP first then overwrite with JP-specific ones
+    }
+
+    buildTypes {
+        release {
+            // Proguard is used to shrink our apk, and reduce the number of methods in our final apk,
+            // but we don't obfuscate the bytecode.
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.cfg'
+            buildConfigField "boolean", "ENABLE_DEBUG_SETTINGS", "false"
+        }
+
+        debug {
+            applicationIdSuffix ".prealpha"
+            minifyEnabled false
+            pseudoLocalesEnabled true
+        }
+    }
+
+    signingConfigs {
+        if (["uploadStoreFile", "uploadStorePassword", "uploadKeyAlias", "uploadKeyPassword"].count { !gradle.ext.secretProperties.containsKey(it) } == 0) {
+            logger.info("App signing properties found in secrets.properties, configuring signing for release builds.")
+            release {
+                storeFile = rootProject.file(gradle.ext.secretProperties.get("uploadStoreFile"))
+                storePassword = gradle.ext.secretProperties.get("uploadStorePassword")
+                keyAlias = gradle.ext.secretProperties.get("uploadKeyAlias")
+                keyPassword = gradle.ext.secretProperties.get("uploadKeyPassword")
+            }
+            android.buildTypes.release.signingConfig = android.signingConfigs.release
+        }
+
+        if (gradle.ext.secretProperties.containsKey("debugStoreFile")) {
+            logger.info("Debug signing properties found in secrets.properties, configuring signing for debug builds.")
+            def sharedDebugStore = file(gradle.ext.secretProperties.get("debugStoreFile").replaceFirst("^~", System.getProperty("user.home")))
+            if (sharedDebugStore.exists()) {
+                debug {
+                    storeFile sharedDebugStore
+                }
+            }
+        }
+    }
+
+    testOptions {
+        animationsDisabled = true
+        unitTests {
+            includeAndroidResources = true
+            returnDefaultValues = true
+        }
+    }
+
+    packaging {
+        resources {
+            excludes += 'META-INF/proguard/androidx-annotations.pro'
+            excludes += '**/libjscexecutor.so'
+            excludes += '**/libfabricjni.so'
+            pickFirsts += '**/libc++_shared.so'
+            pickFirsts += '**/libfbjni.so'
+            pickFirsts += 'META-INF/-no-jdk.kotlin_module'
+            pickFirsts += 'META-INF/versions/9/OSGI-INF/MANIFEST.MF'
+        }
+    }
+
+    bundle {
+        language {
+            // Don't split language resources for App Bundles.
+            // This is required to switch language in app.
+            enableSplit = false
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+        viewBinding true
+        compose true
+    }
+}
+
+/// Dynamically add `buildConfigFields` on a given variant/flavor from prefixed properties
+/// (This is used to e.g. add every property prefixed `wp.` in `secrets.properties` as a BuildConfigField in the `wordpress` flavor)
+///
+/// `prefixes` is an array of prefixes to search for, without their `.` dot (e.g. `["wp", "jp"]`).
+/// Properties found with prefixes first in that array will be overridden by the ones found with prefixes later in the array.
+static def addBuildConfigFieldsFromPrefixedProperties(variant, properties, prefixes) {
+    // Build a Map of prefixed properties found. Keys in this Map will be lowercased and `.` replaced by `_`
+    def fields_map = [:]
+    prefixes.each { prefix ->
+        properties.each { property ->
+            if (property.key.toLowerCase().startsWith("${prefix.toLowerCase()}.")) {
+                def key = property.key.toLowerCase().replace("${prefix.toLowerCase()}.", "").replace(".", "_")
+                fields_map[key] = property.value
+            }
+        }
+    }
+
+    // Then define the found properties as buildConfigFields
+    fields_map.each {
+        variant.buildConfigField "String", it.key.toUpperCase(), "\"${it.value}\""
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.commonmark)
+    compileOnly project(path: ':libs:annotations')
+    ksp project(':libs:processors')
+    implementation (project(path:':libs:networking')) {
+        exclude group: "com.android.volley"
+        exclude group: 'org.wordpress', module: 'utils'
+    }
+    implementation (project(path:':libs:analytics')) {
+        exclude group: 'org.wordpress', module: 'utils'
+    }
+    implementation project(path:':libs:image-editor')
+    implementation (project(path:':libs:editor')) {
+        exclude group: 'org.wordpress', module: 'utils'
+    }
+    implementation project(':libs:fluxc')
+    implementation("$gradle.ext.wputilsBinaryPath:${libs.wordpress.utils.get().version}") {
+        version {
+            strictly libs.wordpress.utils.get().version
+        }
+    }
+    implementation project(":libs:posttypes")
+    implementation("$gradle.ext.aboutAutomatticBinaryPath:${libs.versions.automattic.about.get()}")
+
+    implementation("$gradle.ext.gutenbergKitBinaryPath:${libs.versions.gutenberg.kit.get()}")
+
+    implementation(libs.automattic.rest) {
+        exclude group: 'com.mcxiaoke.volley'
+    }
+    implementation(libs.wordpress.persistent.edittext)
+    implementation("$gradle.ext.gravatarBinaryPath:${libs.versions.gravatar.get()}")
+    implementation("$gradle.ext.gravatarQuickEditorBinaryPath:${libs.versions.gravatar.get()}")
+
+    implementation(libs.google.play.app.update)
+
+    implementation(libs.google.gson)
+    implementation(libs.androidx.core.main)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.common)
+    implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.activity.main)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.fragment.main)
+    implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.appcompat.main)
+    implementation(libs.androidx.appcompat.resources)
+    implementation(libs.androidx.cardview)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.google.material)
+    implementation(libs.google.flexboxlayout)
+    implementation(libs.androidx.percentlayout)
+    implementation(libs.androidx.swiperefreshlayout)
+    implementation(libs.androidx.preference)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.webkit)
+    implementation(libs.androidx.constraintlayout.main)
+    implementation(libs.androidx.lifecycle.viewmodel.main)
+    implementation(libs.androidx.lifecycle.livedata.core)
+    implementation(libs.androidx.lifecycle.livedata.main)
+    implementation(libs.androidx.lifecycle.process)
+    implementation(libs.android.volley)
+    implementation(libs.google.play.review)
+    implementation(libs.google.mlkit.barcode.scanning.common)
+    implementation(libs.google.mlkit.text.recognition)
+    implementation(libs.google.mlkit.barcode.scanning.main)
+
+    implementation(libs.androidx.browser)
+
+    // CameraX
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+
+    implementation(libs.android.installreferrer)
+    implementation(libs.photoview)
+    implementation(libs.greenrobot.eventbus.main)
+    implementation(libs.greenrobot.eventbus.java)
+    implementation(libs.squareup.retrofit)
+    implementation(libs.chucker)
+    implementation(libs.apache.commons.text)
+    implementation(libs.airbnb.lottie.main)
+    implementation(libs.facebook.shimmer)
+    implementation(libs.automattic.ucrop) {
+        exclude group: 'androidx.core', module: 'core'
+        exclude group: 'androidx.constraintlayout', module: 'constraintlayout'
+        exclude group: 'androidx.appcompat', module: 'appcompat'
+    }
+    implementation(libs.bumptech.glide.main)
+    ksp(libs.bumptech.glide.ksp)
+    implementation(libs.bumptech.glide.volley.integration)
+    implementation(libs.indexos.media.for.mobile.domain)
+    implementation(libs.indexos.media.for.mobile.android)
+    implementation(libs.zendesk.support)
+    implementation files('../aars/tenor-android-core-jetified.aar') // Jetified Tenor Gif library
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.mpandroidchart)
+    implementation(libs.jsoup)
+    implementation(libs.google.exoplayer) {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    }
+    implementation(libs.google.dagger.android.support)
+    ksp(libs.google.dagger.android.processor)
+    implementation(libs.google.dagger.hilt.android.main)
+    ksp(libs.google.dagger.hilt.compiler)
+
+    implementation(libs.wordpress.rs.android)
+
+    testImplementation(libs.androidx.arch.core.testing) {
+        exclude group: 'com.android.support', module: 'support-compat'
+        exclude group: 'com.android.support', module: 'support-annotations'
+        exclude group: 'com.android.support', module: 'support-core-utils'
+    }
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.mockito.android)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.assertj.core)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+
+    androidTestImplementation project(path:':libs:mocks')
+
+    androidTestImplementation(libs.mockito.kotlin)
+    androidTestImplementation(libs.androidx.test.uiautomator)
+    androidTestImplementation(libs.androidx.test.espresso.core) {
+        version {
+            strictly libs.androidx.test.espresso.core.get().version
+        }
+        exclude group: 'com.android.support', module: 'support-annotations'
+    }
+    androidTestImplementation(libs.androidx.test.espresso.contrib) {
+        version {
+            strictly libs.androidx.test.espresso.contrib.get().version
+        }
+        exclude group: 'com.android.support', module: 'appcompat'
+        exclude group: 'com.android.support', module: 'support-v4'
+        exclude module: 'recyclerview-v7'
+    }
+    androidTestImplementation(libs.androidx.test.espresso.accessibility) {
+        version {
+            strictly libs.androidx.test.espresso.accessibility.get().version
+        }
+    }
+    androidTestImplementation(libs.androidx.test.main.runner)
+    androidTestImplementation(libs.androidx.test.main.rules)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.fastlane.screengrab) {
+        exclude group: 'com.android.support.test.uiautomator', module: 'uiautomator-v18'
+    }
+    androidTestImplementation files('../aars/cloudtestingscreenshotter_lib.aar') // Screenshots on Firebase Cloud Testing
+    androidTestImplementation(libs.androidx.work.testing)
+    androidTestImplementation(libs.google.dagger.hilt.android.testing)
+    kspAndroidTest(libs.google.dagger.hilt.android.compiler)
+    // Enables Java 8+ API desugaring support
+    coreLibraryDesugaring(libs.android.desugar)
+
+    // Firebase
+    implementation(platform(libs.google.firebase.bom))
+    // Firebase - Main
+    implementation(libs.google.firebase.messaging)
+    // Firebase - Deprecated
+    implementation(libs.google.firebase.iid)
+
+    // Jetpack Compose
+    implementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    // - Jetpack Compose - Android Studio
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    debugImplementation(libs.androidx.compose.ui.tooling.main)
+    // - Jetpack Compose - Main
+    implementation(libs.androidx.compose.runtime.main)
+    implementation(libs.androidx.compose.runtime.livedata)
+    implementation(libs.androidx.compose.foundation.main)
+    implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.compose.ui.main)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.text)
+    implementation(libs.androidx.compose.ui.unit)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material)
+    implementation(libs.androidx.compose.material.icons.extended)
+    // - Jetpack Compose - AndroidX
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.constraintlayout.compose)
+    // - Jetpack Compose - Other
+    implementation(libs.coil.compose)
+    implementation(libs.coil.video)
+    implementation(libs.airbnb.lottie.compose)
+    // - Jetpack Compose - UI Tests
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    implementation(libs.androidx.compose.material3)
+
+    // Cascade - Compose nested menu
+    implementation(libs.cascade.compose)
+
+    // Vico - Charts for Compose
+    implementation(libs.vico.compose.m3)
+
+    implementation(libs.automattic.encryptedlogging)
+    implementation(libs.automattic.tracks.crashlogging)
+}
+
+dependencyAnalysis {
+    issues {
+        onUnusedDependencies {
+            // This dependency is actually needed otherwise the app will crash with a runtime exception.
+            exclude(libs.greenrobot.eventbus.main.get().module.toString())
+            // This dependency is actually needed because otherwise UI tests fail to run (but do compile).
+            exclude(libs.mockito.android.get().module.toString())
+        }
+    }
+}
+
+configurations.all {
+    // Exclude packaged wordpress sub projects, force the use of the source project
+    // (eg. use :libs:utils:WordPressUtils instead of 'org.wordpress:utils')
+    exclude group: 'org.wordpress', module: 'analytics'
+}
+
+
+// If Google services file doesn't exist, copy example file
+if (!file("google-services.json").exists()) {
+    copy {
+        from(".")
+        into(".")
+        include("google-services.json-example")
+        rename('google-services.json-example', 'google-services.json')
+    }
+}
+
+
+tasks.register("printVersionName") {
+    def versionName = android.defaultConfig.versionName
+    doLast {
+        println versionName
+    }
+}
+
+def allVariantVersions = []
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.outputs.each { output ->
+            allVariantVersions.add([
+                name: variant.name,
+                versionName: output.versionName,
+                versionCode: output.versionCode
+            ])
+        }
+    }
+}
+
+tasks.register("printAllVersions") {
+    doLast {
+        allVariantVersions.each { data ->
+            println "${data.name}: ${data.versionName.get()} (${data.versionCode.get()})"
+        }
+    }
+}
+
+tasks.register("printResourceConfigurations") {
+    def flavorInfo = android.productFlavors
+            .findAll { it.dimension == "app" }
+            .collect { [it.name, it.resourceConfigurations] }
+
+    doLast {
+        flavorInfo.each { name, resourceConfigurations ->
+            println "$name: $resourceConfigurations"
+        }
+    }
+}
+
+android {
+    // Enable per-app language support
+    // https://developer.android.com/guide/topics/resources/app-languages
+    androidResources {
+        generateLocaleConfig = true
+    }
+}
+
+// Copy React Native JavaScript bundle and source map so they can be uploaded to the Crash logging
+// service during the build process.
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def capitalizedName = variant.name.capitalize()
+        def assetsDir = variant.artifacts.get(
+            com.android.build.api.artifact.SingleArtifact.ASSETS.INSTANCE
+        )
+
+        def deleteTask = tasks.register(
+            "delete${capitalizedName}ReactNativeBundleSourceMap", Delete
+        ) {
+            delete(fileTree(dir: assetsDir, includes: ['**/*.bundle.map']))
+        }
+
+        def copyTask = tasks.register(
+            "copy${capitalizedName}ReactNativeBundleSourceMap", Copy
+        ) {
+            from(assetsDir)
+            into(layout.buildDirectory.dir("react-native-bundle-source-map"))
+            include("*.bundle", "*.bundle.map")
+            finalizedBy(deleteTask)
+        }
+
+        // TODO: Replace afterEvaluate with AGP artifacts API when a suitable
+        //  hook for post-merge asset tasks becomes available. afterEvaluate is
+        //  needed here because the mergeXxxAssets task doesn't exist yet when
+        //  onVariants runs, and there's no artifact transform for this use case.
+        afterEvaluate {
+            tasks.named("merge${capitalizedName}Assets").configure {
+                finalizedBy(copyTask)
+            }
+        }
+    }
+}

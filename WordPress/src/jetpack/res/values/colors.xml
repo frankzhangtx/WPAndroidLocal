@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Site creation -->
+    <color name="site_creation_skip_button_text">@color/jetpack_green_40</color>
+
+    <!-- Login Prologue Revamped  -->
+    <color name="bg_jetpack_login_splash">@color/jetpack_green_0</color>
+
+    <color name="bg_jetpack_login_splash_primary_button">#3858E9</color>
+    <color name="text_color_jetpack_login_splash_primary_button">@color/white</color>
+    <color name="text_color_jetpack_login_splash_secondary_button">@color/wordpress_blue_100</color>
+
+    <color name="bg_jetpack_login_splash_bottom_panel">#CCFFFFFF</color>
+    <color name="border_top_jetpack_login_splash_bottom_panel">#0D000000</color>
+
+    <color name="bg_jetpack_login_splash_top_gradient_1">#FCFFFFFF</color>
+    <color name="bg_jetpack_login_splash_top_gradient_2">#FAFFFFFF</color>
+    <color name="bg_jetpack_login_splash_top_gradient_3">#D9FFFFFF</color>
+    <color name="bg_jetpack_login_splash_top_gradient_4">#00FFFFFF</color>
+
+    <color name="text_color_jetpack_login_label_primary">#3858E9</color>
+    <color name="text_color_jetpack_login_label_secondary">@color/jetpack_green_40</color>
+
+</resources>

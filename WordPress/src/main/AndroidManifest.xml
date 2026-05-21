@@ -1,0 +1,1415 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:installLocation="auto">
+
+    <uses-sdk tools:overrideLibrary="org.m4m.android" />
+
+    <!-- Normal permissions, access automatically granted to app -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
+    <uses-permission android:name="com.android.launcher.permission.UNINSTALL_SHORTCUT" />
+
+    <!-- Dangerous permissions, access must be requested at runtime -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Required for storing and retrieving screenshots, taking photos, accessing media files -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"
+        tools:replace="android:maxSdkVersion" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- GCM all build types configuration -->
+    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.location"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.location.network"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.screen.portrait"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.screen.landscape"
+        android:required="false" />
+
+    <application
+        android:allowBackup="true"
+        android:fullBackupContent="@xml/legacy_backup_scheme"
+        android:dataExtractionRules="@xml/backup_scheme"
+        android:hardwareAccelerated="true"
+        android:icon="@mipmap/app_icon"
+        android:label="@string/app_name"
+        android:largeHeap="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:requestLegacyExternalStorage="true"
+        android:preserveLegacyExternalStorage="true"
+        android:theme="@style/WordPress"
+        tools:replace="allowBackup, icon,android:supportsRtl"
+        android:supportsRtl="true"
+        tools:ignore="UnusedAttribute">
+
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
+
+        <activity
+            android:name=".ui.WPLaunchActivity"
+            android:noHistory="true"
+            android:theme="@style/NoDisplay"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <!-- Samsung multiwindow support -->
+                <category android:name="android.intent.category.MULTIWINDOW_LAUNCHER" />
+            </intent-filter>
+
+            <meta-data android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!-- Main tab activity -->
+        <activity
+            android:name=".ui.main.WPMainActivity"
+            android:theme="@style/Wordpress.BottomBar"
+            android:label="" />
+
+        <activity
+            android:name=".ui.mysite.menu.MenuActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/my_site_section_screen_title"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.newstats.NewStatsActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/stats"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.newstats.mostviewed.MostViewedDetailActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.newstats.locations.LocationsDetailActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.newstats.authors.AuthorsDetailActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.newstats.utm.UtmDetailActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.newstats.yearinreview.YearInReviewDetailActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.newstats.tagsandcategories.TagsAndCategoriesDetailActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.newstats.subscribers.subscriberslist.SubscribersListDetailActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.newstats.subscribers.emails.EmailsDetailActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false" />
+
+        <!-- Account activities -->
+        <activity
+            android:name=".ui.main.MeActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/me_section_screen_title" />
+        <activity
+            android:name=".ui.accounts.LoginActivity"
+            android:launchMode="singleTop"
+            android:theme="@style/LoginTheme"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="wpcom-authorize"
+                    android:scheme="${magicLinkScheme}" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.accounts.applicationpassword.ApplicationPasswordLoginActivity"
+            android:theme="@style/LoginTheme"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="app-pass-authorize"
+                    android:scheme="${magicLinkScheme}" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.accounts.login.applicationpassword.ApplicationPasswordReauthenticateDialogActivity"
+            android:theme="@style/WordPress.TransparentDialog"
+            android:exported="false" />
+        <activity
+            android:name=".ui.accounts.login.applicationpassword.ApplicationPasswordRequiredDialogActivity"
+            android:theme="@style/WordPress.TransparentDialog"
+            android:exported="false" />
+        <activity
+            android:name=".ui.accounts.login.applicationpassword.ApplicationPasswordAutoAuthDialogActivity"
+            android:theme="@style/WordPress.TransparentDialog"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.accounts.LoginMagicLinkInterceptActivity"
+            android:theme="@style/NoDisplay"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="magic-login"
+                    android:scheme="${magicLinkScheme}" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.sitecreation.SiteCreationActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.accounts.HelpActivity"
+            android:label="@string/help_buttons_screen_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity
+            android:name=".ui.main.feedbackform.FeedbackFormActivity"
+            android:label="@string/feedback_form_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity
+            android:name="zendesk.support.guide.HelpCenterActivity"
+            android:theme="@style/WordPress.ZenDesk" />
+
+        <activity
+            android:name="zendesk.support.guide.ViewArticleActivity"
+            android:theme="@style/WordPress.ZenDesk" />
+
+        <activity
+            android:name="zendesk.support.request.RequestActivity"
+            android:theme="@style/WordPress.ZenDesk" />
+
+        <activity
+            android:name="zendesk.support.requestlist.RequestListActivity"
+            android:theme="@style/WordPress.ZenDesk" />
+
+        <activity
+            android:name=".support.SupportWebViewActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- empty title -->
+
+        <!-- Preferences activities -->
+        <activity
+            android:name=".ui.about.UnifiedAboutActivity"
+            android:label="@string/about_the_app"
+            android:theme="@style/WordPress.UnifiedAbout" />
+        <activity
+            android:name=".ui.prefs.BlogPreferencesActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/settings"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity android:name=".ui.prefs.SiteSettingsTagListActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/site_settings_tags_title" />
+        <activity
+            android:name=".ui.prefs.AccountSettingsActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/account_settings"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.prefs.AppSettingsActivity"
+            android:configChanges="locale|orientation|screenSize"
+            android:label="@string/me_btn_app_settings"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.prefs.experimentalfeatures.ExperimentalFeaturesActivity"
+            android:label="@string/me_btn_experimental_features"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.accounts.applicationpassword.ApplicationPasswordsListActivity"
+            android:label="@string/application_password_info_title"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.taxonomies.TermsDataViewActivity"
+            android:label="@string/taxonomies_title"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.prefs.notifications.NotificationsSettingsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/notif_settings_screen_title"
+            android:exported="false"
+            tools:ignore="IntentFilterExportedReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.NOTIFICATION_PREFERENCES" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".networking.SSLCertsViewActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- Comments activities -->
+        <activity
+            android:name=".ui.comments.unified.UnifiedCommentsActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:launchMode="singleTop"
+            android:label="@string/comments"/>
+        <activity
+            android:name=".ui.comments.unified.UnifiedCommentsEditActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/edit_comment"/>
+        <activity
+            android:name=".ui.comments.CommentsDetailActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:windowSoftInputMode="adjustResize"
+            android:label="@string/comments"/>
+        <activity
+            android:name=".ui.comments.unified.UnifiedCommentsDetailsActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:windowSoftInputMode="adjustResize"
+            android:label="@string/comments"/>
+
+        <!-- Posts activities -->
+        <activity
+            android:name=".ui.posts.EditPostActivity"
+            android:configChanges="locale|orientation|screenSize"
+            android:theme="@style/WordPress.NoActionBar"
+            android:windowSoftInputMode="stateHidden|adjustResize"
+            android:exported="false">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ui.posts.PostsListActivity" />
+        </activity>
+        <activity
+            android:name=".ui.posts.GutenbergKitActivity"
+            android:configChanges="locale|screenLayout|orientation|screenSize|keyboard|keyboardHidden|smallestScreenSize|uiMode"
+            android:theme="@style/WordPress.NoActionBar"
+            android:windowSoftInputMode="stateHidden|adjustResize"
+            android:exported="false">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ui.posts.PostsListActivity" />
+        </activity>
+        <activity
+            android:name=".ui.posts.PostsListActivity"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="" />
+        <activity
+            android:name=".ui.postsrs.PostRsListActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="" />
+        <activity
+            android:name=".ui.postsrs.PostRsSettingsActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="" />
+        <activity
+            android:name=".ui.postsrs.terms.TermSelectionActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="" />
+        <activity
+            android:name=".ui.pages.PagesActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:launchMode="singleTop"
+            android:label="@string/my_site_btn_site_pages" />
+        <activity
+            android:name=".ui.pages.PageParentActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/set_parent" />
+        <activity
+            android:name=".ui.posts.SelectCategoriesActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.posts.PostSettingsTagsActivity"
+            android:label="@string/post_settings_tags"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.posts.sharemessage.EditJetpackSocialShareMessageActivity"
+            android:label="@string/post_settings_jetpack_social_share_message_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- History -->
+        <activity
+            android:name=".ui.history.HistoryDetailActivity"
+            android:label="@string/history_detail_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- Stats Activities -->
+        <activity
+            android:name=".ui.stats.refresh.StatsActivity"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.stats.refresh.StatsViewAllActivity"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.stats.refresh.lists.sections.insights.management.InsightsManagementActivity"
+            android:label="@string/stats_management_screen_title"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.stats.refresh.lists.detail.StatsDetailActivity"
+            android:label="@string/stats"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.WPWebViewActivity"
+            android:theme="@style/WordPress.NoActionBar"/>
+        <activity
+            android:name=".ui.JetpackConnectionWebViewActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:configChanges="orientation|screenSize"/>
+        <activity
+            android:name=".ui.stats.StatsConnectJetpackActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity android:name=".ui.JetpackConnectionResultActivity" android:theme="@style/WordPress.NoActionBar"
+            android:exported="false"
+            tools:ignore="AppLinkUrlError">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="jetpack-connection"
+                    android:scheme="wordpress" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".ui.jetpackplugininstall.remoteplugin.JetpackRemoteInstallActivity"
+            android:label="@string/jetpack"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!-- Media Activities -->
+        <activity
+            android:name=".ui.media.MediaBrowserActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/wp_media_title" />
+        <activity
+            android:name=".ui.media.MediaPreviewActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/media_settings_image_preview_desc"
+            android:theme="@style/WordPress.Media.Preview" />
+        <activity
+            android:name=".ui.media.MediaSettingsActivity"
+            android:windowSoftInputMode="stateHidden|adjustPan"
+            android:label="@string/media_settings_screen_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- Theme Activities -->
+        <activity
+            android:name=".ui.themes.ThemeBrowserActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:launchMode="singleTop"
+            android:label="@string/themes"/>
+        <activity
+            android:name=".ui.themes.ThemeWebActivity"
+            android:label="@string/selected_theme"
+            android:theme="@style/WordPress.NoActionBar"
+            android:parentActivityName=".ui.themes.ThemeBrowserActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ui.themes.ThemeBrowserActivity" />
+        </activity>
+
+        <activity android:name=".ui.subscribers.SubscribersActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/subscribers"/>
+
+        <activity android:name="org.wordpress.android.support.aibot.ui.AIBotSupportActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/ai_bot_conversations_title"
+            android:windowSoftInputMode="adjustResize"/>
+
+        <activity android:name="org.wordpress.android.support.main.ui.SupportActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/support_screen_title"/>
+
+        <activity android:name="org.wordpress.android.support.logs.ui.LogsActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/support_screen_application_logs_title"/>
+
+        <activity android:name="org.wordpress.android.support.he.ui.HESupportActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:label="@string/support_screen_title"
+            android:windowSoftInputMode="adjustResize"/>
+
+        <!-- Deep Linking Activity -->
+        <activity
+            android:name="org.wordpress.android.ui.deeplinks.DeepLinkingIntentReceiverActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:excludeFromRecents="true"
+            android:exported="true">
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="public-api.wordpress.com"
+                    android:pathPattern="/mbar/.*"
+                    android:scheme="https" />
+                <data
+                    android:host="public-api.wordpress.com"
+                    android:pathPattern="/bar/.*"
+                    android:scheme="https" />
+            </intent-filter>
+        </activity>
+
+        <!-- Custom Wordpress URI Scheme Deep Linking Activity Alias -->
+        <activity-alias
+            android:name=".URISchemeDeepLinkingIntentReceiverActivity"
+            android:label="@string/deep_linking_urilinks_alias_label"
+            android:targetActivity="org.wordpress.android.ui.deeplinks.DeepLinkingIntentReceiverActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="wordpress"/>
+                <data android:host="viewpost"/>
+                <data android:host="stats"/>
+                <data android:host="read"/>
+                <data android:host="post"/>
+                <data android:host="notifications"/>
+                <data android:host="home"/>
+                <data android:host="media"/>
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Web Links Deep Linking Activity Alias -->
+        <activity-alias
+            android:name=".WebLinksDeepLinkingIntentReceiverActivity"
+            android:label="@string/deep_linking_weblinks_alias_label"
+            android:targetActivity="org.wordpress.android.ui.deeplinks.DeepLinkingIntentReceiverActivity"
+            android:exported="true">
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/post/..*"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/post/..*"
+                    android:scheme="http" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/stats/..*"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/stats/..*"
+                    android:scheme="http" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/pages/..*"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/pages/..*"
+                    android:scheme="http" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/notifications/.*"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/notifications/.*"
+                    android:scheme="http" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/media/..*"
+                    android:scheme="http" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/media/.*"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/domains/manage"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/site-monitoring/.*"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/site-monitoring/.*"
+                    android:scheme="http" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:path="/read"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:path="/read"
+                    android:scheme="http" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:path="/discover"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:path="/discover"
+                    android:scheme="http" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/read/feeds/.*"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/read/feeds/.*"
+                    android:scheme="http" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/reader/feeds/.*"
+                    android:scheme="https" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/reader/feeds/.*"
+                    android:scheme="http" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:path="/read/search"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:path="/read/search"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:path="/reader/search"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:path="/reader/search"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/tag/.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" />
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/tag/.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" />
+
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Reader Activities -->
+        <activity
+            android:name=".ui.reader.ReaderPostListActivity"
+            android:label="@string/reader"
+            android:theme="@style/WordPress.NoActionBar">
+        </activity>
+        <activity
+            android:name=".ui.reader.ReaderSearchActivity"
+            android:label="@string/reader"
+            android:theme="@style/WordPress.NoActionBar">
+        </activity>
+        <activity
+            android:name=".ui.reader.ReaderPostPagerActivity"
+            android:excludeFromRecents="true"
+            android:theme="@style/WordPress.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.engagement.EngagedPeopleListActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            />
+        <activity-alias
+            android:name=".WPComPostReaderActivity"
+            android:targetActivity=".ui.reader.ReaderPostPagerActivity"
+            android:exported="true">
+            <intent-filter android:autoVerify="true">
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/read/feeds/.*/posts/.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/read/feeds/.*/posts/.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/read/blogs/.*/posts/.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/read/blogs/.*/posts/.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="*.wordpress.com"
+                    android:pathPattern="/2.../../../.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="*.wordpress.com"
+                    android:pathPattern="/2.../../../.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="*.wordpress.com"
+                    android:pathPattern="/19../../../.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="*.wordpress.com"
+                    android:pathPattern="/19../../../.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/reader/feeds/.*/posts/.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/reader/feeds/.*/posts/.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/reader/blogs/.*/posts/.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="wordpress.com"
+                    android:pathPattern="/reader/blogs/.*/posts/.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="www.wordpress.com"
+                    android:pathPattern="/read/feeds/.*/posts/.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="www.wordpress.com"
+                    android:pathPattern="/read/feeds/.*/posts/.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="www.wordpress.com"
+                    android:pathPattern="/read/blogs/.*/posts/.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="www.wordpress.com"
+                    android:pathPattern="/read/blogs/.*/posts/.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="www.wordpress.com"
+                    android:pathPattern="/reader/feeds/.*/posts/.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="www.wordpress.com"
+                    android:pathPattern="/reader/feeds/.*/posts/.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="www.wordpress.com"
+                    android:pathPattern="/reader/blogs/.*/posts/.*"
+                    android:scheme="https"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <data
+                    android:host="www.wordpress.com"
+                    android:pathPattern="/reader/blogs/.*/posts/.*"
+                    android:scheme="http"
+                    tools:ignore="IntentFilterUniqueDataAttributes" >
+                </data>
+
+                <action android:name="org.wordpress.android.action.VIEW_POST" />
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+            </intent-filter>
+        </activity-alias>
+        <activity
+            android:name=".ui.reader.ReaderCommentListActivity"
+            android:label="@string/reader_title_comments"
+            android:theme="@style/WordPress.NoActionBar"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
+        <activity
+            android:name=".ui.reader.NoSiteToReblogActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.AppLogViewerActivity"
+            android:label="@string/reader_title_applog"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.reader.ReaderUserListActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.reader.ReaderSubsActivity"
+            android:theme="@style/WordPress.NoActionBar"
+            android:windowSoftInputMode="stateHidden" />
+        <activity
+            android:name=".ui.reader.ReaderPhotoViewerActivity"
+            android:theme="@style/ReaderMediaViewerTheme" />
+        <activity
+            android:name=".ui.reader.ReaderVideoViewerActivity"
+            android:theme="@style/ReaderMediaViewerTheme" />
+        <activity
+            android:name=".ui.reader.discover.interests.ReaderInterestsActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- Gutenberg activities -->
+        <activity
+            android:name=".ui.suggestion.SuggestionActivity"
+            android:theme="@style/WordPressNoDisplay"
+            android:windowSoftInputMode="adjustResize"
+            />
+
+        <!-- Other activities -->
+        <activity
+            android:name=".ui.publicize.PublicizeListActivity"
+            android:label="@string/sharing"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <activity
+            android:name=".ui.ShareIntentReceiverActivity"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:theme="@style/NoDisplay"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.AddQuickPressShortcutActivity"
+            android:label="@string/quickpress_shortcut_activity_label"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="true"
+            tools:ignore="ManifestResource">
+            <intent-filter>
+                <action android:name="android.intent.action.CREATE_SHORTCUT" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.main.ChooseSiteActivity"
+            android:label="@string/site_picker_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity
+            android:name=".ui.mediapicker.MediaPickerActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity
+            android:name="org.wordpress.android.ui.debug.DebugSettingsActivity"
+            android:launchMode="singleTop"
+            android:label="@string/preference_open_debug_settings"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity
+            android:name=".ui.debug.cookies.DebugCookiesActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity
+            android:name=".ui.main.jetpack.migration.JetpackMigrationActivity"
+            android:label="@string/jp_migration_welcome_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- Notifications activities -->
+        <activity
+            android:name=".ui.notifications.NotificationsDetailActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!--People Management-->
+        <activity
+            android:name=".ui.people.PeopleManagementActivity"
+            android:label="@string/users"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar"/>
+        <activity
+            android:name=".ui.selfhostedusers.SelfHostedUsersActivity"
+            android:label="@string/users"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar"/>
+        <activity
+            android:name=".ui.navmenus.NavMenusActivity"
+            android:label="@string/menus"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!--Plugins-->
+        <activity
+            android:name=".ui.plugins.PluginDetailActivity"
+            android:theme="@style/WordPress.NoActionBar"/>
+        <activity
+            android:name=".ui.plugins.PluginBrowserActivity"
+            android:label="@string/plugins"
+            android:launchMode="singleTop"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!--Activity log-->
+        <activity
+            android:name=".ui.activitylog.list.ActivityLogListActivity"
+            android:label="@string/activity_log"
+            android:theme="@style/WordPress.NoActionBar"/>
+        <activity
+            android:name=".ui.activitylog.detail.ActivityLogDetailActivity"
+            android:label="@string/activity_log_event"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!-- Jetpack - Scan-->
+        <activity
+            android:name=".ui.jetpack.scan.ScanActivity"
+            android:label="@string/scan"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <activity
+            android:name=".ui.jetpack.scan.history.ScanHistoryActivity"
+            android:label="@string/scan_history"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!-- Jetpack - Threat Details-->
+        <activity
+            android:name=".ui.jetpack.scan.details.ThreatDetailsActivity"
+            android:label="@string/threat_details"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!-- Domains -->
+        <activity
+            android:name=".ui.domains.DomainsDashboardActivity"
+            android:label="@string/site_domain_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity
+            android:name=".ui.domains.DomainRegistrationActivity"
+            android:label="@string/register_domain"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <activity
+            android:name=".ui.domains.DomainRegistrationCheckoutWebViewActivity"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!-- Lib activities-->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:label="@string/edit_photo_screen_title"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <activity
+            android:name=".ui.posts.JetpackSecuritySettingsActivity"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!-- Jetpack backup -->
+        <activity
+            android:name=".ui.jetpack.backup.download.BackupDownloadActivity"
+            android:label="@string/backup_download"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!-- Jetpack restore -->
+        <activity
+            android:name=".ui.jetpack.restore.RestoreActivity"
+            android:label="@string/restore"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!-- Site Settings Categories -->
+        <activity
+            android:name=".ui.prefs.categories.list.CategoriesListActivity"
+            android:label="@string/categories"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <activity
+            android:name=".ui.prefs.categories.detail.CategoryDetailActivity"
+            android:label="@string/add_new_category"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!-- QR Code Auth Flow -->
+        <activity
+            android:name=".ui.qrcodeauth.QRCodeAuthActivity"
+            android:label="@string/qrcode_auth_flow"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <!-- Blogging Prompts -->
+        <activity
+            android:name=".ui.bloggingprompts.promptslist.BloggingPromptsListActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/blogging_prompts_list_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- Jetpack full plugin install -->
+        <activity
+            android:name=".ui.jetpackplugininstall.fullplugin.install.JetpackFullPluginInstallActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- Jetpack connection -->
+        <activity
+            android:name=".ui.jetpackrestconnection.JetpackRestConnectionActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- Domain Management -->
+        <activity
+            android:name=".ui.domains.management.DomainManagementActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity
+            android:name=".ui.domains.management.details.DomainManagementDetailsActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+        <activity
+            android:name=".ui.domains.management.purchasedomain.PurchaseDomainActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity
+            android:name=".ui.domains.management.newdomainsearch.NewDomainSearchActivity"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <!-- Services -->
+        <service
+            android:name=".ui.uploads.UploadService"
+            android:label="Upload Service"
+            android:foregroundServiceType="dataSync" />
+        <service
+            android:name=".ui.media.services.MediaDeleteService"
+            android:label="Media Delete Service"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            />
+
+        <service
+            android:name=".ui.reader.services.update.ReaderUpdateService"
+            android:exported="false"
+            android:label="Reader Update Service" />
+        <service
+            android:name=".ui.reader.services.update.ReaderUpdateJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false"
+            android:label="Reader Update JobService" />
+
+        <service
+            android:name=".ui.reader.services.post.ReaderPostService"
+            android:exported="false"
+            android:label="Reader Post Service" />
+        <service
+            android:name=".ui.reader.services.post.ReaderPostJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false"
+            android:label="Reader Post JobService" />
+
+        <service
+            android:name=".ui.reader.services.search.ReaderSearchService"
+            android:exported="false"
+            android:label="Reader Search Service" />
+        <service
+            android:name=".ui.reader.services.search.ReaderSearchJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false"
+            android:label="Reader Search Job Service" />
+
+        <service
+            android:name=".ui.reader.services.comment.ReaderCommentService"
+            android:exported="false"
+            android:label="Reader Comment Service" />
+
+        <service
+            android:name=".ui.suggestion.service.SuggestionService"
+            android:exported="false"
+            android:label="Suggestion Service" />
+        <service
+            android:name=".push.NotificationsProcessingService"
+            android:exported="false"
+            android:label="Notifications Quick Actions processing Service" />
+
+        <service
+            android:name=".ui.notifications.services.NotificationsUpdateService"
+            android:exported="false"
+            android:label="Notifications Update Service" />
+        <service
+            android:name=".ui.notifications.services.NotificationsUpdateJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false"
+            android:label="Notifications Update Job Service" />
+
+        <service
+            android:name=".util.analytics.service.InstallationReferrerService"
+            android:exported="true"
+            android:permission="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE"
+            android:label="Installation Referrer Service" />
+
+        <service
+            android:name=".util.analytics.service.InstallationReferrerJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false"
+            android:label="Installation Referrer Service" />
+
+        <service
+            android:name=".ui.sitecreation.services.SiteCreationService"
+            android:exported="false"
+            android:label="Site Creation Service"
+            android:foregroundServiceType="dataSync" />
+
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+
+        <!-- Samsung multiwindow support -->
+        <uses-library
+            android:name="com.sec.android.app.multiwindow"
+            android:required="false" />
+        <!-- Samsung multiwindow support -->
+        <meta-data
+            android:name="com.sec.android.support.multiwindow"
+            android:value="true" />
+
+        <receiver android:name=".ui.notifications.receivers.NotificationsPendingDraftsReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".ui.stats.refresh.lists.widget.views.StatsViewsWidget"
+            android:label="@string/stats_widget_weekly_views_name"
+            android:exported="false"
+            tools:ignore="ManifestResource">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/stats_views_widget_info"/>
+        </receiver>
+        <receiver
+            android:name=".ui.stats.refresh.lists.widget.alltime.StatsAllTimeWidget"
+            android:label="@string/stats_widget_all_time_insights_name"
+            android:exported="false"
+            tools:ignore="ManifestResource">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/stats_all_time_widget_info"/>
+        </receiver>
+        <receiver
+            android:name=".ui.stats.refresh.lists.widget.today.StatsTodayWidget"
+            android:label="@string/stats_widget_today_insights_name"
+            android:exported="false"
+            tools:ignore="ManifestResource">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/stats_today_widget_info"/>
+        </receiver>
+        <receiver
+            android:name=".ui.stats.refresh.lists.widget.minified.StatsMinifiedWidget"
+            android:label="@string/stats_widget_minified_name"
+            android:exported="false"
+            tools:ignore="ManifestResource">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/stats_minified_widget_info"/>
+        </receiver>
+        <receiver android:name=".ui.notifications.DismissNotificationReceiver" />
+        <service
+            android:name=".ui.stats.refresh.lists.widget.WidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <activity
+            android:name=".ui.stats.refresh.lists.widget.views.StatsViewsWidgetConfigureActivity"
+            android:label="@string/stats_widget_views_title"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.stats.refresh.lists.widget.alltime.StatsAllTimeWidgetConfigureActivity"
+            android:label="@string/stats_widget_all_time_title"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.stats.refresh.lists.widget.today.StatsTodayWidgetConfigureActivity"
+            android:label="@string/stats_insights_today_stats"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.stats.refresh.lists.widget.minified.StatsMinifiedWidgetConfigureActivity"
+            android:label="@string/stats_widget_minified_name"
+            android:theme="@style/WordPress.NoActionBar"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        <receiver
+            android:name=".util.analytics.receiver.InstallationReferrerReceiver"
+            android:permission="android.permission.INSTALL_PACKAGES"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.android.vending.INSTALL_REFERRER" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".ui.posts.PublishNotificationReceiver" />
+
+
+        <!-- Google Cloud Messaging receiver and services -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <service
+            android:name=".push.GCMMessageService"
+            android:exported="false" >
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Smart Lock for Passwords -->
+        <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
+
+        <!-- Provider for exposing file URIs on Android 7+ -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths"/>
+        </provider>
+
+        <!-- Remove only the default initializer to provide a custom configuration.
+             For more info visit: https://developer.android.com/topic/libraries/architecture/
+             workmanager/advanced/custom-configuration
+
+             This change was necessary because of the 'androidx.lifecycle' update to '2.4.1' and
+             the fact that with it the 'lifecycle-process' now uses 'androidx.startup' to
+             initialize the 'ProcessLifecycleOwner'.
+             For more info visit: https://developer.android.com/jetpack/androidx/releases/
+             lifecycle#2.4.1 -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
+        <activity android:name=".ui.blaze.blazepromote.BlazePromoteParentActivity"
+            android:exported="false"
+            android:label="@string/blaze_activity_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity android:name=".ui.blaze.blazecampaigns.BlazeCampaignParentActivity"
+            android:exported="false"
+            android:label="@string/blaze_campaigns_page_title"
+            android:theme="@style/WordPress.NoActionBar" />
+
+        <activity android:name=".ui.jetpackoverlay.JetpackStaticPosterActivity"
+            android:exported="false"
+            android:label="@string/stats"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <activity android:name=".ui.mysite.personalization.PersonalizationActivity"
+            android:exported="false"
+            android:label="@string/stats"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+        <activity android:name=".ui.sitemonitor.SiteMonitorParentActivity"
+            android:exported="false"
+            android:label="@string/site_monitoring"
+            android:theme="@style/WordPress.NoActionBar"/>
+
+    </application>
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+        </intent>
+        <intent android:autoVerify="true">
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+        <!-- required for Android 11 (API level 30) or higher -->
+        <package android:name="com.jetpack.android" />
+    </queries>
+</manifest>

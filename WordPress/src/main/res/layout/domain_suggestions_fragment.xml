@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:animateLayoutChanges="true">
+
+    <LinearLayout
+        android:id="@+id/introduction_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/domain_suggestions_intro_horizontal_padding"
+        android:paddingTop="@dimen/domain_suggestions_intro_vertical_padding"
+        android:paddingEnd="@dimen/domain_suggestions_intro_horizontal_padding"
+        android:paddingBottom="@dimen/domain_suggestions_intro_vertical_padding">
+
+        <TextView
+            android:id="@+id/redirect_message"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="@dimen/margin_extra_large"
+            android:textAppearance="?attr/textAppearanceSubtitle1"
+            tools:text="@string/domains_free_plan_get_your_domain_caption"
+            tools:visibility="visible"/>
+
+        <View
+            android:id="@+id/redirect_divider"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/divider_size"
+            android:background="?android:attr/listDivider"
+            tools:visibility="visible"/>
+
+        <TextView
+            android:id="@+id/intro_line1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:paddingBottom="@dimen/domain_suggestions_intro_header_bottom_padding"
+            android:text="@string/domains_suggestions_intro_title"
+            android:textAppearance="?attr/textAppearanceSubtitle1" />
+
+        <TextView
+            android:id="@+id/intro_line2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:text="@string/domains_suggestions_intro_description"
+            android:textAppearance="?attr/textAppearanceSubtitle1"
+            android:textColor="?attr/wpColorOnSurfaceMedium" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/search_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/introduction_container"
+        android:layout_alignParentStart="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/margin_large"
+        android:paddingTop="@dimen/margin_large"
+        android:paddingEnd="@dimen/margin_extra_large"
+        android:paddingBottom="@dimen/margin_large">
+
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/margin_extra_extra_medium_large">
+
+            <ImageView
+                android:id="@+id/suggestion_search_icon"
+                android:visibility="gone"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="@dimen/margin_extra_extra_small"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_search_white_24dp"
+                app:tint="?attr/wpColorOnSurfaceMedium"
+                tools:visibility="visible"/>
+
+            <ProgressBar
+                android:id="@+id/suggestion_progress_bar"
+                android:layout_width="@dimen/progress_spinner_small"
+                android:layout_height="@dimen/progress_spinner_small"
+                tools:visibility="gone" />
+        </FrameLayout>
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/domain_suggestion_keyword_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/margin_extra_small"
+            android:background="@android:color/transparent"
+            android:clickable="false"
+            android:hint="@string/domain_suggestions_search_hint"
+            android:imeOptions="actionDone"
+            android:inputType="text"
+            android:maxLines="1"
+            android:paddingStart="@dimen/margin_extra_extra_small"
+            android:textSize="@dimen/text_sz_medium"
+            tools:ignore="Autofill,RtlSymmetry" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/divider"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/divider_size"
+        android:layout_below="@+id/search_container"
+        android:layout_marginStart="@dimen/margin_extra_large"
+        android:layout_marginEnd="@dimen/margin_extra_large"
+        android:background="?android:attr/listDivider" />
+
+    <LinearLayout
+        android:id="@+id/domain_suggestions_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/bottom_buttons"
+        android:layout_below="@+id/divider"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="invisible">
+
+        <org.wordpress.android.ui.prefs.EmptyViewRecyclerView
+            android:id="@+id/domain_suggestions_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <org.wordpress.android.ui.ActionableEmptyView
+            android:id="@+id/actionableEmptyView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            app:aevTitle="@string/domains_suggestions_empty_list"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/bottom_buttons"
+        style="@style/Widget.Domains.CardView.BottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/select_domain_button"
+            style="@style/WordPress.Button.Primary.Unelevated"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/margin_large"
+            android:layout_marginEnd="@dimen/margin_extra_large"
+            android:layout_marginStart="@dimen/margin_extra_large"
+            android:layout_marginTop="@dimen/margin_large"
+            android:enabled="false"
+            android:text="@string/domains_suggestions_select_domain"
+            tools:enabled="true" />
+
+        <ProgressBar
+            android:id="@+id/button_progress_bar"
+            android:layout_width="@dimen/domain_suggestions_progress_indicator_size"
+            android:layout_height="@dimen/domain_suggestions_progress_indicator_size"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:indeterminateTint="?attr/colorOnSecondary"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </com.google.android.material.card.MaterialCardView>
+</RelativeLayout>

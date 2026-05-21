@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/constraintLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/coordinatorLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false">
+
+        <org.wordpress.android.util.widgets.CustomSwipeRefreshLayout
+            android:id="@+id/pullToRefresh"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/toolbar"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <androidx.viewpager.widget.ViewPager
+                android:id="@+id/pagesPager"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+        </org.wordpress.android.util.widgets.CustomSwipeRefreshLayout>
+
+        <FrameLayout
+            android:id="@+id/searchFrame"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            app:layout_constraintTop_toBottomOf="@id/toolbar" />
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:animateLayoutChanges="true"
+            android:id="@+id/appbar_main"
+            android:fitsSystemWindows="true">
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                app:layout_collapseMode="pin"
+                app:layout_scrollFlags="scroll|exitUntilCollapsed"
+                app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+                app:theme="@style/WordPress.ActionBar" />
+
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayout"
+                android:layout_width="match_parent"
+                android:paddingBottom="@dimen/bottom_tabs_divider_size"
+                android:layout_height="@dimen/tab_height"
+                android:layout_gravity="start"
+                android:layout_marginBottom="0dp"
+                android:background="@null"
+                android:clipToPadding="false"
+                app:tabMode="scrollable"
+                tools:paddingEnd="0dp"
+                tools:paddingStart="@dimen/page_list_tab_layout_fading_edge_width" />
+
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <FrameLayout
+            android:id="@+id/fab_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|bottom"
+            android:layout_marginBottom="@dimen/fab_margin"
+            android:layout_marginEnd="@dimen/fab_margin"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            app:layout_dodgeInsetEdges="bottom">
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/newPageButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/fab_create_desc"
+                android:src="@drawable/ic_plus_white_24dp"
+                android:visibility="gone"
+                app:borderWidth="0dp"
+                tools:visibility="visible"/>
+        </FrameLayout>
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

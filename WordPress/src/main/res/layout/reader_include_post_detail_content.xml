@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    included by ReaderPostDetailFragment
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layout_post_detail_content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <org.wordpress.android.ui.reader.views.ReaderWebView
+            android:id="@+id/reader_webview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/margin_extra_large"
+            android:scrollbars="none" />
+
+        <ProgressBar
+            android:id="@+id/reader_progress_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="@dimen/margin_extra_large"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+    </FrameLayout>
+
+    <RelativeLayout
+        android:id="@+id/excerpt_footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/margin_extra_large"
+        android:layout_marginBottom="@dimen/margin_extra_large"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/text_excerpt_footer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_vertical"
+            android:background="?android:selectableItemBackground"
+            android:drawableEnd="@drawable/ic_external_grey_min_24dp"
+            android:drawablePadding="@dimen/margin_medium"
+            android:padding="@dimen/margin_extra_large"
+            android:textAppearance="?attr/textAppearanceBody2"
+            android:textColor="?attr/wpColorOnSurfaceMedium"
+            app:drawableTint="?attr/wpColorOnSurfaceMedium"
+            tools:text="text_excerpt_footer" />
+    </RelativeLayout>
+
+</LinearLayout>
