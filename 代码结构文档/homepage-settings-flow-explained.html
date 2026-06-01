@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordPress Android 主页设置流程分析</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5efe6;
+            --surface: rgba(255, 252, 247, 0.94);
+            --ink: #241d16;
+            --muted: #695b4f;
+            --line: rgba(74, 55, 38, 0.12);
+            --accent: #9a4d1e;
+            --accent-soft: rgba(154, 77, 30, 0.12);
+            --green: #246b53;
+            --green-soft: rgba(36, 107, 83, 0.11);
+            --gold: #9a7a2b;
+            --gold-soft: rgba(154, 122, 43, 0.12);
+            --shadow: 0 24px 70px rgba(44, 28, 12, 0.10);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --max: 1320px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", "Helvetica Neue", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(154, 77, 30, 0.16), transparent 24%),
+                radial-gradient(circle at top right, rgba(36, 107, 83, 0.15), transparent 26%),
+                linear-gradient(180deg, #fffaf4 0%, var(--bg) 38%, #efe5d7 100%);
+        }
+
+        h1, h2, h3, p { margin: 0; }
+
+        code {
+            padding: 0.12em 0.38em;
+            border-radius: 8px;
+            background: rgba(37, 27, 18, 0.06);
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 0.92em;
+        }
+
+        .page {
+            width: min(calc(100% - 32px), var(--max));
+            margin: 0 auto;
+            padding: 28px 0 72px;
+        }
+
+        .hero,
+        .panel,
+        .diagram-panel {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 34px;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: -120px -80px auto auto;
+            width: 300px;
+            height: 300px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(154, 77, 30, 0.16), transparent 68%);
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto auto -140px -120px;
+            width: 340px;
+            height: 340px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(36, 107, 83, 0.14), transparent 68%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(36, 107, 83, 0.10);
+            color: var(--green);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            margin-top: 18px;
+            max-width: 940px;
+            font-size: clamp(30px, 4.1vw, 52px);
+            line-height: 1.05;
+        }
+
+        .lead {
+            margin-top: 14px;
+            max-width: 980px;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.78;
+        }
+
+        .meta-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .meta-item {
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.56);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+            gap: 18px;
+            margin-top: 24px;
+        }
+
+        .hero-card,
+        .summary-card,
+        .panel {
+            background: rgba(255, 255, 255, 0.62);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+        }
+
+        .hero-card {
+            padding: 18px 20px;
+        }
+
+        .hero-card strong,
+        .section-title {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--green);
+            letter-spacing: 0.01em;
+        }
+
+        .hero-card p,
+        .summary-card p,
+        .section-note {
+            color: var(--muted);
+            line-height: 1.76;
+            font-size: 14px;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .mini-card {
+            padding: 14px 15px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.62);
+        }
+
+        .mini-card h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .mini-card p {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+            gap: 20px;
+            margin-top: 22px;
+        }
+
+        .panel {
+            padding: 26px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: end;
+            margin-bottom: 18px;
+        }
+
+        .panel-title {
+            font-size: 26px;
+            line-height: 1.18;
+        }
+
+        .panel-subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.68;
+            max-width: 640px;
+        }
+
+        .summary-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .summary-card {
+            padding: 16px;
+        }
+
+        .summary-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .section {
+            margin-top: 20px;
+        }
+
+        .section h2 {
+            margin-bottom: 12px;
+            font-size: 22px;
+            line-height: 1.22;
+        }
+
+        .section .section-note {
+            margin-bottom: 14px;
+        }
+
+        .code-shell {
+            overflow: auto;
+            padding: 18px;
+            border: 1px solid rgba(44, 28, 12, 0.08);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(245, 238, 225, 0.96) 100%);
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre;
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 13.2px;
+            line-height: 1.8;
+            color: #1f261f;
+        }
+
+        .comment { color: var(--green); }
+        .callout { color: var(--accent); }
+        .branch { color: var(--gold); }
+        .muted { color: var(--muted); }
+
+        .diagram-panel {
+            margin-top: 20px;
+            padding: 26px;
+        }
+
+        .diagram-wrap {
+            overflow: auto;
+            padding: 10px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(239, 232, 220, 0.96));
+            border: 1px solid var(--line);
+        }
+
+        svg {
+            width: 100%;
+            min-width: 1120px;
+            height: auto;
+            display: block;
+        }
+
+        .caption {
+            margin-top: 14px;
+            color: var(--muted);
+            line-height: 1.74;
+            font-size: 14px;
+        }
+
+        .toc {
+            margin-top: 18px;
+            padding: 18px 20px;
+            border-radius: 20px;
+            background: rgba(36, 107, 83, 0.08);
+            border: 1px solid rgba(36, 107, 83, 0.12);
+        }
+
+        .toc ul {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            color: var(--muted);
+            line-height: 1.76;
+        }
+
+        .toc li { margin: 3px 0; }
+
+        .toc a {
+            color: var(--green);
+            text-decoration: none;
+        }
+
+        .toc a:hover { text-decoration: underline; }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 11px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--muted);
+            font-size: 12.5px;
+        }
+
+        .chip.green { background: var(--green-soft); color: var(--green); }
+        .chip.gold { background: var(--gold-soft); color: #8b6a18; }
+        .chip.orange { background: var(--accent-soft); color: var(--accent); }
+
+        .note-box {
+            margin-top: 14px;
+            padding: 14px 15px;
+            border-radius: 16px;
+            border: 1px solid rgba(154, 77, 30, 0.14);
+            background: rgba(154, 77, 30, 0.06);
+            color: var(--muted);
+            line-height: 1.72;
+            font-size: 14px;
+        }
+
+        .summary-list {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        @media (max-width: 1100px) {
+            .hero-grid,
+            .layout,
+            .card-grid,
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .page { width: min(calc(100% - 20px), var(--max)); padding: 16px 0 56px; }
+            .hero,
+            .panel,
+            .diagram-panel { padding: 18px; }
+            .hero h1 { font-size: 30px; }
+            .lead { font-size: 16px; }
+            .panel-title { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="hero">
+        <div class="eyebrow">Feature Analysis</div>
+        <h1>WordPress Android 主页设置流程分析</h1>
+        <p class="lead">
+            这份文档分析的是站点设置里的“主页设置”弹窗流程，也就是
+            <code>SiteSettingsFragment</code> 打开 <code>HomepageSettingsDialog</code> 后，
+            如何加载页面、切换“经典博客 / 静态首页”、选择 <code>Page On Front</code> 和 <code>Page For Posts</code>，
+            以及最终如何写回站点设置。
+        </p>
+
+        <div class="meta-list">
+            <div class="meta-item">入口：<code>WordPress/src/main/java/org/wordpress/android/ui/prefs/SiteSettingsFragment.java</code></div>
+            <div class="meta-item">对话框：<code>WordPress/src/main/java/org/wordpress/android/ui/prefs/homepage/HomepageSettingsDialog.kt</code></div>
+            <div class="meta-item">状态机：<code>WordPress/src/main/java/org/wordpress/android/ui/prefs/homepage/HomepageSettingsViewModel.kt</code></div>
+            <div class="meta-item">保存出口：<code>libs/fluxc/src/main/java/org/wordpress/android/fluxc/store/SiteOptionsStore.kt</code></div>
+        </div>
+
+        <div class="hero-grid">
+            <div class="hero-card">
+                <strong>我的结论</strong>
+                <p>
+                    主页设置不是一个单纯的开关，而是一个带数据加载、校验和保存回写的对话框状态机。
+                    UI 上的关键分支只有两个：<code>classic blog</code> 和 <code>static homepage</code>；
+                    真正决定能不能保存的是页面数据是否加载完成，以及“首页”和“文章页”是否被选成同一页。
+                </p>
+                <div class="chip-row">
+                    <span class="chip green">先加载页面，再允许保存</span>
+                    <span class="chip orange">静态首页模式需要两个下拉框</span>
+                    <span class="chip gold">同一页不能同时做首页和文章页</span>
+                </div>
+            </div>
+            <div class="hero-card">
+                <strong>阅读顺序</strong>
+                <p>先看入口如何打开对话框，再看 ViewModel 如何拉取页面和维护校验状态，最后看保存时如何回写到站点设置。</p>
+                <div class="toc">
+                    <strong>目录</strong>
+                    <ul>
+                        <li><a href="#overview">1. 流程总览</a></li>
+                        <li><a href="#entry">2. 入口与弹窗</a></li>
+                        <li><a href="#load">3. 加载与状态构建</a></li>
+                        <li><a href="#ui">4. 弹窗 UI 如何响应状态</a></li>
+                        <li><a href="#save">5. 保存与回写</a></li>
+                        <li><a href="#tests">6. 测试如何锁定行为</a></li>
+                        <li><a href="#diagram">7. 流程图</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div class="mini-card">
+                <h3>入口层</h3>
+                <p><code>SiteSettingsFragment</code> 在点击“主页设置”偏好项时弹出对话框。</p>
+            </div>
+            <div class="mini-card">
+                <h3>数据层</h3>
+                <p><code>HomepageSettingsDataLoader</code> 先读本地发布页，再请求远端刷新页面列表。</p>
+            </div>
+            <div class="mini-card">
+                <h3>状态层</h3>
+                <p><code>HomepageSettingsUiState</code> 负责保存当前模式、页面选择、错误和按钮可用性。</p>
+            </div>
+            <div class="mini-card">
+                <h3>保存层</h3>
+                <p><code>SiteOptionsStore.updateHomepage()</code> 最终把设置写回站点，并更新本地 <code>SiteModel</code>。</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="layout">
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="section-title">流程总览</div>
+                    <h2 class="panel-title" id="overview">主页设置的真实执行顺序</h2>
+                </div>
+                <p class="panel-subtitle">
+                    这个流程的核心不是“展示两个选项”，而是把站点当前首页模式、可用页面列表和保存校验绑定在一起，
+                    让用户在一个弹窗内完成配置。
+                </p>
+            </div>
+
+            <div class="section">
+                <p class="section-note">
+                    这条链路可以概括成四步：<strong>入口打开弹窗</strong>、<strong>ViewModel 拉取页面并构建 UI 状态</strong>、
+                    <strong>用户切换模式或下拉选择页面</strong>、<strong>点击确认后写回站点设置</strong>。
+                    对话框在保存成功前不会关闭；如果数据没加载完或者两个页面选成同一个，也会把错误直接显示在弹窗里。
+                </p>
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>经典博客模式</h3>
+                        <p>直接使用 <code>SiteHomepageSettings.Posts</code>，不显示页面下拉框，也不需要选择两个页面。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>静态首页模式</h3>
+                        <p>需要同时选择 <code>pageOnFront</code> 和 <code>pageForPosts</code>，并且这两个值不能相同。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>加载策略</h3>
+                        <p>先发出 Loading，再读数据库中已发布页面，随后请求服务器刷新并再次读库。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>保存策略</h3>
+                        <p>保存成功时关闭弹窗，失败时保留弹窗并写入错误文本，方便用户立即修正。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="entry">2. 入口与弹窗</h2>
+                <p class="section-note">
+                    入口来自 <code>SiteSettingsFragment</code> 的偏好点击分支。点击主页设置后，它不会跳到新页面，而是直接通过
+                    <code>HomepageSettingsDialog.newInstance(mSite)</code> 打开一个对话框。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// SiteSettingsFragment 只负责触发弹窗，不处理主页设置的内部逻辑。</span>
+private void showHomepageSettings() {
+    HomepageSettingsDialog homepageSettingsDialog =
+            HomepageSettingsDialog.Companion.newInstance(mSite);
+    homepageSettingsDialog.show(
+            getAppCompatActivity().getSupportFragmentManager(),
+            "homepage-settings-dialog-tag"
+    );
+}
+
+<span class="comment">// Dialog 先从 arguments / savedInstanceState 取出站点和上次状态，再创建 ViewModel。</span>
+viewModel = new ViewModelProvider(this@HomepageSettingsDialog, viewModelFactory)
+        [HomepageSettingsViewModel::class.java]</pre>
+                </div>
+
+                <div class="note-box">
+                    <strong>边界说明：</strong>
+                    这里说的“主页设置”是站点设置中的首页偏好，不是 My Site 里单独展示的主页预览页。
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="load">3. 加载与状态构建</h2>
+                <p class="section-note">
+                    真正的业务状态都在 <code>HomepageSettingsViewModel</code> 里。它先从 <code>SiteStore</code> 找到站点，
+                    再用 <code>HomepageSettingsDataLoader</code> 拉取页面列表，最后把“当前模式 + 当前选中的页面”组装成
+                    <code>HomepageSettingsUiState</code>。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// ViewModel 初始化时会恢复站点当前的主页设置，并启动页面加载。</span>
+fun start(siteId: Int, savedClassicBlogValue: Boolean?, savedPageForPostsId: Long?, savedPageOnFrontId: Long?) {
+    dispatcher.register(this)
+    launch {
+        val siteModel = siteStore.getSiteByLocalId(siteId)
+            ?: throw IllegalStateException("SiteModel has to be present")
+        val isClassicBlog = savedClassicBlogValue ?: siteModel.showOnFront == ShowOnFront.POSTS.value
+        _uiState.value = HomepageSettingsUiState(
+            isClassicBlogState = isClassicBlog,
+            siteModel = siteModel
+        )
+
+        val loadPagesFlow = homepageSettingsDataLoader.loadPages(siteModel)
+        withContext(bgDispatcher) {
+            loadPagesFlow.filter { loadingResult ->
+                loadingResult !is Data || loadingResult.pages.isValid(
+                    pageOnFrontId ?: siteModel.pageOnFront,
+                    pageForPostsId ?: siteModel.pageForPosts
+                )
+            }.collect { loadingResult ->
+                updateUiState { currentValue ->
+                    currentValue.updateWithLoadingResult(
+                        loadingResult,
+                        pageForPostsId ?: siteModel.pageForPosts,
+                        pageOnFrontId ?: siteModel.pageOnFront
+                    )
+                }
+            }
+        }
+    }
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>数据加载分三段</h3>
+                        <p><code>Loading</code> -> 本地库页面 -> 远端刷新后的页面。这样弹窗先有可用数据，再补最新内容。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>页面有效性过滤</h3>
+                        <p>如果当前站点保存的首页或文章页不在返回页面列表里，ViewModel 不会把那批数据推进最终 UI。</p>
+                    </div>
+                </div>
+
+                <div class="code-shell" style="margin-top: 12px;">
+<pre><span class="comment">// 只保留已发布页面，并把加载结果流拆成 Loading / Error / Data。</span>
+fun loadPages(siteModel: SiteModel): Flow&lt;LoadingResult&gt; = flow {
+    emit(Loading)
+    emit(Data(loadPagesFromDb(siteModel)))
+    if (pageStore.requestPagesFromServer(siteModel, false).isError) {
+        emit(Error(R.string.site_settings_failed_to_load_pages))
+    } else {
+        emit(Data(loadPagesFromDb(siteModel)))
+    }
+}</pre>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="ui">4. 弹窗 UI 如何响应状态</h2>
+                <p class="section-note">
+                    <code>HomepageSettingsDialog</code> 的职责很薄：把状态渲染成单选按钮、下拉框和确认按钮，
+                    并把用户的点击转发给 ViewModel。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 经典博客与静态首页之间切换时，只做状态更新，不做保存。</span>
+homepageSettingsRadioGroup.setOnCheckedChangeListener { _, checkedId -&gt;
+    when (checkedId) {
+        R.id.classic_blog -&gt; viewModel.classicBlogSelected()
+        R.id.static_homepage -&gt; viewModel.staticHomepageSelected()
+    }
+}
+
+<span class="comment">// 静态首页模式下，需要同时渲染 pageOnFront 和 pageForPosts 两个选择器。</span>
+when (uiState.isClassicBlogState) {
+    true -&gt; dropdownContainer.visibility = View.GONE
+    false -&gt; {
+        if (uiState.pageForPostsState != null &amp;&amp; uiState.pageOnFrontState != null) {
+            dropdownContainer.visibility = View.VISIBLE
+            setupDropdownItem(uiState.pageOnFrontState, selectedHomepage, ...)
+            setupDropdownItem(uiState.pageForPostsState, selectedPostsPage, ...)
+        } else {
+            dropdownContainer.visibility = View.GONE
+        }
+    }
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>下拉菜单不是独立页</h3>
+                        <p>它只是 <code>PopupMenu</code>，展开/收起状态也会回写到 <code>HomepageSettingsSelectorUiState</code>。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>按钮可用性由校验驱动</h3>
+                        <p>确认按钮是否可点，取决于当前 UI 状态是否通过校验，而不是单纯看模式是否切换完毕。</p>
+                    </div>
+                </div>
+
+                <div class="code-shell" style="margin-top: 12px;">
+<pre><span class="comment">// 选择器会把页面列表转成可显示的文本和选中 ID。</span>
+fun selectItem(updatedItemId: Int): HomepageSettingsSelectorUiState {
+    val selectedItem = data.find { it.id == updatedItemId }
+    val (title, id, isHighlighted) = Builder.buildUiProperties(selectedItem)
+    return copy(
+        selectedItem = title,
+        selectedItemId = id,
+        isHighlighted = isHighlighted,
+        isExpanded = false
+    )
+}</pre>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="save">5. 保存与回写</h2>
+                <p class="section-note">
+                    点击确认后，ViewModel 先做本地校验，再调用 <code>SiteOptionsStore.updateHomepage()</code>。
+                    成功则关闭弹窗，失败则把错误写回 UI 并保留弹窗。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 保存前先进入 loading 状态，避免用户重复点击。</span>
+fun onAcceptClicked() {
+    val currentUiState = _uiState.value ?: run {
+        updateUiStateFromMainThread { it.updateWithError(R.string.site_settings_failed_to_save_homepage_settings) }
+        return
+    }
+    updateUiStateFromMainThread { it.updateWithLoading() }
+    launch {
+        val siteHomepageSettings = if (currentUiState.isClassicBlogState) {
+            SiteHomepageSettings.Posts
+        } else {
+            val pageForPostsModel = currentUiState.pageForPostsState
+            val pageOnFrontModel = currentUiState.pageOnFrontState
+            if (pageForPostsModel == null || pageOnFrontModel == null) {
+                updateUiState { it.updateWithError(R.string.site_settings_cannot_save_homepage_settings_before_pages_loaded) }
+                return@launch
+            }
+            if (pageForPostsModel == pageOnFrontModel) {
+                updateUiState { it.updateWithError(R.string.site_settings_page_for_posts_and_homepage_cannot_be_equal) }
+                return@launch
+            }
+            SiteHomepageSettings.StaticPage(
+                pageForPostsId = pageForPostsModel.getSelectedItemRemoteId() ?: 0,
+                pageOnFrontId = pageOnFrontModel.getSelectedItemRemoteId() ?: 0
+            )
+        }
+
+        val updateResult = siteOptionsStore.updateHomepage(currentUiState.siteModel, siteHomepageSettings)
+        when (updateResult.isError) {
+            true -&gt; updateUiState { it.updateWithError(R.string.site_settings_failed_update_homepage_settings) }
+            false -&gt; _dismissDialogEvent.value = Event(Unit)
+        }
+    }
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>经典博客保存</h3>
+                        <p>直接提交 <code>SiteHomepageSettings.Posts</code>，不需要页面 ID。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>静态首页保存</h3>
+                        <p>会把两个选择器里当前选中的本地页面 ID 转成远端页面 ID，再写给 <code>SiteOptionsStore</code>。</p>
+                    </div>
+                </div>
+
+                <div class="code-shell" style="margin-top: 12px;">
+<pre><span class="comment">// 存储层会把更新后的结果同步回 SiteModel，并触发站点更新事件。</span>
+when (val response = siteHomepageRestClient.updateHomepage(site, homepageSettings)) {
+    is Success -&gt; {
+        val updatedHomepageSettings = siteHomepageSettingsMapper.map(response.data)
+        if (updatedHomepageSettings is StaticPage) {
+            site.pageForPosts = updatedHomepageSettings.pageForPostsId
+            site.pageOnFront = updatedHomepageSettings.pageOnFrontId
+        }
+        site.showOnFront = updatedHomepageSettings.showOnFront.value
+        dispatcher.dispatch(SiteActionBuilder.newUpdateSiteAction(site))
+        HomepageUpdatedPayload(updatedHomepageSettings)
+    }
+    is Error -&gt; HomepageUpdatedPayload(response.error)
+}</pre>
+                </div>
+
+                <div class="note-box">
+                    <strong>校验层在双端都存在：</strong>
+                    ViewModel 会拦住“两个页面一样”的输入，<code>SiteOptionsStore</code> 也会再做一层保护，避免误写非法参数。
+                </div>
+            </div>
+
+            <div class="section" id="tests">
+                <h2>6. 测试如何锁定行为</h2>
+                <p class="section-note">
+                    这个流程有比较完整的单元测试，足以支撑文档里的结论。最关键的是 ViewModel、DataLoader 和 Selector Builder 三组测试。
+                </p>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>ViewModel 测试</h3>
+                        <p>验证了经典博客 / 静态首页初始化、页面选择、下拉展开、保存成功、保存失败和同页冲突等情况。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>DataLoader 测试</h3>
+                        <p>验证了只返回已发布页面、先本地后远端两段数据、以及远端错误时会发出错误结果。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Selector Builder 测试</h3>
+                        <p>验证了没有选中页面时显示“选择页面”，选中后显示页面标题并高亮。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Mapper 测试</h3>
+                        <p>验证了站点模型与后端响应都能正确映射成 <code>Posts</code> 或 <code>StaticPage</code>。</p>
+                    </div>
+                </div>
+
+                <div class="note-box">
+                    <strong>这意味着什么：</strong>
+                    这条链路的行为不是靠猜，而是被测试固定住了。文档里写的“先加载页面、同页不能保存、成功才 dismiss”都有测试支撑。
+                </div>
+            </div>
+        </section>
+
+        <aside class="panel">
+            <div class="section-title">阅读指南</div>
+            <h2 class="panel-title">看源码时优先盯住的点</h2>
+            <p class="panel-subtitle" style="margin-top: 10px;">
+                这些点决定了主页设置是否能正确展示、选择和保存。
+            </p>
+
+            <div class="summary-grid" style="margin-top: 18px;">
+                <div class="summary-card">
+                    <h3>1. 入口只负责打开</h3>
+                    <p><code>SiteSettingsFragment</code> 不做业务，真正逻辑都在对话框和 ViewModel。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>2. 默认模式怎么来的</h3>
+                    <p>如果没有保存过临时状态，就从站点当前的 <code>showOnFront</code> 还原。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>3. 页面列表从哪来</h3>
+                    <p><code>HomepageSettingsDataLoader</code> 过滤的是已发布页面，不会把草稿或其他状态混进来。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>4. 什么时候能点保存</h3>
+                    <p>只有没有错误且校验通过时，确认按钮才会启用。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>5. 为何要双重校验</h3>
+                    <p>ViewModel 和 Store 都检查“首页和文章页不能相同”，避免非法写回。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>6. 成功后发生什么</h3>
+                    <p>更新成功后，弹窗关闭，站点模型更新，相关观察者会收到站点变更事件。</p>
+                </div>
+            </div>
+
+            <div class="toc" style="margin-top: 18px;">
+                <strong>相关源码文件</strong>
+                <ul>
+                    <li><code>SiteSettingsFragment.java</code></li>
+                    <li><code>HomepageSettingsDialog.kt</code></li>
+                    <li><code>HomepageSettingsViewModel.kt</code></li>
+                    <li><code>HomepageSettingsUiState.kt</code></li>
+                    <li><code>HomepageSettingsDataLoader.kt</code></li>
+                    <li><code>HomepageSettingsSelectorUiState.kt</code></li>
+                    <li><code>SiteOptionsStore.kt</code></li>
+                    <li><code>SiteHomepageSettingsMapper.kt</code></li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <section class="diagram-panel" id="diagram">
+        <div class="section-title">流程图</div>
+        <h2 class="panel-title">主页设置的主路径与错误分支</h2>
+        <p class="panel-subtitle" style="margin-top: 10px;">
+            图里只画主页设置弹窗这条主线：入口 -> 加载页面 -> 切换模式 -> 选择页面 -> 校验 -> 保存 -> 关闭。
+        </p>
+
+        <div class="diagram-wrap" style="margin-top: 16px;">
+            <svg viewBox="0 0 1240 1040" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC',sans-serif" font-size="13">
+                <defs>
+                    <linearGradient id="boxFill" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stop-color="#fffdf8"/>
+                        <stop offset="100%" stop-color="#f3eadc"/>
+                    </linearGradient>
+                    <linearGradient id="accentFill" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stop-color="#f6e8d7"/>
+                        <stop offset="100%" stop-color="#ecd7c4"/>
+                    </linearGradient>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#8b6a18"/>
+                    </marker>
+                    <marker id="greenArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#246b53"/>
+                    </marker>
+                </defs>
+
+                <rect x="40" y="30" width="1160" height="980" rx="28" fill="rgba(255,255,255,0.34)" stroke="rgba(74,55,38,0.08)"/>
+
+                <rect x="80" y="70" width="240" height="90" rx="20" fill="url(#boxFill)" stroke="#b89c7f"/>
+                <text x="200" y="108" text-anchor="middle" fill="#241d16" font-weight="700">SiteSettingsFragment</text>
+                <text x="200" y="131" text-anchor="middle" fill="#695b4f">点击主页设置偏好项</text>
+                <text x="200" y="151" text-anchor="middle" fill="#695b4f">showHomepageSettings()</text>
+
+                <rect x="360" y="70" width="250" height="90" rx="20" fill="url(#accentFill)" stroke="#c68d63"/>
+                <text x="485" y="109" text-anchor="middle" fill="#241d16" font-weight="700">HomepageSettingsDialog</text>
+                <text x="485" y="131" text-anchor="middle" fill="#695b4f">读取 siteId / savedState</text>
+                <text x="485" y="151" text-anchor="middle" fill="#695b4f">创建 ViewModel</text>
+
+                <rect x="660" y="70" width="240" height="90" rx="20" fill="url(#boxFill)" stroke="#b89c7f"/>
+                <text x="780" y="109" text-anchor="middle" fill="#241d16" font-weight="700">HomepageSettingsViewModel</text>
+                <text x="780" y="131" text-anchor="middle" fill="#695b4f">start() / UI 状态</text>
+                <text x="780" y="151" text-anchor="middle" fill="#695b4f">加载与校验</text>
+
+                <rect x="960" y="70" width="200" height="90" rx="20" fill="url(#boxFill)" stroke="#b89c7f"/>
+                <text x="1060" y="108" text-anchor="middle" fill="#241d16" font-weight="700">DataLoader</text>
+                <text x="1060" y="131" text-anchor="middle" fill="#695b4f">本地页 -> 远端页</text>
+                <text x="1060" y="151" text-anchor="middle" fill="#695b4f">只保留已发布页面</text>
+
+                <path d="M320 115 L355 115" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+                <path d="M610 115 L655 115" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+                <path d="M900 115 L955 115" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+
+                <rect x="950" y="210" width="220" height="92" rx="18" fill="#edf7f1" stroke="#9bc4b0"/>
+                <text x="1060" y="247" text-anchor="middle" fill="#246b53" font-weight="700">HomepageSettingsUiState</text>
+                <text x="1060" y="270" text-anchor="middle" fill="#4f6b5f">经典博客 / 静态首页</text>
+                <text x="1060" y="291" text-anchor="middle" fill="#4f6b5f">页面选择器 + 错误</text>
+
+                <path d="M1060 160 L1060 206" stroke="#246b53" stroke-width="3" marker-end="url(#greenArrow)"/>
+
+                <rect x="920" y="340" width="260" height="90" rx="18" fill="url(#boxFill)" stroke="#b89c7f"/>
+                <text x="1050" y="376" text-anchor="middle" fill="#241d16" font-weight="700">弹窗 UI</text>
+                <text x="1050" y="399" text-anchor="middle" fill="#695b4f">RadioGroup + Dropdown + Button</text>
+                <text x="1050" y="421" text-anchor="middle" fill="#695b4f">转发用户交互给 ViewModel</text>
+
+                <path d="M1060 302 L1060 336" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+
+                <rect x="80" y="340" width="220" height="84" rx="18" fill="#f7f1e8" stroke="#c7b29d"/>
+                <text x="190" y="373" text-anchor="middle" fill="#241d16" font-weight="700">Classic Blog</text>
+                <text x="190" y="396" text-anchor="middle" fill="#695b4f">showOnFront = posts</text>
+
+                <rect x="80" y="450" width="220" height="84" rx="18" fill="#f7f1e8" stroke="#c7b29d"/>
+                <text x="190" y="483" text-anchor="middle" fill="#241d16" font-weight="700">Static Homepage</text>
+                <text x="190" y="506" text-anchor="middle" fill="#695b4f">需要两个页面选择器</text>
+
+                <rect x="80" y="560" width="220" height="84" rx="18" fill="#f7f1e8" stroke="#c7b29d"/>
+                <text x="190" y="593" text-anchor="middle" fill="#241d16" font-weight="700">选择 pageOnFront</text>
+                <text x="190" y="616" text-anchor="middle" fill="#695b4f">首页显示的页面</text>
+
+                <rect x="80" y="670" width="220" height="84" rx="18" fill="#f7f1e8" stroke="#c7b29d"/>
+                <text x="190" y="703" text-anchor="middle" fill="#241d16" font-weight="700">选择 pageForPosts</text>
+                <text x="190" y="726" text-anchor="middle" fill="#695b4f">文章列表页</text>
+
+                <path d="M920 385 L320 385" stroke="#8b6a18" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+                <path d="M920 495 L320 495" stroke="#8b6a18" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+                <path d="M920 605 L320 605" stroke="#8b6a18" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+                <path d="M920 715 L320 715" stroke="#8b6a18" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+
+                <rect x="370" y="500" width="230" height="98" rx="18" fill="url(#accentFill)" stroke="#c68d63"/>
+                <text x="485" y="539" text-anchor="middle" fill="#241d16" font-weight="700">校验</text>
+                <text x="485" y="562" text-anchor="middle" fill="#695b4f">页面未加载完？</text>
+                <text x="485" y="584" text-anchor="middle" fill="#695b4f">两个页面相同？</text>
+
+                <path d="M320 607 L365 607" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+                <path d="M600 549 L705 549" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+                <rect x="705" y="500" width="170" height="98" rx="18" fill="#edf7f1" stroke="#9bc4b0"/>
+                <text x="790" y="539" text-anchor="middle" fill="#246b53" font-weight="700">更新站点</text>
+                <text x="790" y="562" text-anchor="middle" fill="#4f6b5f">SiteOptionsStore</text>
+                <text x="790" y="584" text-anchor="middle" fill="#4f6b5f">updateHomepage()</text>
+
+                <path d="M790 598 L790 690 L1040 690 L1040 430" fill="none" stroke="#246b53" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#greenArrow)"/>
+
+                <rect x="920" y="820" width="220" height="92" rx="18" fill="url(#boxFill)" stroke="#b89c7f"/>
+                <text x="1030" y="857" text-anchor="middle" fill="#241d16" font-weight="700">成功</text>
+                <text x="1030" y="880" text-anchor="middle" fill="#695b4f">dismiss dialog</text>
+                <text x="1030" y="901" text-anchor="middle" fill="#695b4f">更新 SiteModel</text>
+
+                <rect x="640" y="820" width="230" height="92" rx="18" fill="#fff0f0" stroke="#d4a0a0"/>
+                <text x="755" y="857" text-anchor="middle" fill="#9a4d1e" font-weight="700">失败分支</text>
+                <text x="755" y="880" text-anchor="middle" fill="#7c5b54">错误消息回写 UI</text>
+                <text x="755" y="901" text-anchor="middle" fill="#7c5b54">弹窗保留</text>
+
+                <path d="M790 598 L790 806" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+                <path d="M790 820 L790 806" stroke="#8b6a18" stroke-width="0"/>
+
+                <text x="60" y="965" fill="#695b4f" font-size="12.5">读图方式：上半部分是入口与数据加载，下半部分是模式切换、校验和保存出口。</text>
+            </svg>
+        </div>
+        <div class="caption">
+            这张图只画主页设置弹窗内部的 UI 流程，不扩展到其他站点设置页面。关键分支是经典博客与静态首页，以及保存前的校验失败分支。
+        </div>
+    </section>
+</div>
+</body>
+</html>

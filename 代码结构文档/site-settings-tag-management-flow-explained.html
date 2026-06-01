@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordPress Android 站点标签管理流程分析</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5efe6;
+            --surface: rgba(255, 252, 247, 0.94);
+            --ink: #241d16;
+            --muted: #695b4f;
+            --line: rgba(74, 55, 38, 0.12);
+            --accent: #9a4d1e;
+            --accent-soft: rgba(154, 77, 30, 0.12);
+            --green: #246b53;
+            --green-soft: rgba(36, 107, 83, 0.11);
+            --gold: #9a7a2b;
+            --gold-soft: rgba(154, 122, 43, 0.12);
+            --shadow: 0 24px 70px rgba(44, 28, 12, 0.10);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --max: 1320px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", "Helvetica Neue", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(154, 77, 30, 0.16), transparent 24%),
+                radial-gradient(circle at top right, rgba(36, 107, 83, 0.15), transparent 26%),
+                linear-gradient(180deg, #fffaf4 0%, var(--bg) 38%, #efe5d7 100%);
+        }
+
+        h1, h2, h3, p { margin: 0; }
+
+        code {
+            padding: 0.12em 0.38em;
+            border-radius: 8px;
+            background: rgba(37, 27, 18, 0.06);
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 0.92em;
+        }
+
+        .page {
+            width: min(calc(100% - 32px), var(--max));
+            margin: 0 auto;
+            padding: 28px 0 72px;
+        }
+
+        .hero,
+        .panel,
+        .diagram-panel {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 34px;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: -120px -80px auto auto;
+            width: 300px;
+            height: 300px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(154, 77, 30, 0.16), transparent 68%);
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto auto -140px -120px;
+            width: 340px;
+            height: 340px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(36, 107, 83, 0.14), transparent 68%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(36, 107, 83, 0.10);
+            color: var(--green);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            margin-top: 18px;
+            max-width: 940px;
+            font-size: clamp(30px, 4.1vw, 52px);
+            line-height: 1.05;
+        }
+
+        .lead {
+            margin-top: 14px;
+            max-width: 980px;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.78;
+        }
+
+        .meta-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .meta-item {
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.56);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+            gap: 18px;
+            margin-top: 24px;
+        }
+
+        .hero-card,
+        .summary-card,
+        .panel {
+            background: rgba(255, 255, 255, 0.62);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+        }
+
+        .hero-card {
+            padding: 18px 20px;
+        }
+
+        .hero-card strong,
+        .section-title {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--green);
+            letter-spacing: 0.01em;
+        }
+
+        .hero-card p,
+        .summary-card p,
+        .section-note {
+            color: var(--muted);
+            line-height: 1.76;
+            font-size: 14px;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .mini-card {
+            padding: 14px 15px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.62);
+        }
+
+        .mini-card h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .mini-card p {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+            gap: 20px;
+            margin-top: 22px;
+        }
+
+        .panel {
+            padding: 26px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: end;
+            margin-bottom: 18px;
+        }
+
+        .panel-title {
+            font-size: 26px;
+            line-height: 1.18;
+        }
+
+        .panel-subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.68;
+            max-width: 640px;
+        }
+
+        .summary-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .summary-card {
+            padding: 16px;
+        }
+
+        .summary-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .section {
+            margin-top: 20px;
+        }
+
+        .section h2 {
+            margin-bottom: 12px;
+            font-size: 22px;
+            line-height: 1.22;
+        }
+
+        .section .section-note {
+            margin-bottom: 14px;
+        }
+
+        .code-shell {
+            overflow: auto;
+            padding: 18px;
+            border: 1px solid rgba(44, 28, 12, 0.08);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(245, 238, 225, 0.96) 100%);
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre;
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 13.2px;
+            line-height: 1.8;
+            color: #1f261f;
+        }
+
+        .comment { color: var(--green); }
+        .callout { color: var(--accent); }
+        .branch { color: var(--gold); }
+        .muted { color: var(--muted); }
+
+        .diagram-panel {
+            margin-top: 20px;
+            padding: 26px;
+        }
+
+        .diagram-wrap {
+            overflow: auto;
+            padding: 10px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(239, 232, 220, 0.96));
+            border: 1px solid var(--line);
+        }
+
+        svg {
+            width: 100%;
+            min-width: 1120px;
+            height: auto;
+            display: block;
+        }
+
+        .caption {
+            margin-top: 14px;
+            color: var(--muted);
+            line-height: 1.74;
+            font-size: 14px;
+        }
+
+        .toc {
+            margin-top: 18px;
+            padding: 18px 20px;
+            border-radius: 20px;
+            background: rgba(36, 107, 83, 0.08);
+            border: 1px solid rgba(36, 107, 83, 0.12);
+        }
+
+        .toc ul {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            color: var(--muted);
+            line-height: 1.76;
+        }
+
+        .toc li { margin: 3px 0; }
+
+        .toc a {
+            color: var(--green);
+            text-decoration: none;
+        }
+
+        .toc a:hover { text-decoration: underline; }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 11px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--muted);
+            font-size: 12.5px;
+        }
+
+        .chip.green { background: var(--green-soft); color: var(--green); }
+        .chip.gold { background: var(--gold-soft); color: #8b6a18; }
+        .chip.orange { background: var(--accent-soft); color: var(--accent); }
+
+        .note-box {
+            margin-top: 14px;
+            padding: 14px 15px;
+            border-radius: 16px;
+            border: 1px solid rgba(154, 77, 30, 0.14);
+            background: rgba(154, 77, 30, 0.06);
+            color: var(--muted);
+            line-height: 1.72;
+            font-size: 14px;
+        }
+
+        @media (max-width: 1100px) {
+            .hero-grid,
+            .layout,
+            .card-grid,
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .page { width: min(calc(100% - 20px), var(--max)); padding: 16px 0 56px; }
+            .hero,
+            .panel,
+            .diagram-panel { padding: 18px; }
+            .hero h1 { font-size: 30px; }
+            .lead { font-size: 16px; }
+            .panel-title { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="hero">
+        <div class="eyebrow">Feature Analysis</div>
+        <h1>WordPress Android 站点标签管理流程分析</h1>
+        <p class="lead">
+            这份文档分析的是站点设置里的标签管理流程，也就是 <code>SiteSettingsFragment</code> 打开
+            <code>SiteSettingsTagListActivity</code> 后，如何加载标签、搜索标签、进入标签详情、保存修改和删除标签。
+            它和文章编辑里的标签选择不同，这里管理的是站点级别的 <code>TermModel</code> 标签集合。
+        </p>
+
+        <div class="meta-list">
+            <div class="meta-item">入口：<code>WordPress/src/main/java/org/wordpress/android/ui/prefs/SiteSettingsFragment.java</code></div>
+            <div class="meta-item">列表页：<code>WordPress/src/main/java/org/wordpress/android/ui/prefs/SiteSettingsTagListActivity.java</code></div>
+            <div class="meta-item">详情页：<code>WordPress/src/main/java/org/wordpress/android/ui/prefs/SiteSettingsTagDetailFragment.java</code></div>
+            <div class="meta-item">数据源：<code>org.wordpress.android.fluxc.store.TaxonomyStore</code></div>
+        </div>
+
+        <div class="hero-grid">
+            <div class="hero-card">
+                <strong>我的结论</strong>
+                <p>
+                    这条链路的核心是一个“列表页 + 详情页”的标签编辑器。列表页负责加载、搜索和进入编辑，
+                    详情页负责输入、删除和判断是否有改动；真正的保存与删除都通过
+                    <code>TaxonomyActionBuilder</code> 派发到 <code>TaxonomyStore</code>，再由事件回调把界面收口。
+                </p>
+                <div class="chip-row">
+                    <span class="chip green">站点标签不是文章标签</span>
+                    <span class="chip orange">保存前会检查是否重名</span>
+                    <span class="chip gold">修改成功后自动回到列表</span>
+                </div>
+            </div>
+            <div class="hero-card">
+                <strong>阅读顺序</strong>
+                <p>先看入口如何打开列表页，再看列表页如何加载与筛选标签，随后看详情页如何编辑并提交修改。</p>
+                <div class="toc">
+                    <strong>目录</strong>
+                    <ul>
+                        <li><a href="#overview">1. 流程总览</a></li>
+                        <li><a href="#entry">2. 入口与页面结构</a></li>
+                        <li><a href="#load">3. 标签如何加载与搜索</a></li>
+                        <li><a href="#detail">4. 标签详情页如何编辑</a></li>
+                        <li><a href="#save">5. 保存、删除与事件收口</a></li>
+                        <li><a href="#tests">6. 测试与风险点</a></li>
+                        <li><a href="#diagram">7. 流程图</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div class="mini-card">
+                <h3>入口层</h3>
+                <p><code>SiteSettingsFragment</code> 点击标签设置后启动 <code>SiteSettingsTagListActivity</code>。</p>
+            </div>
+            <div class="mini-card">
+                <h3>列表层</h3>
+                <p><code>SiteSettingsTagListActivity</code> 从 <code>TaxonomyStore</code> 读取标签并支持搜索过滤。</p>
+            </div>
+            <div class="mini-card">
+                <h3>详情层</h3>
+                <p><code>SiteSettingsTagDetailFragment</code> 负责名称、描述、是否新标签和删除菜单。</p>
+            </div>
+            <div class="mini-card">
+                <h3>提交层</h3>
+                <p><code>TaxonomyActionBuilder</code> + <code>TaxonomyStore</code> 完成标签新增、更新和删除。</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="layout">
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="section-title">流程总览</div>
+                    <h2 class="panel-title" id="overview">站点标签管理的真实执行顺序</h2>
+                </div>
+                <p class="panel-subtitle">
+                    这个流程不是单纯“点开标签列表看一眼”，而是一个带数据刷新、详情编辑和后端事件回调的站点级管理页面。
+                </p>
+            </div>
+
+            <div class="section">
+                <p class="section-note">
+                    你可以把它理解成四步：<strong>入口打开列表页</strong>、<strong>列表页从 TaxonomyStore 读取标签</strong>、
+                    <strong>点击某个标签或 FAB 进入详情页</strong>、<strong>保存/删除后靠 taxonomy 事件收口到列表页</strong>。
+                    列表页本身也承担搜索、空态、返回、进度提示和 FAB 动画控制。
+                </p>
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>列表页职责</h3>
+                        <p>负责加载标签、排序、搜索、打开详情页、处理保存/删除后的列表刷新。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>详情页职责</h3>
+                        <p>负责编辑标签名称和描述，处理新建标签的 slug，提供删除菜单。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>保存行为</h3>
+                        <p>新标签会先检查是否重名，已有标签则直接 push 到 taxonomy 层。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>删除行为</h3>
+                        <p>删除前会确认网络可用，再弹出确认框，确认后派发删除 action。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="entry">2. 入口与页面结构</h2>
+                <p class="section-note">
+                    入口在 <code>SiteSettingsFragment</code> 的偏好点击分支里。点击标签设置项时，它直接调用
+                    <code>SiteSettingsTagListActivity.showTagList(getActivity(), mSite)</code>，把站点对象传给独立 Activity。
+                    这意味着标签管理是一个单独的站点设置页面，而不是在原页面里嵌入一个对话框。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// SiteSettingsFragment 只负责把“标签设置”跳转出去。</span>
+else if (preference == mTagsPref) {
+    SiteSettingsTagListActivity.showTagList(getActivity(), mSite);
+}
+
+<span class="comment">// Activity 的静态入口只带站点对象，不携带别的复杂状态。</span>
+public static void showTagList(@NonNull Context context, @NonNull SiteModel site) {
+    Intent intent = new Intent(context, SiteSettingsTagListActivity.class);
+    intent.putExtra(WordPress.SITE, site);
+    context.startActivity(intent);
+}</pre>
+                </div>
+
+                <div class="note-box">
+                    <strong>页面结构：</strong>
+                    <code>SiteSettingsTagListActivity</code> 是主容器，里面有列表、FAB、搜索框和空态视图；
+                    <code>SiteSettingsTagDetailFragment</code> 则以 fragment 叠加到列表页上，形成“列表 + 详情”的编辑体验。
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="load">3. 标签如何加载与搜索</h2>
+                <p class="section-note">
+                    列表页在首次创建时会从 <code>TaxonomyStore</code> 取站点标签，并触发一次
+                    <code>TaxonomyActionBuilder.newFetchTagsAction(mSite)</code>，让远端结果回来后刷新列表。
+                    标签展示按名称做忽略大小写排序，并支持搜索过滤。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 列表页创建时，先读本地缓存，再拉远端标签。</span>
+loadTags();
+if (savedInstanceState == null) {
+    mDispatcher.dispatch(TaxonomyActionBuilder.newFetchTagsAction(mSite));
+}
+
+<span class="comment">// loadTags() 会从 TaxonomyStore 取站点标签并按名称排序。</span>
+private void loadTags() {
+    List&lt;TermModel&gt; tags = mTaxonomyStore.getTagsForSite(mSite);
+    Collections.sort(tags, (t1, t2) -&gt; StringUtils.compareIgnoreCase(t1.getName(), t2.getName()));
+    mAdapter = new TagListAdapter(tags);
+    mRecycler.setAdapter(mAdapter);
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>搜索不是独立数据源</h3>
+                        <p>搜索只是对 <code>mAllTags</code> 做本地过滤，不会再次请求网络。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>空态会动态切换</h3>
+                        <p>搜索时如果没有结果，空态会变成“搜索无结果”；非搜索空态则展示新增按钮。</p>
+                    </div>
+                </div>
+
+                <div class="code-shell" style="margin-top: 12px;">
+<pre><span class="comment">// 过滤后会刷新列表，并据搜索状态切换空态展示。</span>
+public void filter(final String text) {
+    mFilteredTags.clear();
+    if (TextUtils.isEmpty(text)) {
+        mFilteredTags.addAll(mAllTags);
+    } else {
+        for (TermModel tag : mAllTags) {
+            if (tag.getName().toLowerCase(Locale.getDefault()).contains(text.toLowerCase(Locale.getDefault()))) {
+                mFilteredTags.add(tag);
+            }
+        }
+    }
+    notifyDataSetChanged();
+    showActionableEmptyViewForSearch(mIsSearching &amp;&amp; mFilteredTags.isEmpty());
+}</pre>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="detail">4. 标签详情页如何编辑</h2>
+                <p class="section-note">
+                    点列表中的标签，或者点 FAB 新增标签，都会打开 <code>SiteSettingsTagDetailFragment</code>。
+                    这个 fragment 通过 <code>TermModel</code> 初始化输入框，区分“编辑已有标签”和“创建新标签”两种模式。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 详情页的入口允许传入已有标签，也允许传 null 创建新标签。</span>
+public static SiteSettingsTagDetailFragment newInstance(@Nullable TermModel term) {
+    if (term == null) {
+        args.putBoolean(ARGS_IS_NEW_TERM, true);
+        term = new TermModel(TaxonomyStore.DEFAULT_TAXONOMY_TAG);
+    }
+    args.putSerializable(ARGS_TERM, term);
+    fragment.setArguments(args);
+    return fragment;
+}
+
+<span class="comment">// 详情页会根据模式决定标题、输入内容和是否展示删除菜单。</span>
+if (mIsNewTerm) {
+    requireActivity().setTitle(R.string.add_new_tag);
+} else {
+    requireActivity().setTitle(mTerm.getName());
+}
+
+<span class="comment">// 新标签会在保存时自动生成 slug。</span>
+if (mIsNewTerm) {
+    mTerm.setSlug(sanitizeWithDashes(thisName));
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>是否有改动</h3>
+                        <p><code>hasChanges()</code> 会判断新建标签是否输入了名字，编辑标签则比较名称和描述是否变化。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>删除菜单只对旧标签显示</h3>
+                        <p>新建标签没有可删除的远端对象，所以 trash 菜单会被隐藏。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="save">5. 保存、删除与事件收口</h2>
+                <p class="section-note">
+                    保存和删除都不是在 UI 层直接改数据库，而是通过 taxonomy action 派发给后端，再由
+                    <code>OnTaxonomyChanged</code> 事件回调把页面状态收口。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 返回键在详情页打开时有特殊语义：有改动就先保存，没有改动就直接回列表。</span>
+if (fragment != null && fragment.hasChanges()) {
+    saveTag(fragment.getTerm(), fragment.isNewTerm());
+} else {
+    hideDetailFragment();
+    loadTags();
+}
+
+<span class="comment">// 新标签会先做重名检查，再 dispatch push action。</span>
+private void saveTag(@NonNull TermModel term, boolean isNewTerm) {
+    if (isNewTerm && tagExists(term.getName())) {
+        ToastUtils.showToast(this, R.string.error_tag_exists);
+        return;
+    }
+    showProgressDialog(R.string.dlg_saving_tag);
+    Action action = TaxonomyActionBuilder.newPushTermAction(
+            new TaxonomyStore.RemoteTermPayload(term, mSite)
+    );
+    mDispatcher.dispatch(action);
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>删除前要确认网络</h3>
+                        <p><code>onRequestDeleteTag()</code> 会先检查网络，网络可用才弹出确认删除框。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>事件收口在列表页</h3>
+                        <p>保存/删除成功后，列表页隐藏进度条、关闭详情页，并重新加载标签列表。</p>
+                    </div>
+                </div>
+
+                <div class="code-shell" style="margin-top: 12px;">
+<pre><span class="comment">// taxonomy 事件是这条链路的收口点。</span>
+@Subscribe(threadMode = ThreadMode.MAIN)
+public void onTaxonomyChanged(OnTaxonomyChanged event) {
+    switch (event.causeOfChange) {
+        case FETCH_TAGS:
+            if (!event.isError()) {
+                loadTags();
+            }
+            break;
+        case REMOVE_TERM:
+        case UPDATE_TERM:
+            hideProgressDialog();
+            hideDetailFragment();
+            if (!event.isError()) {
+                loadTags();
+            }
+            break;
+    }
+}</pre>
+                </div>
+
+                <div class="note-box">
+                    <strong>流程收尾：</strong>
+                    保存成功或删除成功后，界面都回到列表页并刷新数据；失败时保留当前详情页，让用户继续修改或重试。
+                </div>
+            </div>
+
+            <div class="section" id="tests">
+                <h2>6. 测试与风险点</h2>
+                <p class="section-note">
+                    这条链路没有找到专门的本地单元测试文件，但代码里已经有几个明确的行为约束，文档应当把它们当作事实前提：
+                    只有新标签才做重名检查，删除只对旧标签可用，保存和删除都依赖 taxonomy 事件完成界面收口。
+                </p>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>值得关注的风险</h3>
+                        <p>如果 taxonomy 事件没有正确到达，列表页会停留在进度态或不会自动刷新。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>交互上的约束</h3>
+                        <p>搜索状态下空态、详情态和 FAB 显示逻辑有联动，改动时容易误伤列表可用性。</p>
+                    </div>
+                </div>
+
+                <div class="note-box">
+                    <strong>文档边界：</strong>
+                    这里解释的是站点设置里的标签管理，不包括文章编辑里的标签选择，也不包括 Reader 里的标签功能。
+                </div>
+            </div>
+        </section>
+
+        <aside class="panel">
+            <div class="section-title">阅读指南</div>
+            <h2 class="panel-title">看源码时优先盯住的点</h2>
+            <p class="panel-subtitle" style="margin-top: 10px;">
+                这些点决定了标签管理页是否能正确打开、编辑、保存和刷新。
+            </p>
+
+            <div class="summary-grid" style="margin-top: 18px;">
+                <div class="summary-card">
+                    <h3>1. 入口是谁触发的</h3>
+                    <p><code>SiteSettingsFragment</code> 只做跳转，真正的业务从列表页开始。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>2. 标签从哪来</h3>
+                    <p>列表页先读 <code>TaxonomyStore</code>，再发起 <code>FETCH_TAGS</code> 刷新。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>3. 详情页如何区分新旧</h3>
+                    <p>通过 <code>ARGS_IS_NEW_TERM</code> 和默认 <code>TermModel</code> 判断是否是新建。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>4. 保存前有没有校验</h3>
+                    <p>新标签会检查是否重名；返回键在有改动时也会触发保存。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>5. 删除是否会直接执行</h3>
+                    <p>不会。先网络检查，再确认对话框，最后 dispatch 删除 action。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>6. 成功后怎么收口</h3>
+                    <p>事件回调会关闭详情页、隐藏进度条，并重新载入标签列表。</p>
+                </div>
+            </div>
+
+            <div class="toc" style="margin-top: 18px;">
+                <strong>相关源码文件</strong>
+                <ul>
+                    <li><code>SiteSettingsFragment.java</code></li>
+                    <li><code>SiteSettingsTagListActivity.java</code></li>
+                    <li><code>SiteSettingsTagDetailFragment.java</code></li>
+                    <li><code>TaxonomyStore</code></li>
+                    <li><code>TaxonomyActionBuilder</code></li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <section class="diagram-panel" id="diagram">
+        <div class="section-title">流程图</div>
+        <h2 class="panel-title">站点标签管理的主路径与回调分支</h2>
+        <p class="panel-subtitle" style="margin-top: 10px;">
+            图里画的是标签管理页的主路径：入口 -> 列表加载 -> 搜索/选择 -> 详情编辑 -> 保存/删除 -> taxonomy 事件收口。
+        </p>
+
+        <div class="diagram-wrap" style="margin-top: 16px;">
+            <svg viewBox="0 0 1240 1040" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC',sans-serif" font-size="13">
+                <defs>
+                    <linearGradient id="boxFill" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stop-color="#fffdf8"/>
+                        <stop offset="100%" stop-color="#f3eadc"/>
+                    </linearGradient>
+                    <linearGradient id="accentFill" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stop-color="#f6e8d7"/>
+                        <stop offset="100%" stop-color="#ecd7c4"/>
+                    </linearGradient>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#8b6a18"/>
+                    </marker>
+                    <marker id="greenArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#246b53"/>
+                    </marker>
+                </defs>
+
+                <rect x="40" y="30" width="1160" height="980" rx="28" fill="rgba(255,255,255,0.34)" stroke="rgba(74,55,38,0.08)"/>
+
+                <rect x="80" y="70" width="240" height="90" rx="20" fill="url(#boxFill)" stroke="#b89c7f"/>
+                <text x="200" y="108" text-anchor="middle" fill="#241d16" font-weight="700">SiteSettingsFragment</text>
+                <text x="200" y="131" text-anchor="middle" fill="#695b4f">点击“标签设置”</text>
+                <text x="200" y="151" text-anchor="middle" fill="#695b4f">showTagList()</text>
+
+                <rect x="360" y="70" width="250" height="90" rx="20" fill="url(#accentFill)" stroke="#c68d63"/>
+                <text x="485" y="109" text-anchor="middle" fill="#241d16" font-weight="700">SiteSettingsTagListActivity</text>
+                <text x="485" y="131" text-anchor="middle" fill="#695b4f">读取站点 / 加载列表</text>
+                <text x="485" y="151" text-anchor="middle" fill="#695b4f">搜索、FAB、返回</text>
+
+                <rect x="660" y="70" width="240" height="90" rx="20" fill="url(#boxFill)" stroke="#b89c7f"/>
+                <text x="780" y="109" text-anchor="middle" fill="#241d16" font-weight="700">TaxonomyStore</text>
+                <text x="780" y="131" text-anchor="middle" fill="#695b4f">getTagsForSite()</text>
+                <text x="780" y="151" text-anchor="middle" fill="#695b4f">FETCH_TAGS</text>
+
+                <rect x="960" y="70" width="200" height="90" rx="20" fill="url(#boxFill)" stroke="#b89c7f"/>
+                <text x="1060" y="109" text-anchor="middle" fill="#241d16" font-weight="700">TagListAdapter</text>
+                <text x="1060" y="131" text-anchor="middle" fill="#695b4f">排序 / 过滤</text>
+                <text x="1060" y="151" text-anchor="middle" fill="#695b4f">列表渲染</text>
+
+                <path d="M320 115 L355 115" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+                <path d="M610 115 L655 115" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+                <path d="M900 115 L955 115" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+
+                <rect x="940" y="210" width="230" height="92" rx="18" fill="#edf7f1" stroke="#9bc4b0"/>
+                <text x="1055" y="247" text-anchor="middle" fill="#246b53" font-weight="700">搜索 / 选择标签</text>
+                <text x="1055" y="270" text-anchor="middle" fill="#4f6b5f">filter(query)</text>
+                <text x="1055" y="291" text-anchor="middle" fill="#4f6b5f">showDetailFragment(term)</text>
+
+                <path d="M1060 160 L1060 206" stroke="#246b53" stroke-width="3" marker-end="url(#greenArrow)"/>
+
+                <rect x="920" y="340" width="260" height="90" rx="18" fill="url(#boxFill)" stroke="#b89c7f"/>
+                <text x="1050" y="376" text-anchor="middle" fill="#241d16" font-weight="700">SiteSettingsTagDetailFragment</text>
+                <text x="1050" y="399" text-anchor="middle" fill="#695b4f">名称 / 描述 / 删除菜单</text>
+                <text x="1050" y="421" text-anchor="middle" fill="#695b4f">newInstance(term)</text>
+
+                <path d="M1060 302 L1060 336" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+
+                <rect x="80" y="340" width="220" height="84" rx="18" fill="#f7f1e8" stroke="#c7b29d"/>
+                <text x="190" y="373" text-anchor="middle" fill="#241d16" font-weight="700">新建标签</text>
+                <text x="190" y="396" text-anchor="middle" fill="#695b4f">mIsNewTerm = true</text>
+
+                <rect x="80" y="450" width="220" height="84" rx="18" fill="#f7f1e8" stroke="#c7b29d"/>
+                <text x="190" y="483" text-anchor="middle" fill="#241d16" font-weight="700">编辑已有标签</text>
+                <text x="190" y="506" text-anchor="middle" fill="#695b4f">可删除</text>
+
+                <rect x="80" y="560" width="220" height="84" rx="18" fill="#f7f1e8" stroke="#c7b29d"/>
+                <text x="190" y="593" text-anchor="middle" fill="#241d16" font-weight="700">保存</text>
+                <text x="190" y="616" text-anchor="middle" fill="#695b4f">newPushTermAction()</text>
+
+                <rect x="80" y="670" width="220" height="84" rx="18" fill="#f7f1e8" stroke="#c7b29d"/>
+                <text x="190" y="703" text-anchor="middle" fill="#241d16" font-weight="700">删除</text>
+                <text x="190" y="726" text-anchor="middle" fill="#695b4f">newDeleteTermAction()</text>
+
+                <path d="M920 385 L320 385" stroke="#8b6a18" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+                <path d="M920 495 L320 495" stroke="#8b6a18" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+                <path d="M920 605 L320 605" stroke="#8b6a18" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+                <path d="M920 715 L320 715" stroke="#8b6a18" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+
+                <rect x="390" y="500" width="230" height="98" rx="18" fill="url(#accentFill)" stroke="#c68d63"/>
+                <text x="505" y="539" text-anchor="middle" fill="#241d16" font-weight="700">校验与提交</text>
+                <text x="505" y="562" text-anchor="middle" fill="#695b4f">重名检查</text>
+                <text x="505" y="584" text-anchor="middle" fill="#695b4f">网络检查 / 确认对话框</text>
+
+                <path d="M320 607 L385 607" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+                <path d="M620 549 L705 549" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+                <rect x="705" y="500" width="170" height="98" rx="18" fill="#edf7f1" stroke="#9bc4b0"/>
+                <text x="790" y="539" text-anchor="middle" fill="#246b53" font-weight="700">Taxonomy action</text>
+                <text x="790" y="562" text-anchor="middle" fill="#4f6b5f">push / delete</text>
+                <text x="790" y="584" text-anchor="middle" fill="#4f6b5f">dispatch()</text>
+
+                <path d="M790 598 L790 690 L1040 690 L1040 430" fill="none" stroke="#246b53" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#greenArrow)"/>
+
+                <rect x="920" y="820" width="220" height="92" rx="18" fill="url(#boxFill)" stroke="#b89c7f"/>
+                <text x="1030" y="857" text-anchor="middle" fill="#241d16" font-weight="700">OnTaxonomyChanged</text>
+                <text x="1030" y="880" text-anchor="middle" fill="#695b4f">refresh / close detail</text>
+                <text x="1030" y="901" text-anchor="middle" fill="#695b4f">hide progress</text>
+
+                <rect x="640" y="820" width="230" height="92" rx="18" fill="#fff0f0" stroke="#d4a0a0"/>
+                <text x="755" y="857" text-anchor="middle" fill="#9a4d1e" font-weight="700">失败或取消</text>
+                <text x="755" y="880" text-anchor="middle" fill="#7c5b54">保留当前界面</text>
+                <text x="755" y="901" text-anchor="middle" fill="#7c5b54">让用户继续编辑</text>
+
+                <path d="M790 598 L790 806" stroke="#8b6a18" stroke-width="3" marker-end="url(#arrow)"/>
+
+                <text x="60" y="965" fill="#695b4f" font-size="12.5">读图方式：上半部分是入口与列表加载，下半部分是详情编辑、保存/删除和事件收口。</text>
+            </svg>
+        </div>
+        <div class="caption">
+            这张图只画站点级标签管理这条线，不包括文章编辑里的标签选择。关键的闭环是 taxonomy action dispatch 之后，由
+            <code>OnTaxonomyChanged</code> 把列表刷新和详情页关闭统一收口。
+        </div>
+    </section>
+</div>
+</body>
+</html>

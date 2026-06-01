@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordPress Android 发表评论流程分析</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5efe6;
+            --surface: rgba(255, 252, 247, 0.95);
+            --ink: #241d16;
+            --muted: #6a5d50;
+            --line: rgba(74, 55, 38, 0.12);
+            --accent: #9a4d1e;
+            --accent-soft: rgba(154, 77, 30, 0.12);
+            --green: #246b53;
+            --green-soft: rgba(36, 107, 83, 0.11);
+            --gold: #9a7a2b;
+            --gold-soft: rgba(154, 122, 43, 0.12);
+            --shadow: 0 24px 70px rgba(44, 28, 12, 0.10);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --max: 1320px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", "Helvetica Neue", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(154, 77, 30, 0.16), transparent 24%),
+                radial-gradient(circle at top right, rgba(36, 107, 83, 0.14), transparent 26%),
+                linear-gradient(180deg, #fffaf4 0%, var(--bg) 38%, #efe5d7 100%);
+        }
+
+        h1, h2, h3, p { margin: 0; }
+
+        code {
+            padding: 0.12em 0.38em;
+            border-radius: 8px;
+            background: rgba(37, 27, 18, 0.06);
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 0.92em;
+        }
+
+        .page {
+            width: min(calc(100% - 32px), var(--max));
+            margin: 0 auto;
+            padding: 28px 0 72px;
+        }
+
+        .hero,
+        .panel,
+        .diagram-panel {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 34px;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: -120px -80px auto auto;
+            width: 300px;
+            height: 300px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(154, 77, 30, 0.16), transparent 68%);
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto auto -140px -120px;
+            width: 340px;
+            height: 340px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(36, 107, 83, 0.14), transparent 68%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--green-soft);
+            color: var(--green);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            margin-top: 18px;
+            max-width: 980px;
+            font-size: clamp(30px, 4vw, 52px);
+            line-height: 1.05;
+        }
+
+        .lead {
+            margin-top: 14px;
+            max-width: 1000px;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.78;
+        }
+
+        .meta-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .meta-item {
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.56);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+            gap: 18px;
+            margin-top: 24px;
+        }
+
+        .hero-card,
+        .summary-card,
+        .panel {
+            background: rgba(255, 255, 255, 0.62);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+        }
+
+        .hero-card {
+            padding: 18px 20px;
+        }
+
+        .hero-card strong,
+        .section-title {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--green);
+            letter-spacing: 0.01em;
+        }
+
+        .hero-card p,
+        .summary-card p,
+        .section-note {
+            color: var(--muted);
+            line-height: 1.76;
+            font-size: 14px;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .mini-card {
+            padding: 14px 15px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.62);
+        }
+
+        .mini-card h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .mini-card p {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+            gap: 20px;
+            margin-top: 22px;
+        }
+
+        .panel {
+            padding: 26px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: end;
+            margin-bottom: 18px;
+        }
+
+        .panel-title {
+            font-size: 26px;
+            line-height: 1.18;
+        }
+
+        .panel-subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.68;
+            max-width: 640px;
+        }
+
+        .summary-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .summary-card {
+            padding: 16px;
+        }
+
+        .summary-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .section {
+            margin-top: 20px;
+        }
+
+        .section h2 {
+            margin-bottom: 12px;
+            font-size: 22px;
+            line-height: 1.22;
+        }
+
+        .section .section-note {
+            margin-bottom: 14px;
+        }
+
+        .code-shell {
+            overflow: auto;
+            padding: 18px;
+            border: 1px solid rgba(44, 28, 12, 0.08);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(245, 238, 225, 0.96) 100%);
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre;
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 13.2px;
+            line-height: 1.8;
+            color: #1f261f;
+        }
+
+        .comment { color: var(--green); }
+        .callout { color: var(--accent); }
+        .branch { color: var(--gold); }
+
+        .diagram-panel {
+            margin-top: 20px;
+            padding: 26px;
+        }
+
+        .diagram-wrap {
+            overflow: auto;
+            padding: 10px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(239, 232, 220, 0.96));
+            border: 1px solid var(--line);
+        }
+
+        svg {
+            width: 100%;
+            min-width: 1120px;
+            height: auto;
+            display: block;
+        }
+
+        .caption {
+            margin-top: 14px;
+            color: var(--muted);
+            line-height: 1.74;
+            font-size: 14px;
+        }
+
+        .toc {
+            margin-top: 18px;
+            padding: 18px 20px;
+            border-radius: 20px;
+            background: rgba(36, 107, 83, 0.08);
+            border: 1px solid rgba(36, 107, 83, 0.12);
+        }
+
+        .toc ul {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            color: var(--muted);
+            line-height: 1.76;
+        }
+
+        .toc li { margin: 3px 0; }
+
+        .toc a {
+            color: var(--green);
+            text-decoration: none;
+        }
+
+        .toc a:hover { text-decoration: underline; }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 11px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--muted);
+            font-size: 12.5px;
+        }
+
+        .chip.green { background: var(--green-soft); color: var(--green); }
+        .chip.gold { background: var(--gold-soft); color: #8b6a18; }
+        .chip.orange { background: var(--accent-soft); color: var(--accent); }
+
+        @media (max-width: 1100px) {
+            .hero-grid,
+            .layout,
+            .card-grid,
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .page { width: min(calc(100% - 20px), var(--max)); padding: 16px 0 56px; }
+            .hero,
+            .panel,
+            .diagram-panel { padding: 18px; }
+            .hero h1 { font-size: 30px; }
+            .lead { font-size: 16px; }
+            .panel-title { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="hero">
+        <div class="eyebrow">Feature Analysis</div>
+        <h1>WordPress Android 发表评论流程分析</h1>
+        <p class="lead">
+            本文聚焦 Reader 里的文章评论与回复评论流程，不包含后台“评论管理”页面。
+            主链路是：打开评论页 -> 进入评论输入/回复模式 -> 本地生成“假评论”占位 -> 调用 ReaderCommentActions 发起网络请求 ->
+            成功后替换为真实评论，失败后恢复输入并删除占位。
+        </p>
+        <div class="meta-list">
+            <div class="meta-item">主入口：<code>WordPress/src/main/java/org/wordpress/android/ui/reader/ReaderCommentListActivity.kt</code></div>
+            <div class="meta-item">提交动作：<code>WordPress/src/main/java/org/wordpress/android/ui/reader/actions/ReaderCommentActions.java</code></div>
+            <div class="meta-item">列表刷新：<code>WordPress/src/main/java/org/wordpress/android/ui/reader/adapters/ReaderCommentAdapter.java</code></div>
+            <div class="meta-item">全屏编辑：<code>WordPress/src/main/java/org/wordpress/android/ui/CommentFullScreenDialogFragment.kt</code></div>
+        </div>
+
+        <div class="hero-grid">
+            <div class="hero-card">
+                <strong>这条链路的核心特征</strong>
+                <p>
+                    评论提交采用“乐观更新”模式。用户点发送后，UI 会先插入一条本地假评论并高亮显示，
+                    这样列表不会卡在等待态；等网络请求返回后，再用真实评论替换占位，或者在失败时把草稿文本还回输入框。
+                </p>
+                <div class="chip-row">
+                    <span class="chip green">先插入假评论，再异步请求</span>
+                    <span class="chip orange">失败会恢复输入内容</span>
+                    <span class="chip gold">回复评论会走父评论子回复接口</span>
+                </div>
+            </div>
+            <div class="hero-card">
+                <strong>阅读顺序</strong>
+                <p>先看输入框是否可用，再看提交时的本地占位逻辑，最后看网络成功/失败之后如何替换与回滚。</p>
+                <div class="toc">
+                    <strong>目录</strong>
+                    <ul>
+                        <li><a href="#overview">1. 流程总览</a></li>
+                        <li><a href="#entry">2. 入口与输入条件</a></li>
+                        <li><a href="#reply">3. 回复模式与全屏编辑</a></li>
+                        <li><a href="#submit">4. 提交评论的主逻辑</a></li>
+                        <li><a href="#action">5. ReaderCommentActions 的乐观更新</a></li>
+                        <li><a href="#adapter">6. 列表如何展示成功/失败</a></li>
+                        <li><a href="#snippet">7. 关键代码片段索引</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div class="mini-card">
+                <h3>输入门禁</h3>
+                <p>只有有登录态且文章评论开放时，评论输入框和发送按钮才会显示；否则会隐藏或置灰。</p>
+            </div>
+            <div class="mini-card">
+                <h3>乐观占位</h3>
+                <p>发送后先生成 <code>fakeCommentId</code>，把本地评论插入列表，避免用户感觉“没反应”。</p>
+            </div>
+            <div class="mini-card">
+                <h3>回复模式</h3>
+                <p>回复某条评论时会高亮目标评论并切换 hint，回退键在空文本情况下会取消回复目标。</p>
+            </div>
+            <div class="mini-card">
+                <h3>结果处理</h3>
+                <p>成功后替换为服务器返回的真实评论并累计评论数，失败则恢复文本、删除占位并 toast 提示。</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="layout">
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="section-title">流程总览</div>
+                    <h2 class="panel-title" id="overview">发表评论的真实执行顺序</h2>
+                </div>
+                <p class="panel-subtitle">
+                    这不是一个纯粹的“输入框提交”流程，而是一个以 Reader 页面为入口、以本地缓存为中间层、再把成功结果写回列表的乐观更新流程。
+                </p>
+            </div>
+
+            <div class="section">
+                <h2 id="entry">1. 入口与输入条件</h2>
+                <p class="section-note">
+                    评论页在 <code>ReaderCommentListActivity</code> 中初始化。<code>loadPost()</code> 会先检查是否拿到了帖子，
+                    再根据账号登录状态和 <code>readerPost.isCommentsOpen</code> 决定评论输入区是否可见。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 只有已登录且评论开放时，输入框和发送按钮才可用。</span>
+private fun loadPost(): Boolean {
+    readerPost = ReaderPostTable.getBlogPost(blogId, postId, false)
+    if (readerPost == null) {
+        return false
+    }
+
+    if (!accountStore.hasAccessToken()) {
+        boxBinding.layoutContainer.visibility = View.GONE
+        showCommentsClosedMessage(false)
+    } else if (readerPost!!.isCommentsOpen) {
+        boxBinding.layoutContainer.visibility = View.VISIBLE
+        showCommentsClosedMessage(false)
+        boxBinding.editComment.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_SEND) {
+                submitComment()
+            }
+            false
+        }
+        boxBinding.btnSubmitReply.setOnClickListener { submitComment() }
+    } else {
+        boxBinding.layoutContainer.visibility = View.GONE
+        boxBinding.editComment.isEnabled = false
+        showCommentsClosedMessage(true)
+    }
+
+    return true
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>没有登录态</h3>
+                        <p>如果 <code>accountStore.hasAccessToken()</code> 为假，评论区直接隐藏，说明当前用户不能发表评论。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>评论已关闭</h3>
+                        <p>如果文章关闭评论，输入框会禁用并显示“评论关闭”提示，不会进入提交逻辑。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="reply">2. 回复模式与全屏编辑</h2>
+                <p class="section-note">
+                    评论页不仅能直接发到文章下，还能对某条评论进行回复。回复时，<code>replyToCommentId</code> 会被切换，
+                    列表中的目标评论会被高亮，输入框 hint 也会从“评论文章”变成“评论某条评论”。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 点击回复按钮后，当前目标评论被高亮，输入框 hint 也随之变化。</span>
+private fun setReplyToCommentId(id: Long, doFocus: Boolean) {
+    replyToCommentId = if (replyToCommentId == id) {
+        0
+    } else {
+        id
+    }
+
+    boxBinding.editComment.setHint(
+        if (replyToCommentId == 0L) R.string.reader_hint_comment_on_post
+        else R.string.reader_hint_comment_on_comment
+    )
+
+    if (doFocus) {
+        boxBinding.editComment.postDelayed({
+            ActivityUtils.showKeyboard(boxBinding.editComment)
+            setupReplyToComment()
+        }, FOCUS_DELAY_MS)
+    } else {
+        setupReplyToComment()
+    }
+}</pre>
+                </div>
+
+                <p class="section-note" style="margin-top: 14px;">
+                    页面上的“展开”按钮会打开全屏评论编辑器。这个编辑器只是输入容器，不直接提交；它会把文本和选区回传给 Activity，
+                    再由 Activity 决定是继续编辑还是马上发送。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 全屏编辑器返回两种结果：collapse 只恢复文本，confirm 会直接触发提交。</span>
+override fun onCollapse(result: Bundle?) {
+    if (result != null) {
+        boxBinding.editComment.setText(result.getString(CommentFullScreenDialogFragment.RESULT_REPLY))
+        boxBinding.editComment.setSelection(
+            result.getInt(CommentFullScreenDialogFragment.RESULT_SELECTION_START),
+            result.getInt(CommentFullScreenDialogFragment.RESULT_SELECTION_END)
+        )
+        boxBinding.editComment.requestFocus()
+    }
+}
+
+override fun onConfirm(result: Bundle?) {
+    if (result != null) {
+        boxBinding.editComment.setText(result.getString(CommentFullScreenDialogFragment.RESULT_REPLY))
+        submitComment()
+    }
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>回复时的列表反馈</h3>
+                        <p><code>ReaderCommentAdapter.setReplyTargetComment()</code> 会把目标评论标记出来，帮助用户确认自己在回复哪一层。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>空文本回退</h3>
+                        <p>在回复模式下，如果用户在输入框里按 back 且文本为空，回复目标会被自动重置为文章本身。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="submit">3. 提交评论的主逻辑</h2>
+                <p class="section-note">
+                    发表评论真正开始于 <code>submitComment()</code>。这个方法先做本地校验，再做埋点，然后立即在本地制造一条“假评论”占位，
+                    最后把真正的网络请求交给 <code>ReaderCommentActions.submitPostComment()</code>。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 提交前先校验文本和网络；通过后立即生成 fakeCommentId 做乐观更新。</span>
+private fun submitComment() {
+    val commentText = EditTextUtils.getText(boxBinding.editComment)
+    if (TextUtils.isEmpty(commentText)) {
+        return
+    }
+
+    if (!NetworkUtils.checkConnection(this)) {
+        return
+    }
+
+    if (replyToCommentId != 0L) {
+        readerTracker.trackPost(AnalyticsTracker.Stat.READER_ARTICLE_COMMENT_REPLIED_TO, readerPost)
+    } else {
+        readerTracker.trackPost(AnalyticsTracker.Stat.READER_ARTICLE_COMMENTED_ON, readerPost)
+    }
+
+    boxBinding.btnSubmitReply.isEnabled = false
+    boxBinding.editComment.isEnabled = false
+    isSubmittingComment = true
+
+    val fakeCommentId = ReaderCommentActions.generateFakeCommentId()
+    val wpComUserId = accountStore.account.userId
+    val actionListener = getCommentActionListener(fakeCommentId, commentText)
+    val newComment = ReaderCommentActions.submitPostComment(
+        readerPost,
+        fakeCommentId,
+        commentText,
+        replyToCommentId,
+        actionListener,
+        wpComUserId
+    )
+
+    if (newComment != null) {
+        boxBinding.editComment.text = null
+        getCommentAdapter().setHighlightCommentId(newComment.commentId, true)
+        getCommentAdapter().setReplyTargetComment(0)
+        getCommentAdapter().addComment(newComment)
+        scrollToCommentId(fakeCommentId)
+        checkEmptyView()
+    }
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>为什么要先禁用输入框</h3>
+                        <p>这是为了防止用户在请求未完成前重复发送。发送按钮和输入框被禁用后，提交状态由 <code>isSubmittingComment</code> 维持。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>为什么要先插入假评论</h3>
+                        <p>评论一旦发出，用户就能立刻看到自己的内容出现在列表里，体验更像即时发布，而不是“点击后等待一片空白”。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="action">4. ReaderCommentActions 的乐观更新</h2>
+                <p class="section-note">
+                    <code>ReaderCommentActions.submitPostComment()</code> 才是实际发请求的地方。它会先构造本地 comment 对象并写入本地表，
+                    再根据是否是回复，选择不同的 REST 路径。成功后删除假评论并换成服务端返回的真实评论，失败后则删掉假评论并回调失败。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// ReaderCommentActions 先写本地缓存，再发网络请求。</span>
+public static ReaderComment submitPostComment(
+        final @Nullable ReaderPost post,
+        final long fakeCommentId,
+        final String commentText,
+        final long replyToCommentId,
+        final ReaderActions.CommentActionListener actionListener,
+        final long wpComUserId) {
+    if (post == null || TextUtils.isEmpty(commentText)) {
+        return null;
+    }
+
+    final int pageNumber = replyToCommentId != 0
+            ? ReaderCommentTable.getPageNumberForComment(post.blogId, post.postId, replyToCommentId)
+            : ReaderCommentTable.getLastPageNumberForPost(post.blogId, post.postId);
+
+    ReaderComment newComment = new ReaderComment();
+    newComment.commentId = fakeCommentId;
+    newComment.postId = post.postId;
+    newComment.blogId = post.blogId;
+    newComment.parentId = replyToCommentId;
+    newComment.pageNumber = pageNumber;
+    newComment.setStatus(CommentStatus.APPROVED.toString());
+    newComment.setText(commentText);
+    ReaderCommentTable.addOrUpdateComment(newComment);
+
+    final String path = replyToCommentId == 0
+            ? "sites/" + post.blogId + "/posts/" + post.postId + "/replies/new"
+            : "sites/" + post.blogId + "/comments/" + replyToCommentId + "/replies/new";
+
+    WordPress.getRestClientUtilsV1_1().post(path, params, null, listener, errorListener);
+    return newComment;
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>普通评论和回复评论的差别</h3>
+                        <p>普通评论走 <code>/posts/{postId}/replies/new</code>；回复某条评论走 <code>/comments/{commentId}/replies/new</code>。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>为什么叫“假评论”</h3>
+                        <p>它只是一个本地占位对象，<code>commentId</code> 用当前时间生成，真实数据回来后会被删除并替换。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="adapter">5. 列表如何展示成功或失败</h2>
+                <p class="section-note">
+                    评论列表的刷新由 <code>ReaderCommentAdapter</code> 完成。这里有三条关键路径：
+                    顶层评论直接追加，回复评论需要重新整理层级；成功时替换假评论并刷新帖子状态，失败时恢复文本并删除假评论。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 顶层评论直接追加；回复评论需要重新层级化列表。</span>
+public void addComment(ReaderComment comment) {
+    if (comment == null) {
+        return;
+    }
+
+    if (comment.parentId == 0) {
+        mComments.add(comment);
+        notifyDataSetChanged();
+    } else {
+        refreshComments();
+    }
+}
+
+public void replaceComment(long commentId, ReaderComment comment) {
+    int positionOfTargetComment = positionOfCommentId(comment.commentId);
+    if (positionOfTargetComment == -1) {
+        int position = positionOfCommentId(commentId);
+        if (position > -1 && mComments.replaceComment(commentId, comment)) {
+            notifyItemChanged(position);
+        }
+    } else {
+        removeComment(commentId);
+    }
+}</pre>
+                </div>
+
+                <div class="code-shell" style="margin-top: 12px;">
+<pre><span class="comment">// 成功后：去掉假评论，替换为真实评论，增加评论总数；失败后：恢复文本并移除占位。</span>
+private fun getCommentActionListener(fakeCommentId: Long, commentText: String): CommentActionListener {
+    return CommentActionListener { succeeded: Boolean, newComment: ReaderComment? ->
+        if (isFinishing) {
+            return@CommentActionListener
+        }
+        isSubmittingComment = false
+        boxBinding.editComment.isEnabled = true
+        if (succeeded) {
+            boxBinding.btnSubmitReply.isEnabled = false
+            getCommentAdapter().setHighlightCommentId(0, false)
+            getCommentAdapter().setReplyTargetComment(0)
+            getCommentAdapter().replaceComment(fakeCommentId, newComment)
+            getCommentAdapter().refreshPost()
+            setReplyToCommentId(0, false)
+            boxBinding.editComment.autoSaveTextHelper.clearSavedText(boxBinding.editComment)
+        } else {
+            boxBinding.editComment.setText(commentText)
+            boxBinding.btnSubmitReply.isEnabled = true
+            getCommentAdapter().removeComment(fakeCommentId)
+            ToastUtils.showToast(this, R.string.reader_toast_err_comment_failed, ToastUtils.Duration.LONG)
+        }
+        checkEmptyView()
+    }
+}</pre>
+                </div>
+            </div>
+        </section>
+
+        <aside class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="section-title">阅读指南</div>
+                    <h2 class="panel-title">先抓住这几个点</h2>
+                </div>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>1. 这个流程是乐观更新</h3>
+                    <p>评论一发送，就会先在本地出现；用户不会等到网络返回才看到自己的内容。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>2. 发送前不会做离线排队</h3>
+                    <p>这里和发帖流程不同，没有离线任务队列；<code>NetworkUtils.checkConnection()</code> 不通过就直接返回。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>3. 回复与普通评论是两条路径</h3>
+                    <p>普通评论走帖子回复接口，回复评论走指定父评论的回复接口，最终都落到同一个本地列表。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>4. 成功和失败都要清理 UI 状态</h3>
+                    <p>成功后要把假评论替换成真实评论并清空草稿；失败后要恢复文本、重新启用按钮并删除占位。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>5. 全屏编辑只是输入辅助</h3>
+                    <p><code>CommentFullScreenDialogFragment</code> 不负责提交，只负责收集和回传文本，确认后才进入发送链路。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>6. 目标评论会被高亮</h3>
+                    <p>回复状态下会高亮被回复的评论，并把它滚动到可见位置，帮助用户确认上下文。</p>
+                </div>
+            </div>
+
+            <div class="section" style="margin-top: 18px;">
+                <h2 id="snippet">关键代码片段索引</h2>
+                <p class="section-note">
+                    下面这些源码位置是本分析的锚点，后续如果要再深挖，可以直接从这些函数切入。
+                </p>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <h3><code>ReaderCommentListActivity.kt:142-285</code></h3>
+                        <p>评论页初始化、发送按钮、全屏展开和回复输入入口。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3><code>ReaderCommentListActivity.kt:686-740</code></h3>
+                        <p>回复目标切换、列表高亮、back 键清除回复状态。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3><code>ReaderCommentListActivity.kt:1066-1150</code></h3>
+                        <p>发表评论主逻辑、假评论占位、成功失败回调。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3><code>ReaderCommentActions.java:44-126</code></h3>
+                        <p>本地写入、REST 路径选择、成功后替换和失败回滚。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3><code>ReaderCommentAdapter.java:620-679</code></h3>
+                        <p>评论列表如何追加、删除和替换评论。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3><code>CommentFullScreenDialogFragment.kt:43-124</code></h3>
+                        <p>全屏评论编辑器如何回传文本、选区和确认结果。</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <section class="diagram-panel">
+        <div class="panel-header" style="margin-bottom: 14px;">
+            <div>
+                <div class="section-title">流程图</div>
+                <h2 class="panel-title">发表评论主干图</h2>
+            </div>
+            <p class="panel-subtitle">
+                图里画的是主干路径。蓝色节点代表 UI / Activity，绿色节点代表本地乐观更新，橙色节点代表网络与结果回传。
+            </p>
+        </div>
+
+        <div class="diagram-wrap">
+            <svg viewBox="0 0 1240 1100" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC',sans-serif" font-size="13">
+                <defs>
+                    <linearGradient id="bgCard" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stop-color="#fffdf8"/>
+                        <stop offset="100%" stop-color="#f6ede0"/>
+                    </linearGradient>
+                    <linearGradient id="accentFill" x1="0" x2="1" y1="0" y2="1">
+                        <stop offset="0%" stop-color="#9a4d1e"/>
+                        <stop offset="100%" stop-color="#bf6a2e"/>
+                    </linearGradient>
+                    <marker id="arrow" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="10" markerHeight="8" orient="auto">
+                        <polygon points="0 0, 10 4, 0 8" fill="#6b5a4b"/>
+                    </marker>
+                    <marker id="arrowAccent" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="10" markerHeight="8" orient="auto">
+                        <polygon points="0 0, 10 4, 0 8" fill="#9a4d1e"/>
+                    </marker>
+                </defs>
+
+                <rect x="18" y="16" width="1204" height="1066" rx="30" fill="url(#bgCard)" stroke="rgba(74,55,38,0.10)"/>
+
+                <rect x="390" y="40" width="460" height="54" rx="27" fill="url(#accentFill)"/>
+                <text x="620" y="74" text-anchor="middle" fill="#fff" font-weight="700">用户在 Reader 文章评论页打开输入框</text>
+
+                <line x1="620" y1="94" x2="620" y2="126" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="330" y="126" width="580" height="82" rx="18" fill="#f6fbff" stroke="#b9cbe0"/>
+                <text x="620" y="154" text-anchor="middle" fill="#274362" font-weight="700">ReaderCommentListActivity.loadPost()</text>
+                <text x="620" y="174" text-anchor="middle" fill="#56708a" font-size="11">检查 readerPost、登录态、isCommentsOpen，决定输入框是否可见</text>
+                <text x="620" y="193" text-anchor="middle" fill="#56708a" font-size="11">不满足条件时，直接隐藏或禁用评论区</text>
+
+                <line x1="620" y1="208" x2="620" y2="242" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="330" y="242" width="580" height="74" rx="18" fill="#eef9f2" stroke="#b5dcc3"/>
+                <text x="620" y="270" text-anchor="middle" fill="#21624b" font-weight="700">用户输入评论或点击“回复”</text>
+                <text x="620" y="290" text-anchor="middle" fill="#56708a" font-size="11">replyToCommentId = 0 表示评论文章；否则表示回复某条评论</text>
+
+                <line x1="620" y1="316" x2="620" y2="350" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="220" y="350" width="800" height="96" rx="18" fill="#fff7ea" stroke="#e8c78b"/>
+                <text x="620" y="378" text-anchor="middle" fill="#8b6514" font-weight="700">可选：展开全屏评论编辑器</text>
+                <text x="620" y="398" text-anchor="middle" fill="#8c6f2a" font-size="11">CommentFullScreenDialogFragment 只负责收集文本和选区</text>
+                <text x="620" y="418" text-anchor="middle" fill="#8c6f2a" font-size="11">onCollapse -> 仅恢复内容；onConfirm -> 直接回到 submitComment()</text>
+
+                <line x1="620" y1="446" x2="620" y2="480" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="300" y="480" width="640" height="74" rx="18" fill="#f6fbff" stroke="#b9cbe0"/>
+                <text x="620" y="508" text-anchor="middle" fill="#274362" font-weight="700">submitComment()</text>
+                <text x="620" y="528" text-anchor="middle" fill="#56708a" font-size="11">先校验文本非空，再校验网络可用性，再打埋点</text>
+
+                <line x1="620" y1="554" x2="620" y2="586" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <polygon points="620,586 730,650 620,714 510,650" fill="#fff" stroke="#caa15f" stroke-width="2"/>
+                <text x="620" y="646" text-anchor="middle" fill="#8b6514" font-weight="700">文本/网络通过？</text>
+                <text x="620" y="666" text-anchor="middle" fill="#8c6f2a" font-size="11">不通过则直接 return</text>
+
+                <line x1="730" y1="650" x2="862" y2="650" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+                <text x="798" y="640" fill="#9a4d1e" font-size="12" font-weight="700">否</text>
+                <rect x="860" y="614" width="280" height="72" rx="18" fill="#fff4ec" stroke="#efc4a8"/>
+                <text x="1000" y="642" text-anchor="middle" fill="#9a4d1e" font-weight="700">终止提交</text>
+                <text x="1000" y="662" text-anchor="middle" fill="#8d6e5b" font-size="11">不插入假评论，不发网络请求</text>
+
+                <line x1="620" y1="714" x2="620" y2="750" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+                <text x="642" y="740" fill="#21624b" font-size="12" font-weight="700">是</text>
+
+                <rect x="220" y="750" width="800" height="98" rx="18" fill="#eef9f2" stroke="#b5dcc3"/>
+                <text x="620" y="778" text-anchor="middle" fill="#21624b" font-weight="700">ReaderCommentActions.submitPostComment()</text>
+                <text x="620" y="798" text-anchor="middle" fill="#56708a" font-size="11">生成 fakeCommentId，先 addOrUpdateComment 到本地表，再组装 REST 路径</text>
+                <text x="620" y="818" text-anchor="middle" fill="#56708a" font-size="11">普通评论走 posts/.../replies/new；回复评论走 comments/{parentId}/replies/new</text>
+
+                <line x1="620" y1="848" x2="620" y2="882" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrowAccent)"/>
+
+                <rect x="220" y="882" width="520" height="76" rx="18" fill="#fff7ea" stroke="#e8c78b"/>
+                <text x="480" y="910" text-anchor="middle" fill="#8b6514" font-weight="700">网络请求发出后，列表立刻显示假评论并高亮</text>
+                <text x="480" y="930" text-anchor="middle" fill="#8c6f2a" font-size="11">Adapter.addComment / setHighlightCommentId / scrollToCommentId</text>
+
+                <line x1="740" y1="920" x2="860" y2="920" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+                <text x="798" y="910" fill="#21624b" font-size="12" font-weight="700">结果返回</text>
+
+                <rect x="860" y="882" width="280" height="76" rx="18" fill="#fff" stroke="#b9cbe0"/>
+                <text x="1000" y="910" text-anchor="middle" fill="#274362" font-weight="700">成功 / 失败分支</text>
+                <text x="1000" y="930" text-anchor="middle" fill="#56708a" font-size="11">由 actionListener 回调驱动</text>
+
+                <line x1="1000" y1="958" x2="1000" y2="984" stroke="#6b5a4b" stroke-width="2"/>
+                <line x1="1000" y1="984" x2="330" y2="996" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+                <line x1="1000" y1="984" x2="910" y2="996" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrowAccent)"/>
+
+                <rect x="120" y="996" width="420" height="72" rx="18" fill="#eef9f2" stroke="#b5dcc3"/>
+                <text x="330" y="1024" text-anchor="middle" fill="#21624b" font-weight="700">成功：替换 fakeComment 为真实评论</text>
+                <text x="330" y="1044" text-anchor="middle" fill="#56708a" font-size="11">更新本地表、增加评论总数、清空输入草稿</text>
+
+                <rect x="700" y="996" width="420" height="72" rx="18" fill="#fff4ec" stroke="#efc4a8"/>
+                <text x="910" y="1024" text-anchor="middle" fill="#9a4d1e" font-weight="700">失败：恢复文本并删除占位</text>
+                <text x="910" y="1044" text-anchor="middle" fill="#8d6e5b" font-size="11">重新启用按钮，Toast 提示评论失败</text>
+
+                <line x1="1000" y1="882" x2="1000" y2="858" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+            </svg>
+        </div>
+        <p class="caption">
+            读这张图时，把最左边看成“进入评论页”，中间看成“本地乐观插入”，最下方看成“网络成功/失败后的收尾”。
+            这条链路的关键不是请求本身，而是如何在等待网络返回期间保持列表与输入框的状态一致。
+        </p>
+    </section>
+</div>
+</body>
+</html>

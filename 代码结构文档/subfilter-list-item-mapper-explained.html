@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SubfilterListItemMapper 类说明与调用链</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f4efe7;
+            --surface: rgba(255, 250, 244, 0.94);
+            --surface-strong: #fff9f2;
+            --ink: #201b16;
+            --muted: #675d52;
+            --line: rgba(84, 66, 47, 0.16);
+            --accent: #b14b1e;
+            --accent-soft: rgba(177, 75, 30, 0.12);
+            --teal: #176b63;
+            --gold: #9d6918;
+            --danger: #a03f34;
+            --shadow: 0 26px 72px rgba(47, 31, 20, 0.12);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --max: 1280px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(177, 75, 30, 0.16), transparent 30%),
+                radial-gradient(circle at top right, rgba(23, 107, 99, 0.12), transparent 28%),
+                linear-gradient(180deg, #fcf8f2 0%, var(--bg) 44%, #eee3d5 100%);
+        }
+
+        h1, h2, h3, p {
+            margin: 0;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        code {
+            padding: 0.12em 0.38em;
+            border-radius: 8px;
+            background: rgba(42, 33, 26, 0.06);
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 0.92em;
+        }
+
+        .page {
+            width: min(calc(100% - 32px), var(--max));
+            margin: 0 auto;
+            padding: 28px 0 72px;
+        }
+
+        .hero,
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 34px;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: auto -80px -120px auto;
+            width: 280px;
+            height: 280px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(23, 107, 99, 0.18), transparent 68%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            margin-top: 18px;
+            max-width: 860px;
+            font-size: clamp(32px, 4vw, 54px);
+            line-height: 1.02;
+        }
+
+        .hero .lead {
+            margin-top: 14px;
+            max-width: 860px;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.75;
+        }
+
+        .meta-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .meta-item {
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.44);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .section {
+            margin-top: 22px;
+        }
+
+        .panel {
+            padding: 26px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .panel-title {
+            font-size: 26px;
+        }
+
+        .panel-subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .grid-two {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+            gap: 20px;
+        }
+
+        .summary-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .summary-card {
+            padding: 16px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.46);
+        }
+
+        .summary-card h3 {
+            font-size: 16px;
+        }
+
+        .summary-card p {
+            margin-top: 8px;
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .list-item {
+            padding: 16px 18px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.48);
+        }
+
+        .list-item h3 {
+            font-size: 17px;
+        }
+
+        .list-item p {
+            margin-top: 8px;
+            color: var(--muted);
+            line-height: 1.75;
+            font-size: 14px;
+        }
+
+        .table-wrap {
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.42);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 780px;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: top;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        th {
+            color: var(--ink);
+            background: rgba(255, 249, 242, 0.84);
+            font-size: 13px;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .code-shell {
+            overflow: auto;
+            padding: 18px;
+            border: 1px solid rgba(33, 27, 22, 0.08);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.68) 0%, rgba(249, 243, 234, 0.86) 100%);
+        }
+
+        pre {
+            margin: 0;
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 13.5px;
+            line-height: 1.78;
+            color: #1e1a15;
+            white-space: pre;
+        }
+
+        .comment {
+            color: var(--teal);
+        }
+
+        .warn {
+            color: var(--danger);
+        }
+
+        .callout {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-left: 4px solid var(--accent);
+            border-radius: 12px;
+            background: rgba(177, 75, 30, 0.08);
+            color: var(--muted);
+            line-height: 1.75;
+            font-size: 14px;
+        }
+
+        .diagram-wrap {
+            overflow: auto;
+            padding: 8px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 253, 250, 0.72), rgba(244, 236, 227, 0.92));
+            border: 1px solid var(--line);
+        }
+
+        svg {
+            width: 100%;
+            min-width: 1140px;
+            height: auto;
+        }
+
+        .caption {
+            margin-top: 16px;
+            color: var(--muted);
+            line-height: 1.75;
+            font-size: 14px;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.55);
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        @media (max-width: 980px) {
+            .grid-two {
+                grid-template-columns: 1fr;
+            }
+
+            .hero,
+            .panel {
+                padding: 20px;
+            }
+
+            .hero .lead {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <div class="eyebrow">Code Structure Doc</div>
+            <h1><code>SubfilterListItemMapper</code> 的用途、界面位置与调用时机</h1>
+            <p class="lead">
+                这个类位于 Reader 子筛选链路里，但它的职责非常窄：它并不负责“加载筛选列表”或“切换页面内容”，而是负责把当前选中的
+                <code>SubfilterListItem</code> 在 <code>Bundle</code> 可保存的 JSON 结构和运行时对象之间来回转换。换句话说，它更像一个
+                “筛选项状态编解码器”，用于保存与恢复筛选状态。
+            </p>
+            <div class="meta-list">
+                <div class="meta-item">主源码：<code>WordPress/src/main/java/org/wordpress/android/ui/reader/subfilter/SubfilterListItemMapper.kt</code></div>
+                <div class="meta-item">关键调用方：<code>SubFilterViewModel</code>、<code>ReaderFragment</code>、<code>ReaderPostListFragment</code></div>
+                <div class="meta-item">界面范围：Reader 主界面顶部筛选组 + 底部筛选弹层</div>
+            </div>
+            <div class="pill-row">
+                <div class="pill">核心职责：状态保存/恢复</div>
+                <div class="pill">不是：筛选列表加载器</div>
+                <div class="pill">不是：Reader 模式切换器</div>
+                <div class="pill">直接依赖：<code>ReaderBlogTableWrapper</code>、<code>ReaderUtilsWrapper</code></div>
+            </div>
+        </section>
+
+        <section class="section grid-two">
+            <article class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">先给结论</h2>
+                        <p class="panel-subtitle">先区分“筛选 UI 在哪里出现”和“mapper 真正何时被调用”。</p>
+                    </div>
+                </div>
+                <div class="list">
+                    <div class="list-item">
+                        <h3>1. 它的职责很窄：只做状态对象与 JSON 之间的映射</h3>
+                        <p>
+                            <code>toJson()</code> 把当前选中的 <code>SubfilterListItem</code> 压缩成一个轻量 JSON；
+                            <code>fromJson()</code> 再把这个 JSON 还原成 <code>SiteAll</code>、<code>Site</code> 或 <code>Tag</code>。
+                        </p>
+                    </div>
+                    <div class="list-item">
+                        <h3>2. 它不会在“每次点开筛选弹层”时都被调用</h3>
+                        <p>
+                            用户点击 Reader 顶部的筛选按钮时，真正发生的是 <code>ReaderFragment.tryOpenFilterList()</code> ->
+                            <code>SubFilterViewModel.onSubFiltersListButtonClicked()</code> -> 显示 <code>SubfilterBottomSheetFragment</code>。
+                            这一段主要是 UI 展示，<strong>不经过 mapper</strong>。
+                        </p>
+                    </div>
+                    <div class="list-item">
+                        <h3>3. 它主要在“保存状态”和“恢复状态”时出现</h3>
+                        <p>
+                            当前代码里最明确的保存入口是 <code>ReaderPostListFragment.onSaveInstanceState()</code>，
+                            它会调用 <code>SubFilterViewModel.onSaveInstanceState()</code>，再间接触发
+                            <code>SubfilterListItemMapper.toJson()</code>。恢复时则由 <code>SubFilterViewModel.start()</code>
+                            读取 <code>current_subfilter_json</code> 并调用 <code>fromJson()</code>。
+                        </p>
+                    </div>
+                </div>
+            </article>
+
+            <aside class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">阅读抓手</h2>
+                        <p class="panel-subtitle">看这个类时，最重要的是分清职责边界。</p>
+                    </div>
+                </div>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <h3>核心输入</h3>
+                        <p><code>json</code>、<code>SubfilterListItem</code>、以及恢复对象时需要的点击回调与选中态。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>核心输出</h3>
+                        <p>运行时的 <code>SiteAll / Site / Tag</code>，或可落入 <code>Bundle</code> 的 JSON 字符串。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>真正意义</h3>
+                        <p>它让 Reader 的“当前筛选项”在界面重建后还能重新被还原出来，而不是重新回到默认状态。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>关键风险</h3>
+                        <p>
+                            现有实现对未知 <code>type</code> 会直接抛出 <code>IllegalArgumentException</code>；
+                            这说明它目前偏向“严格恢复”，不是完全兜底的容错实现。
+                        </p>
+                    </div>
+                </div>
+            </aside>
+        </section>
+
+        <section class="section panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">它出现在哪个界面</h2>
+                    <p class="panel-subtitle">它服务的是 Reader 顶部筛选体验，而不是独立页面。</p>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>界面 / 组件</th>
+                            <th>代码位置</th>
+                            <th>用户能看到什么</th>
+                            <th>和 mapper 的关系</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Reader 主界面</td>
+                            <td><code>ReaderFragment</code></td>
+                            <td>顶部栏里有 Blog / Tag 的筛选入口，点击后可打开筛选面板</td>
+                            <td>负责触发筛选 UI；通常不是 mapper 的直接调用点</td>
+                        </tr>
+                        <tr>
+                            <td>筛选底部弹层</td>
+                            <td><code>SubfilterBottomSheetFragment</code></td>
+                            <td>用户会看到 Sites / Tags 列表，以及“管理订阅”入口</td>
+                            <td>消费 <code>SubFilterViewModel</code> 的状态；不是直接序列化/反序列化位置</td>
+                        </tr>
+                        <tr>
+                            <td>Reader 内容列表</td>
+                            <td><code>ReaderPostListFragment</code></td>
+                            <td>根据当前选中的子筛选项切换博客预览、标签流或默认流</td>
+                            <td>这里是当前代码中最明确的保存状态入口，会触发 <code>toJson()</code></td>
+                        </tr>
+                        <tr>
+                            <td>Tags Feed 变体界面</td>
+                            <td><code>ReaderTagsFeedFragment</code></td>
+                            <td>当当前筛选项是 Tag 时，会显示对应标签的文章列表</td>
+                            <td>会复用同一个 <code>SubFilterViewModel</code>，但当前显式保存入口不在这里</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">什么情况下会调用到这个类</h2>
+                    <p class="panel-subtitle">最值得注意的一点：打开筛选面板 != 调用 mapper。</p>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>场景</th>
+                            <th>是否会调用 mapper</th>
+                            <th>调用方法</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>用户点击 Reader 顶部 Blog / Tag 筛选按钮</td>
+                            <td>否</td>
+                            <td>无</td>
+                            <td>只会走 <code>ReaderFragment.tryOpenFilterList()</code> 和底部弹层展示逻辑</td>
+                        </tr>
+                        <tr>
+                            <td>用户在底部弹层里选择某个站点或标签</td>
+                            <td>通常否</td>
+                            <td>无</td>
+                            <td>这一步主要是更新内存中的 <code>currentSubFilter</code>，然后驱动 <code>readerModeInfo</code></td>
+                        </tr>
+                        <tr>
+                            <td>页面即将保存状态，例如 Fragment 重建前</td>
+                            <td>是</td>
+                            <td><code>toJson()</code></td>
+                            <td>由 <code>ReaderPostListFragment.onSaveInstanceState()</code> -> <code>SubFilterViewModel.onSaveInstanceState()</code> 间接触发</td>
+                        </tr>
+                        <tr>
+                            <td>页面重建后恢复之前的筛选项</td>
+                            <td>是</td>
+                            <td><code>fromJson()</code></td>
+                            <td>由 <code>SubFilterViewModel.start(..., savedInstanceState)</code> 读取 <code>current_subfilter_json</code> 后触发</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="callout">
+                这也是为什么这个类的名字里叫 <code>Mapper</code>：它更像是“状态结构转换器”，而不是“业务流程主控类”。
+            </div>
+        </section>
+
+        <section class="section grid-two">
+            <article class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">带中文注释的代码片段</h2>
+                        <p class="panel-subtitle">片段 1：类本体，说明它到底怎么做对象编解码。</p>
+                    </div>
+                </div>
+                <div class="code-shell">
+<pre><code>private data class MappedSubfilterListItem(
+    val type: Int,
+    var feedId: Long = 0,
+    var blogId: Long = 0,
+    var tagSlug: String = "",
+    var tagType: Int = 0
+)
+
+class SubfilterListItemMapper @Inject constructor(
+    private val readerUtilsWrapper: ReaderUtilsWrapper,
+    private val readerBlogTableWrapper: ReaderBlogTableWrapper
+) {
+    <span class="comment">// [说明] fromJson: 把 Bundle 里的轻量 JSON 还原成真正可用的筛选项对象。</span>
+    fun fromJson(
+        json: String,
+        onClickAction: (filter: SubfilterListItem) -&gt; Unit,
+        isSelected: Boolean
+    ): SubfilterListItem {
+        val mappedItem = if (json.isEmpty()) {
+            <span class="comment">// [说明] 没有保存值时，默认回到“全部内容”筛选。</span>
+            MappedSubfilterListItem(type = SubfilterListItem.ItemType.SITE_ALL.value)
+        } else {
+            Gson().fromJson(json, MappedSubfilterListItem::class.java)
+        }
+
+        return when (mappedItem.type) {
+            SubfilterListItem.ItemType.SITE.value -&gt; {
+                val blogInfo: ReaderBlog? = if (mappedItem.blogId != 0L) {
+                    <span class="comment">// [说明] blogId 优先表示订阅站点。</span>
+                    readerBlogTableWrapper.getBlogInfo(mappedItem.blogId)
+                } else if (mappedItem.feedId != 0L) {
+                    <span class="comment">// [说明] feedId 则表示 feed 订阅。</span>
+                    readerBlogTableWrapper.getFeedInfo(mappedItem.feedId)
+                } else null
+
+                blogInfo?.let {
+                    SubfilterListItem.Site(
+                        blog = blogInfo,
+                        onClickAction = onClickAction,
+                        isSelected = isSelected
+                    )
+                } ?: SubfilterListItem.SiteAll(onClickAction = onClickAction, isSelected = isSelected)
+            }
+
+            SubfilterListItem.ItemType.TAG.value -&gt; {
+                if (mappedItem.tagSlug.isNotEmpty()) {
+                    <span class="comment">// [说明] 标签恢复需要 slug + tagType，真正的 ReaderTag 由工具类再查出来。</span>
+                    val tag = readerUtilsWrapper.getTagFromTagName(
+                        mappedItem.tagSlug,
+                        ReaderTagType.fromInt(mappedItem.tagType)
+                    )
+                    SubfilterListItem.Tag(
+                        tag = tag,
+                        onClickAction = onClickAction,
+                        isSelected = isSelected
+                    )
+                } else {
+                    SubfilterListItem.SiteAll(onClickAction = onClickAction, isSelected = isSelected)
+                }
+            }
+
+            SubfilterListItem.ItemType.SITE_ALL.value -&gt; {
+                <span class="comment">// [说明] 这是“清空筛选 / 查看全部”状态。</span>
+                SubfilterListItem.SiteAll(
+                    onClickAction = onClickAction,
+                    isSelected = isSelected
+                )
+            }
+
+            else -&gt; throw IllegalArgumentException(
+                <span class="warn">"fromJson &gt; Unexpected Subfilter type $mappedItem.type"</span>
+            )
+        }
+    }
+
+    <span class="comment">// [说明] toJson: 把当前筛选项压缩成最小必要字段，方便写进 Bundle。</span>
+    fun toJson(item: SubfilterListItem): String {
+        val mappedItem = MappedSubfilterListItem(type = item.type.value)
+
+        when (item) {
+            is SubfilterListItem.Site -&gt; {
+                mappedItem.feedId = item.blog.feedId
+                mappedItem.blogId = item.blog.blogId
+            }
+            is SubfilterListItem.Tag -&gt; {
+                mappedItem.tagSlug = item.tag.tagSlug
+                mappedItem.tagType = item.tag.tagType.toInt()
+            }
+            is SubfilterListItem.Divider,
+            is SubfilterListItem.SectionTitle,
+            is SubfilterListItem.SiteAll -&gt; Unit
+        }
+
+        return Gson().toJson(mappedItem)
+    }
+}</code></pre>
+                </div>
+                <div class="callout">
+                    这个类故意不保存完整的 <code>ReaderBlog</code> 或 <code>ReaderTag</code> 对象，只保存能够“重新找回”它们的最小键值。
+                    这说明它的目标是轻量持久化，而不是做深拷贝缓存。
+                </div>
+            </article>
+
+            <aside class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">片段 2：它被谁包起来使用</h2>
+                        <p class="panel-subtitle">片段 2：调用链告诉你它不是交互主角，而是状态中转站。</p>
+                    </div>
+                </div>
+                <div class="code-shell">
+<pre><code><span class="comment">// ReaderFragment: 用户点顶部筛选按钮，只是打开底部筛选面板。</span>
+private fun tryOpenFilterList(type: ReaderFilterType) {
+    val viewModel = getSubFilterViewModel() ?: return
+    val category = when (type) {
+        ReaderFilterType.BLOG -&gt; SubfilterCategory.SITES
+        ReaderFilterType.TAG -&gt; SubfilterCategory.TAGS
+    }
+    viewModel.onSubFiltersListButtonClicked(category)
+}
+
+<span class="comment">// SubFilterViewModel: 真正的保存入口，间接调用 mapper.toJson。</span>
+private fun getCurrentSubfilterJson(): String {
+    return subfilterListItemMapper.toJson(getCurrentSubfilterValue())
+}
+
+fun onSaveInstanceState(outState: Bundle) {
+    outState.putString(ARG_CURRENT_SUBFILTER_JSON, getCurrentSubfilterJson())
+    outState.putBoolean(ARG_IS_FIRST_LOAD, isFirstLoad)
+}
+
+<span class="comment">// SubFilterViewModel.start: 重建时，如果 Bundle 里有 JSON，就用 mapper.fromJson 还原。</span>
+fun start(mTagFragmentStartedWith: ReaderTag?, tag: ReaderTag?, savedInstanceState: Bundle?) {
+    var subfilterJson: String? = null
+
+    savedInstanceState?.let {
+        isFirstLoad = it.getBoolean(ARG_IS_FIRST_LOAD)
+        subfilterJson = it.getString(ARG_CURRENT_SUBFILTER_JSON)
+    }
+
+    tag?.let {
+        val currentSubfilter = subfilterJson?.let { json -&gt;
+            subfilterListItemMapper.fromJson(
+                json = json,
+                onClickAction = ::onSubfilterClicked,
+                isSelected = true
+            )
+        }
+        updateSubfilter(currentSubfilter ?: getCurrentSubfilterValue())
+    }
+}
+
+<span class="comment">// ReaderPostListFragment: 当前代码里最明确的“保存状态”触发点。</span>
+if (isFilterableScreen &amp;&amp; subFilterViewModel != null) {
+    subFilterViewModel!!.onSaveInstanceState(outState)
+}
+
+<span class="comment">// ReaderTagsFeedFragment: 会观察 currentSubFilter，并据此显示标签文章流。</span>
+subFilterViewModel.currentSubFilter.observe(viewLifecycleOwner) { subFilter -&gt;
+    if (subFilter is SubfilterListItem.Tag) {
+        showTagPostList(subFilter.tag)
+    } else {
+        hideTagPostList()
+    }
+}</code></pre>
+                </div>
+                <div class="callout">
+                    这段调用链说明：<strong>用户交互时主要操作的是 ViewModel 与 UI；mapper 只在需要跨重建保存选择结果时出场。</strong>
+                </div>
+            </aside>
+        </section>
+
+        <section class="section panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">执行流程图</h2>
+                    <p class="panel-subtitle">图里分成两条线：日常交互线，以及真正会调用 mapper 的保存/恢复线。</p>
+                </div>
+            </div>
+            <div class="diagram-wrap">
+                <svg viewBox="0 0 1260 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SubfilterListItemMapper 调用流程图">
+                    <defs>
+                        <linearGradient id="cardFill" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#fffaf4"/>
+                            <stop offset="100%" stop-color="#f4e8d8"/>
+                        </linearGradient>
+                        <linearGradient id="accentFill" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#fff3ea"/>
+                            <stop offset="100%" stop-color="#f7dfce"/>
+                        </linearGradient>
+                        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+                            <path d="M0,0 L10,5 L0,10 z" fill="#7b624c"/>
+                        </marker>
+                    </defs>
+
+                    <rect x="20" y="24" width="1220" height="712" rx="28" fill="rgba(255,255,255,0.45)" stroke="rgba(84,66,47,0.16)"/>
+
+                    <text x="74" y="74" font-size="28" font-weight="700" fill="#201b16">A. 日常交互线：用户在 Reader 里点筛选</text>
+                    <rect x="70" y="98" width="250" height="88" rx="18" fill="url(#cardFill)" stroke="#d8c6b4"/>
+                    <text x="95" y="132" font-size="20" font-weight="700" fill="#201b16">Reader 顶部筛选按钮</text>
+                    <text x="95" y="160" font-size="15" fill="#675d52">Blog / Tag 过滤入口</text>
+
+                    <rect x="370" y="98" width="260" height="88" rx="18" fill="url(#cardFill)" stroke="#d8c6b4"/>
+                    <text x="395" y="132" font-size="20" font-weight="700" fill="#201b16">ReaderFragment.tryOpenFilterList</text>
+                    <text x="395" y="160" font-size="15" fill="#675d52">转换成 SITES / TAGS 分类</text>
+
+                    <rect x="680" y="98" width="260" height="88" rx="18" fill="url(#cardFill)" stroke="#d8c6b4"/>
+                    <text x="710" y="132" font-size="20" font-weight="700" fill="#201b16">SubFilterViewModel</text>
+                    <text x="710" y="160" font-size="15" fill="#675d52">onSubFiltersListButtonClicked</text>
+
+                    <rect x="990" y="98" width="200" height="88" rx="18" fill="url(#cardFill)" stroke="#d8c6b4"/>
+                    <text x="1018" y="132" font-size="20" font-weight="700" fill="#201b16">底部弹层</text>
+                    <text x="1018" y="160" font-size="15" fill="#675d52">SubfilterBottomSheet</text>
+
+                    <line x1="320" y1="142" x2="370" y2="142" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+                    <line x1="630" y1="142" x2="680" y2="142" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+                    <line x1="940" y1="142" x2="990" y2="142" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+
+                    <rect x="300" y="222" width="640" height="84" rx="18" fill="rgba(23,107,99,0.08)" stroke="#9bc7bf"/>
+                    <text x="328" y="256" font-size="20" font-weight="700" fill="#176b63">注意：这一段只是“显示筛选 UI”，一般不会调用 SubfilterListItemMapper</text>
+                    <text x="328" y="284" font-size="15" fill="#4e6864">真正的筛选切换在内存里的 currentSubFilter / readerModeInfo 上完成</text>
+
+                    <rect x="100" y="344" width="270" height="92" rx="18" fill="url(#accentFill)" stroke="#d3b19b"/>
+                    <text x="128" y="378" font-size="20" font-weight="700" fill="#201b16">用户选择某个 Site / Tag</text>
+                    <text x="128" y="406" font-size="15" fill="#675d52">回调 onClickAction</text>
+
+                    <rect x="430" y="344" width="270" height="92" rx="18" fill="url(#accentFill)" stroke="#d3b19b"/>
+                    <text x="456" y="378" font-size="20" font-weight="700" fill="#201b16">updateSubfilter</text>
+                    <text x="456" y="406" font-size="15" fill="#675d52">更新 currentSubFilter 并派发 readerModeInfo</text>
+
+                    <rect x="760" y="344" width="360" height="92" rx="18" fill="url(#accentFill)" stroke="#d3b19b"/>
+                    <text x="788" y="378" font-size="20" font-weight="700" fill="#201b16">ReaderPostListFragment / ReaderTagsFeedFragment</text>
+                    <text x="788" y="406" font-size="15" fill="#675d52">根据筛选项切换内容或展示标签文章流</text>
+
+                    <line x1="370" y1="390" x2="430" y2="390" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+                    <line x1="700" y1="390" x2="760" y2="390" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+
+                    <text x="74" y="508" font-size="28" font-weight="700" fill="#201b16">B. 保存 / 恢复线：这里才是 mapper 的主战场</text>
+
+                    <rect x="70" y="534" width="250" height="92" rx="18" fill="url(#cardFill)" stroke="#d8c6b4"/>
+                    <text x="96" y="568" font-size="20" font-weight="700" fill="#201b16">ReaderPostListFragment</text>
+                    <text x="96" y="596" font-size="15" fill="#675d52">onSaveInstanceState</text>
+
+                    <rect x="370" y="534" width="250" height="92" rx="18" fill="url(#cardFill)" stroke="#d8c6b4"/>
+                    <text x="395" y="568" font-size="20" font-weight="700" fill="#201b16">SubFilterViewModel</text>
+                    <text x="395" y="596" font-size="15" fill="#675d52">onSaveInstanceState</text>
+
+                    <rect x="670" y="534" width="250" height="92" rx="18" fill="#fff1e6" stroke="#d8b196"/>
+                    <text x="706" y="568" font-size="20" font-weight="700" fill="#b14b1e">mapper.toJson()</text>
+                    <text x="706" y="596" font-size="15" fill="#675d52">保存 type / blogId / feedId / tagSlug / tagType</text>
+
+                    <rect x="970" y="534" width="220" height="92" rx="18" fill="url(#cardFill)" stroke="#d8c6b4"/>
+                    <text x="998" y="568" font-size="20" font-weight="700" fill="#201b16">Bundle</text>
+                    <text x="998" y="596" font-size="15" fill="#675d52">current_subfilter_json</text>
+
+                    <line x1="320" y1="580" x2="370" y2="580" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+                    <line x1="620" y1="580" x2="670" y2="580" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+                    <line x1="920" y1="580" x2="970" y2="580" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+
+                    <rect x="900" y="654" width="290" height="54" rx="16" fill="rgba(23,107,99,0.10)" stroke="#9bc7bf"/>
+                    <text x="926" y="688" font-size="16" fill="#176b63">下次创建时读取 Bundle，重新进入 start(savedInstanceState)</text>
+
+                    <path d="M1080 626 C1080 658, 720 658, 720 654" fill="none" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+
+                    <rect x="610" y="654" width="250" height="54" rx="16" fill="#eef7f5" stroke="#9bc7bf"/>
+                    <text x="646" y="688" font-size="16" fill="#176b63">SubFilterViewModel.start</text>
+
+                    <rect x="320" y="654" width="240" height="54" rx="16" fill="#fff1e6" stroke="#d8b196"/>
+                    <text x="352" y="688" font-size="16" fill="#b14b1e">mapper.fromJson()</text>
+
+                    <rect x="70" y="654" width="200" height="54" rx="16" fill="#eef7f5" stroke="#9bc7bf"/>
+                    <text x="96" y="688" font-size="16" fill="#176b63">updateSubfilter</text>
+
+                    <line x1="610" y1="681" x2="560" y2="681" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+                    <line x1="320" y1="681" x2="270" y2="681" stroke="#7b624c" stroke-width="3" marker-end="url(#arrow)"/>
+                </svg>
+            </div>
+            <p class="caption">
+                读图方式：上半部分是“用户正在操作筛选 UI”的实时交互，这条线里 <code>SubfilterListItemMapper</code> 通常不会出场；
+                下半部分是“界面需要跨重建保留当前筛选项”的保存/恢复流程，这才是这个类最核心的调用场景。当前代码里，
+                显式的保存入口在 <code>ReaderPostListFragment.onSaveInstanceState()</code>，而恢复逻辑集中在
+                <code>SubFilterViewModel.start()</code>。
+            </p>
+        </section>
+    </div>
+</body>
+</html>

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordPress Android 登录流程分析</title>
+    <style>
+        :root {
+            --wp-blue: #0073aa;
+            --jp-green: #069e3f;
+            --bg: #f9fafb;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --accent: #0073aa;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: var(--wp-blue);
+        }
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            font-size: 0.95rem;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 2.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--wp-blue);
+            color: var(--wp-blue);
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: #334155;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.75rem 0;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+            color: #475569;
+        }
+        td code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #be185d;
+        }
+
+        .flow-diagram {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem 1.5rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .flow-diagram svg { width: 100%; height: auto; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-wp { background: #dbeafe; color: #1d4ed8; }
+        .badge-jp { background: #dcfce7; color: #15803d; }
+        .badge-both { background: #fef3c7; color: #92400e; }
+
+        .toc {
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0 2rem;
+        }
+        .toc ul { list-style: none; }
+        .toc li { padding: 0.2rem 0; }
+        .toc a { color: var(--wp-blue); text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+
+        .note {
+            background: #eff6ff;
+            border-left: 4px solid var(--wp-blue);
+            padding: 0.75rem 1rem;
+            margin: 0.75rem 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            h1 { font-size: 1.5rem; }
+            table { font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<h1>WordPress Android 登录流程分析</h1>
+<p class="subtitle">涵盖 WordPress.com OAuth、自托管 Application Password、Magic Link 三大登录路径</p>
+
+<div class="toc">
+    <strong>目录</strong>
+    <ul>
+        <li><a href="#overview">1. 架构概览</a></li>
+        <li><a href="#entry">2. 登录入口与触发条件</a></li>
+        <li><a href="#flow-wpcom">3. WordPress.com OAuth 登录流程</a></li>
+        <li><a href="#flow-selfhosted">4. 自托管站点 Application Password 登录流程</a></li>
+        <li><a href="#flow-magiclink">5. Magic Link 登录流程</a></li>
+        <li><a href="#flow-jetpack">6. Jetpack 特有流程</a></li>
+        <li><a href="#state">7. 登录状态管理</a></li>
+        <li><a href="#post-login">8. 登录成功后处理</a></li>
+        <li><a href="#comparison">9. WordPress vs Jetpack 差异</a></li>
+        <li><a href="#classes">10. 核心类职责说明</a></li>
+    </ul>
+</div>
+
+<!-- ============ 1. 架构概览 ============ -->
+<h2 id="overview">1. 架构概览</h2>
+
+<div class="card">
+<p>本工程采用 <strong>FluxC + MVVM</strong> 架构管理登录流程。整体分为三层：</p>
+<ul style="margin:0.5rem 0 0 1.2rem;">
+    <li><strong>UI 层</strong>：LoginActivity / Fragments / Compose Screens + ViewModels</li>
+    <li><strong>业务逻辑层</strong>：WPcomLoginHelper / ApplicationPasswordLoginHelper / LoginFlow 枚举</li>
+    <li><strong>数据层（FluxC）</strong>：AccountStore / Authenticator / AccessToken / SiteStore</li>
+</ul>
+<p class="note">数据流向：UI Event → ViewModel/Helper → FluxC Action → Dispatcher → Store → LiveData/EventBus → UI 更新</p>
+</div>
+
+<!-- ============ 2. 登录入口 ============ -->
+<h2 id="entry">2. 登录入口与触发条件</h2>
+
+<div class="card">
+<p>登录流程的入口判断在 <code>WPMainActivity.onCreate()</code> 中：</p>
+<table>
+    <tr><th>触发场景</th><th>方法</th><th>LoginFlow 类型</th></tr>
+    <tr><td>首次启动（未登录）</td><td><code>ActivityLauncher.showSignInForResult()</code></td><td><code>PROLOGUE</code></td></tr>
+    <tr><td>Me 界面添加账号</td><td><code>showSignInForResultWpComOnly()</code></td><td><code>WPCOM_LOGIN</code></td></tr>
+    <tr><td>深度链接触发</td><td><code>loginForDeeplink()</code></td><td><code>WPCOM_LOGIN_DEEPLINK</code></td></tr>
+    <tr><td>分享意图触发</td><td><code>loginForShareIntent()</code></td><td><code>SHARE_INTENT</code></td></tr>
+    <tr><td>Jetpack 统计连接</td><td><code>loginForJetpackStats()</code></td><td><code>JETPACK_STATS</code></td></tr>
+    <tr><td>Jetpack REST 连接</td><td><code>showWpComSignInForRestConnect()</code></td><td><code>JETPACK_REST_CONNECT</code></td></tr>
+    <tr><td>仅添加自托管站点</td><td><code>addSelfHostedSiteForResult()</code></td><td><code>SELFHOSTED_ONLY</code></td></tr>
+    <tr><td>Token 过期重新认证</td><td><code>AuthenticationDialogUtils.showAuthErrorView()</code></td><td>—</td></tr>
+    <tr><td>站点移除后无站点</td><td><code>handleSiteRemoved()</code></td><td>—</td></tr>
+</table>
+<p class="note">判断是否已登录：<code>FluxCUtils.isSignedInWPComOrHasWPOrgSite(accountStore, siteStore)</code> — 检查是否有 WP.com Token 或自托管站点。</p>
+</div>
+
+<!-- ============ 3. WP.com OAuth 流程 ============ -->
+<h2 id="flow-wpcom">3. WordPress.com OAuth 登录流程</h2>
+
+<div class="flow-diagram">
+<svg viewBox="0 0 900 820" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="13">
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+        </marker>
+        <marker id="arrow-blue" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#0073aa"/>
+        </marker>
+    </defs>
+
+    <!-- Start -->
+    <rect x="320" y="10" width="260" height="44" rx="22" fill="#0073aa"/>
+    <text x="450" y="38" text-anchor="middle" fill="#fff" font-weight="600">用户打开 App（未登录）</text>
+
+    <!-- WPMainActivity check -->
+    <rect x="250" y="80" width="400" height="50" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="450" y="100" text-anchor="middle" fill="#334155">WPMainActivity.onCreate()</text>
+    <text x="450" y="118" text-anchor="middle" fill="#64748b" font-size="11">检查 isSignedInWPComOrHasWPOrgSite()</text>
+
+    <line x1="450" y1="130" x2="450" y2="155" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- LoginActivity -->
+    <rect x="300" y="155" width="300" height="40" rx="8" fill="#dbeafe" stroke="#93c5fd"/>
+    <text x="450" y="180" text-anchor="middle" fill="#1e40af" font-weight="600">LoginActivity 启动</text>
+
+    <line x1="450" y1="195" x2="450" y2="220" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Prologue -->
+    <rect x="275" y="220" width="350" height="50" rx="8" fill="#fff" stroke="#e2e8f0"/>
+    <text x="450" y="240" text-anchor="middle" fill="#334155" font-weight="600">LoginPrologueRevampedFragment</text>
+    <text x="450" y="258" text-anchor="middle" fill="#64748b" font-size="11">显示 "Continue with WordPress.com" 按钮</text>
+
+    <line x1="450" y1="270" x2="450" y2="300" stroke="#0073aa" marker-end="url(#arrow-blue)" stroke-dasharray="5,3"/>
+
+    <!-- Custom Tabs -->
+    <rect x="220" y="300" width="460" height="55" rx="8" fill="#fef3c7" stroke="#fcd34d"/>
+    <text x="450" y="320" text-anchor="middle" fill="#92400e" font-weight="600">Chrome Custom Tabs 打开 OAuth 授权页</text>
+    <text x="450" y="338" text-anchor="middle" fill="#a16207" font-size="10">public-api.wordpress.com/oauth2/authorize?client_id=...&amp;response_type=code&amp;scope=global</text>
+
+    <line x1="450" y1="355" x2="450" y2="385" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- User auth -->
+    <rect x="310" y="385" width="280" height="40" rx="20" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="450" y="410" text-anchor="middle" fill="#166534">用户在浏览器中完成认证</text>
+
+    <line x1="450" y1="425" x2="450" y2="455" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Deep link callback -->
+    <rect x="220" y="455" width="460" height="45" rx="8" fill="#fef3c7" stroke="#fcd34d"/>
+    <text x="450" y="475" text-anchor="middle" fill="#92400e" font-weight="600">Deep Link 回调</text>
+    <text x="450" y="491" text-anchor="middle" fill="#a16207" font-size="10">&lt;scheme&gt;://wpcom-authorize?code=&lt;CODE&gt;</text>
+
+    <line x1="450" y1="500" x2="450" y2="525" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- LoginActivity onNewIntent -->
+    <rect x="270" y="525" width="360" height="40" rx="8" fill="#dbeafe" stroke="#93c5fd"/>
+    <text x="450" y="550" text-anchor="middle" fill="#1e40af">LoginActivity.onNewIntent() 捕获回调</text>
+
+    <line x1="450" y1="565" x2="450" y2="595" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Exchange token -->
+    <rect x="220" y="595" width="460" height="55" rx="8" fill="#fff" stroke="#e2e8f0"/>
+    <text x="450" y="615" text-anchor="middle" fill="#334155" font-weight="600">WPcomLoginHelper.exchangeAuthCodeForToken()</text>
+    <text x="450" y="633" text-anchor="middle" fill="#64748b" font-size="11">POST /oauth2/token → 获取 access_token</text>
+
+    <line x1="450" y1="650" x2="450" y2="680" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Store token -->
+    <rect x="270" y="680" width="360" height="45" rx="8" fill="#fff" stroke="#e2e8f0"/>
+    <text x="450" y="700" text-anchor="middle" fill="#334155">AccountStore.updateAccessToken(token)</text>
+    <text x="450" y="716" text-anchor="middle" fill="#64748b" font-size="11">Token 持久化到 SharedPreferences</text>
+
+    <line x1="450" y1="725" x2="450" y2="755" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Post-login -->
+    <rect x="250" y="755" width="400" height="50" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="450" y="775" text-anchor="middle" fill="#166534" font-weight="600">loggedInAndFinish()</text>
+    <text x="450" y="793" text-anchor="middle" fill="#166534" font-size="11">获取账户信息 → 获取站点列表 → 导航主界面</text>
+</svg>
+</div>
+
+<div class="card">
+<h3>详细步骤说明</h3>
+<ol style="margin-left:1.2rem;">
+    <li><strong>启动 LoginActivity</strong>：WPMainActivity 检测到未登录状态，通过 ActivityLauncher 启动 LoginActivity（singleTop 模式）</li>
+    <li><strong>展示 Prologue 页</strong>：LoginPrologueRevampedFragment 显示 "Continue with WordPress.com" 和 "Enter your site address" 两个入口</li>
+    <li><strong>发起 OAuth 授权</strong>：点击 "Continue with WordPress.com" 后，WPcomLoginHelper 构建授权 URI 并预加载 Custom Tabs，然后打开浏览器</li>
+    <li><strong>用户认证</strong>：用户在 WordPress.com 的 Custom Tabs 中输入账号密码完成认证</li>
+    <li><strong>回调处理</strong>：认证成功后，Custom Tabs 通过 Deep Link (<code>&lt;scheme&gt;://wpcom-authorize?code=...</code>) 回调到 LoginActivity.onNewIntent()</li>
+    <li><strong>Token 交换</strong>：WPcomLoginClient 将 authorization code 通过 POST 请求换取 access_token</li>
+    <li><strong>存储 Token</strong>：AccountStore 将 access_token 持久化到 SharedPreferences（通过 AccessToken 类）</li>
+    <li><strong>完成登录</strong>：获取账户详情和站点列表后，导航至 WPMainActivity</li>
+</ol>
+</div>
+
+<!-- ============ 4. 自托管站点流程 ============ -->
+<h2 id="flow-selfhosted">4. 自托管站点 Application Password 登录流程</h2>
+
+<div class="flow-diagram">
+<svg viewBox="0 0 900 920" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="13">
+    <!-- Start -->
+    <rect x="320" y="10" width="260" height="44" rx="22" fill="#069e3f"/>
+    <text x="450" y="38" text-anchor="middle" fill="#fff" font-weight="600">选择 "Enter your site address"</text>
+
+    <line x1="450" y1="54" x2="450" y2="80" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Site address form -->
+    <rect x="250" y="80" width="400" height="50" rx="8" fill="#fff" stroke="#e2e8f0"/>
+    <text x="450" y="100" text-anchor="middle" fill="#334155" font-weight="600">LoginSiteApplicationPasswordFragment</text>
+    <text x="450" y="118" text-anchor="middle" fill="#64748b" font-size="11">Compose UI — 用户输入站点地址</text>
+
+    <line x1="450" y1="130" x2="450" y2="160" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- API Discovery -->
+    <rect x="220" y="160" width="460" height="55" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="450" y="180" text-anchor="middle" fill="#334155" font-weight="600">API Discovery（站点发现）</text>
+    <text x="450" y="198" text-anchor="middle" fill="#64748b" font-size="11">WpLoginClient.apiDiscovery(siteUrl) → 发现 REST API 根路径</text>
+
+    <line x1="450" y1="215" x2="450" y2="245" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Decision: API found? -->
+    <polygon points="450,245 550,285 450,325 350,285" fill="#fef3c7" stroke="#fcd34d"/>
+    <text x="450" y="289" text-anchor="middle" fill="#92400e" font-size="12">发现成功?</text>
+
+    <!-- No branch -->
+    <line x1="350" y1="285" x2="200" y2="285" stroke="#ef4444" marker-end="url(#arrow)" />
+    <rect x="60" y="265" width="140" height="40" rx="8" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="130" y="290" text-anchor="middle" fill="#dc2626" font-size="12">显示错误提示</text>
+
+    <!-- Yes branch -->
+    <line x1="450" y1="325" x2="450" y2="355" stroke="#069e3f" marker-end="url(#arrow)"/>
+
+    <!-- Cache API root -->
+    <rect x="260" y="355" width="380" height="40" rx="8" fill="#fff" stroke="#e2e8f0"/>
+    <text x="450" y="375" text-anchor="middle" fill="#334155">缓存 API Root URL（ApiRootUrlCache）</text>
+    <text x="450" y="391" text-anchor="middle" fill="#64748b" font-size="11">构建授权 URL + app_name + success_url</text>
+
+    <line x1="450" y1="395" x2="450" y2="425" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Custom Tabs -->
+    <rect x="200" y="425" width="500" height="50" rx="8" fill="#fef3c7" stroke="#fcd34d"/>
+    <text x="450" y="445" text-anchor="middle" fill="#92400e" font-weight="600">Custom Tabs 打开授权页</text>
+    <text x="450" y="463" text-anchor="middle" fill="#a16207" font-size="10">https://&lt;site&gt;/wp-admin/authorize-application.php?app_name=...&amp;success_url=&lt;scheme&gt;://app-pass-authorize</text>
+
+    <line x1="450" y1="475" x2="450" y2="505" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- User approve -->
+    <rect x="310" y="505" width="280" height="40" rx="20" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="450" y="530" text-anchor="middle" fill="#166534">用户在站点后台批准授权</text>
+
+    <line x1="450" y1="545" x2="450" y2="575" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Deep link callback -->
+    <rect x="170" y="575" width="560" height="45" rx="8" fill="#fef3c7" stroke="#fcd34d"/>
+    <text x="450" y="595" text-anchor="middle" fill="#92400e" font-weight="600">Deep Link 回调</text>
+    <text x="450" y="611" text-anchor="middle" fill="#a16207" font-size="10">&lt;scheme&gt;://app-pass-authorize?site_url=...&amp;user_login=...&amp;password=...</text>
+
+    <line x1="450" y1="620" x2="450" y2="650" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- ApplicationPasswordLoginActivity -->
+    <rect x="230" y="650" width="440" height="40" rx="8" fill="#dcfce7" stroke="#86efac"/>
+    <text x="450" y="675" text-anchor="middle" fill="#166534" font-weight="600">ApplicationPasswordLoginActivity 接收回调</text>
+
+    <line x1="450" y1="690" x2="450" y2="720" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Store credentials -->
+    <rect x="220" y="720" width="460" height="50" rx="8" fill="#fff" stroke="#e2e8f0"/>
+    <text x="450" y="740" text-anchor="middle" fill="#334155" font-weight="600">存储凭据到 SiteModel</text>
+    <text x="450" y="758" text-anchor="middle" fill="#64748b" font-size="11">apiRestUsernamePlain / apiRestPasswordPlain / wpApiRestUrl</text>
+
+    <line x1="450" y1="770" x2="450" y2="800" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Fetch site -->
+    <rect x="220" y="800" width="460" height="50" rx="8" fill="#fff" stroke="#e2e8f0"/>
+    <text x="450" y="820" text-anchor="middle" fill="#334155">SiteStore.fetchSitesXmlRpcFromApplicationPassword()</text>
+    <text x="450" y="838" text-anchor="middle" fill="#64748b" font-size="11">或 fetchSiteWPAPIFromApplicationPassword() → 获取站点详情</text>
+
+    <line x1="450" y1="850" x2="450" y2="880" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Navigate -->
+    <rect x="290" y="880" width="320" height="35" rx="17" fill="#069e3f"/>
+    <text x="450" y="903" text-anchor="middle" fill="#fff" font-weight="600">导航至 WPMainActivity</text>
+</svg>
+</div>
+
+<div class="card">
+<h3>详细步骤说明</h3>
+<ol style="margin-left:1.2rem;">
+    <li><strong>输入站点地址</strong>：在 LoginSiteApplicationPasswordFragment（Compose UI）中输入自托管 WordPress 站点 URL</li>
+    <li><strong>API 发现</strong>：WpLoginClient.apiDiscovery() 请求站点，发现 WP REST API 根路径和 Application Password 授权端点</li>
+    <li><strong>构建授权 URL</strong>：将发现的 authorize-application.php URL 附加 app_name（如 "WordPress on Pixel"）和 success_url 参数</li>
+    <li><strong>用户授权</strong>：在 Custom Tabs 中打开站点后台授权页，用户登录站点后台并批准应用密码创建</li>
+    <li><strong>回调处理</strong>：授权成功后，通过 Deep Link (<code>&lt;scheme&gt;://app-pass-authorize</code>) 回调至 ApplicationPasswordLoginActivity</li>
+    <li><strong>存储凭据</strong>：解析 URI 获取 site_url、user_login、password，存入 SiteModel 的 apiRestUsernamePlain / apiRestPasswordPlain 字段</li>
+    <li><strong>获取站点</strong>：通过 SiteStore 获取站点完整信息，导航至主界面</li>
+</ol>
+</div>
+
+<!-- ============ 5. Magic Link 流程 ============ -->
+<h2 id="flow-magiclink">5. Magic Link 登录流程</h2>
+
+<div class="flow-diagram">
+<svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="13">
+    <!-- Start -->
+    <rect x="200" y="10" width="300" height="44" rx="22" fill="#7c3aed"/>
+    <text x="350" y="38" text-anchor="middle" fill="#fff" font-weight="600">用户点击邮件中的 Magic Link</text>
+
+    <line x1="350" y1="54" x2="350" y2="85" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Intercept Activity -->
+    <rect x="160" y="85" width="380" height="45" rx="8" fill="#ede9fe" stroke="#c4b5fd"/>
+    <text x="350" y="105" text-anchor="middle" fill="#5b21b6" font-weight="600">LoginMagicLinkInterceptActivity</text>
+    <text x="350" y="121" text-anchor="middle" fill="#6d28d9" font-size="11">接收 Deep Link: &lt;scheme&gt;://magic-login?...</text>
+
+    <line x1="350" y1="130" x2="350" y2="160" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Forward to WPMainActivity -->
+    <rect x="170" y="160" width="360" height="40" rx="8" fill="#dbeafe" stroke="#93c5fd"/>
+    <text x="350" y="185" text-anchor="middle" fill="#1e40af">设置 ARG_IS_MAGIC_LINK_LOGIN=true，转发至 WPMainActivity</text>
+
+    <line x1="350" y1="200" x2="350" y2="235" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Extract token -->
+    <rect x="170" y="235" width="360" height="45" rx="8" fill="#fff" stroke="#e2e8f0"/>
+    <text x="350" y="255" text-anchor="middle" fill="#334155" font-weight="600">WPMainActivity.onCreate() 提取 Token</text>
+    <text x="350" y="271" text-anchor="middle" fill="#64748b" font-size="11">从 URI 中解析 access_token</text>
+
+    <line x1="350" y1="280" x2="350" y2="315" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Update token -->
+    <rect x="170" y="315" width="360" height="40" rx="8" fill="#fff" stroke="#e2e8f0"/>
+    <text x="350" y="340" text-anchor="middle" fill="#334155">AccountStore.updateAccessToken(token)</text>
+
+    <line x1="350" y1="355" x2="350" y2="390" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Auth changed event -->
+    <rect x="170" y="390" width="360" height="40" rx="8" fill="#fff" stroke="#e2e8f0"/>
+    <text x="350" y="415" text-anchor="middle" fill="#334155">onAuthenticationChanged() → 初始化站点</text>
+
+    <line x1="350" y1="430" x2="350" y2="460" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Done -->
+    <rect x="240" y="460" width="220" height="35" rx="17" fill="#7c3aed"/>
+    <text x="350" y="483" text-anchor="middle" fill="#fff" font-weight="600">登录完成</text>
+</svg>
+</div>
+
+<div class="card">
+<h3>详细步骤说明</h3>
+<ol style="margin-left:1.2rem;">
+    <li><strong>点击 Magic Link</strong>：用户在邮箱中点击 Magic Link，Android 系统根据 Deep Link scheme 打开 LoginMagicLinkInterceptActivity</li>
+    <li><strong>转发处理</strong>：LoginMagicLinkInterceptActivity 设置标记后，将 Intent 转发至 WPMainActivity</li>
+    <li><strong>提取 Token</strong>：WPMainActivity 从 Intent 的 URI data 中解析出 access_token</li>
+    <li><strong>存储 Token</strong>：通过 AccountStore.updateAccessToken() 持久化 Token</li>
+    <li><strong>初始化</strong>：onAuthenticationChanged() 事件触发，完成站点初始化</li>
+</ol>
+</div>
+
+<!-- ============ 6. Jetpack 特有流程 ============ -->
+<h2 id="flow-jetpack">6. Jetpack 特有流程</h2>
+
+<div class="flow-diagram">
+<svg viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="13">
+    <!-- Start -->
+    <rect x="270" y="10" width="260" height="44" rx="22" fill="#069e3f"/>
+    <text x="400" y="38" text-anchor="middle" fill="#fff" font-weight="600">Jetpack App 启动（未登录）</text>
+
+    <line x1="400" y1="54" x2="400" y2="80" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Migration check -->
+    <polygon points="400,80 520,120 400,160 280,120" fill="#fef3c7" stroke="#fcd34d"/>
+    <text x="400" y="124" text-anchor="middle" fill="#92400e" font-size="12">有 WordPress 迁移数据?</text>
+
+    <!-- Yes: migration -->
+    <line x1="520" y1="120" x2="640" y2="120" stroke="#069e3f" marker-end="url(#arrow)"/>
+    <rect x="640" y="100" width="140" height="40" rx="8" fill="#dcfce7" stroke="#86efac"/>
+    <text x="710" y="118" text-anchor="middle" fill="#166534" font-size="12">Jetpack 迁移流程</text>
+    <text x="710" y="133" text-anchor="middle" fill="#166534" font-size="10">SharedLoginData</text>
+
+    <!-- No: normal login -->
+    <line x1="400" y1="160" x2="400" y2="190" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Jetpack Prologue -->
+    <rect x="230" y="190" width="340" height="50" rx="8" fill="#dcfce7" stroke="#86efac"/>
+    <text x="400" y="210" text-anchor="middle" fill="#166534" font-weight="600">Jetpack LoginPrologueRevampedFragment</text>
+    <text x="400" y="228" text-anchor="middle" fill="#166534" font-size="11">动画循环文字背景 + 传感器视差效果</text>
+
+    <line x1="400" y1="240" x2="400" y2="270" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- WP.com login (same as Flow A) -->
+    <rect x="250" y="270" width="300" height="40" rx="8" fill="#dbeafe" stroke="#93c5fd"/>
+    <text x="400" y="295" text-anchor="middle" fill="#1e40af">WP.com OAuth 登录（同流程 A）</text>
+
+    <line x1="400" y1="310" x2="400" y2="340" stroke="#64748b" marker-end="url(#arrow)"/>
+
+    <!-- Decision: Jetpack sites? -->
+    <polygon points="400,340 520,380 400,420 280,380" fill="#fef3c7" stroke="#fcd34d"/>
+    <text x="400" y="384" text-anchor="middle" fill="#92400e" font-size="12">有 Jetpack 站点?</text>
+
+    <!-- No sites -->
+    <line x1="280" y1="380" x2="140" y2="380" stroke="#ef4444" marker-end="url(#arrow)"/>
+    <rect x="20" y="355" width="120" height="50" rx="8" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="80" y="377" text-anchor="middle" fill="#dc2626" font-size="12">LoginNoSitesFragment</text>
+    <text x="80" y="395" text-anchor="middle" fill="#dc2626" font-size="10">尝试其他账号 / 查看说明</text>
+
+    <!-- Site check error -->
+    <line x1="80" y1="405" x2="80" y2="445" stroke="#64748b" marker-end="url(#arrow)"/>
+    <rect x="20" y="445" width="160" height="30" rx="8" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="100" y="465" text-anchor="middle" fill="#dc2626" font-size="11">LoginSiteCheckErrorFragment</text>
+
+    <!-- Yes: proceed -->
+    <line x1="400" y1="420" x2="400" y2="455" stroke="#069e3f" marker-end="url(#arrow)"/>
+    <rect x="290" y="445" width="220" height="30" rx="15" fill="#069e3f"/>
+    <text x="400" y="465" text-anchor="middle" fill="#fff" font-weight="600">登录成功，进入主界面</text>
+</svg>
+</div>
+
+<div class="card">
+<h3>Jetpack 特有逻辑</h3>
+<ul style="margin-left:1.2rem;">
+    <li><strong>迁移流程</strong>：Jetpack App 首次启动时，检测是否可从同设备已安装的 WordPress App 迁移登录数据（SharedLoginData / JetpackSharedLoginFlag）</li>
+    <li><strong>无 Jetpack 站点处理</strong>：WP.com 登录成功后，如果用户账号下没有 Jetpack 连接的站点，显示 LoginNoSitesFragment（可查看安装指引或切换账号）</li>
+    <li><strong>站点检查错误</strong>：连接 Jetpack 统计等功能时，如果站点未安装 Jetpack，显示 LoginSiteCheckErrorFragment</li>
+</ul>
+</div>
+
+<!-- ============ 7. 登录状态管理 ============ -->
+<h2 id="state">7. 登录状态管理</h2>
+
+<div class="card">
+<h3>WP.com 认证状态</h3>
+<table>
+    <tr><th>组件</th><th>存储位置</th><th>说明</th></tr>
+    <tr><td><code>AccessToken</code></td><td>SharedPreferences</td><td>持久化 WP.com Bearer Token（key: ACCOUNT_TOKEN_PREF_KEY）</td></tr>
+    <tr><td><code>AccountStore</code></td><td>内存 + SQLite</td><td>管理 AccountModel，通过 AccountSqlUtils 同步到 WellSql</td></tr>
+    <tr><td><code>WordPressCookieAuthenticator</code></td><td>SharedPreferences</td><td>缓存 WP.com Session Cookies（6个月过期），用于 WebView 认证</td></tr>
+</table>
+
+<h3>自托管认证状态</h3>
+<table>
+    <tr><th>字段</th><th>存储位置</th><th>说明</th></tr>
+    <tr><td><code>apiRestUsernamePlain</code></td><td>SiteModel / SQLite</td><td>Application Password 用户名（明文）</td></tr>
+    <tr><td><code>apiRestPasswordPlain</code></td><td>SiteModel / SQLite</td><td>Application Password 密码（明文）</td></tr>
+    <tr><td><code>wpApiRestUrl</code></td><td>SiteModel / SQLite</td><td>站点 WP REST API 根 URL</td></tr>
+    <tr><td><code>ApiRootUrlCache</code></td><td>内存单例</td><td>临时缓存 API Root URL（在 Discovery 和回调之间传递）</td></tr>
+</table>
+
+<h3>流程状态</h3>
+<table>
+    <tr><th>方法</th><th>说明</th></tr>
+    <tr><td><code>AppPrefs.setPendingLoginFlow()</code></td><td>跨 OAuth 回调持久化当前登录流程类型</td></tr>
+    <tr><td><code>AppPrefs.setShareFlowPending()</code></td><td>标记分享流程的登录状态</td></tr>
+    <tr><td><code>LoginActivity.onSaveInstanceState()</code></td><td>保存 mIsWaitingForSitesToLoad 等临时状态</td></tr>
+</table>
+</div>
+
+<!-- ============ 8. 登录成功后处理 ============ -->
+<h2 id="post-login">8. 登录成功后处理</h2>
+
+<div class="card">
+<h3>WP.com 登录成功后</h3>
+<ol style="margin-left:1.2rem;">
+    <li><code>accountStore.updateAccessToken(token)</code> → 触发 <code>OnAuthenticationChanged</code></li>
+    <li><code>loggedInAndFinish()</code> 被调用，设置 <code>doLoginUpdate=true</code></li>
+    <li>Dispatch <code>AccountAction.FETCH_ACCOUNT</code> → 获取用户账户信息</li>
+    <li><code>onAccountChanged()</code> → Dispatch <code>SiteAction.FETCH_SITES</code> → 获取站点列表</li>
+    <li><code>onSiteChanged()</code> → <code>finishLoginAfterSitesLoaded()</code></li>
+    <li>启动后登录服务：Reader Tags 同步、Notifications 注册</li>
+    <li><code>ActivityLauncher.showMainActivity()</code> 并 <code>finish()</code></li>
+</ol>
+
+<h3>自托管登录成功后</h3>
+<ol style="margin-left:1.2rem;">
+    <li>凭据存入 <code>SiteModel</code></li>
+    <li><code>SiteStore.fetchSitesXmlRpcFromApplicationPassword()</code> 获取站点详情</li>
+    <li>导航至 <code>WPMainActivity</code>，设置 <code>ARG_SELECTED_SITE</code> 为新站点 ID</li>
+</ol>
+</div>
+
+<!-- ============ 9. WordPress vs Jetpack 差异 ============ -->
+<h2 id="comparison">9. WordPress vs Jetpack 差异对比</h2>
+
+<div class="card">
+<table>
+    <tr><th>方面</th><th><span class="badge badge-wp">WordPress</span></th><th><span class="badge badge-jp">Jetpack</span></th></tr>
+    <tr><td>Prologue UI</td><td>蓝色背景 + 笔触图形 + 标语</td><td>动画循环文字 + 视差传感器 + Jetpack Logo</td></tr>
+    <tr><td>Prologue ViewModel</td><td>无（简单 Fragment）</td><td>LoginPrologueRevampedViewModel（加速度计视差动画）</td></tr>
+    <tr><td>Deep Link Scheme</td><td><code>wordpress://</code></td><td><code>jetpack://</code></td></tr>
+    <tr><td>App Password 应用名</td><td>"WordPress on &lt;device&gt;"</td><td>"Jetpack on &lt;device&gt;"</td></tr>
+    <tr><td>迁移流程</td><td>不适用</td><td>检测 WordPress App 迁移数据</td></tr>
+    <tr><td>无站点提示</td><td>不适用</td><td>LoginNoSitesFragment / LoginSiteCheckErrorFragment</td></tr>
+    <tr><td>登录后行为</td><td>CompletionBehavior.MAIN_ACTIVITY</td><td>默认相同；JETPACK_STATS 等流程用 FINISH</td></tr>
+    <tr><td>分析统计键</td><td>WP_ANDROID_APPLICATION_PASSWORD_LOGIN</td><td>JP_ANDROID_APPLICATION_PASSWORD_LOGIN</td></tr>
+</table>
+</div>
+
+<!-- ============ 10. 核心类职责 ============ -->
+<h2 id="classes">10. 核心类职责说明</h2>
+
+<div class="card">
+<table>
+    <tr><th>类名</th><th>所在模块</th><th>职责</th></tr>
+    <tr><td><code>LoginActivity</code></td><td>WordPress/app</td><td>登录流程主 Activity（singleTop），托管所有登录 Fragment，处理 OAuth 回调</td></tr>
+    <tr><td><code>LoginPrologueRevampedFragment</code></td><td>wordpress/jetpack flavor</td><td>登录首屏，提供 WP.com 登录和自托管站点两个入口</td></tr>
+    <tr><td><code>LoginSiteApplicationPasswordFragment</code></td><td>WordPress/app</td><td>Compose UI 站点地址输入表单</td></tr>
+    <tr><td><code>WPcomLoginHelper</code></td><td>WordPress/app</td><td>构建 WP.com OAuth URI、预加载 Custom Tabs、交换 Token</td></tr>
+    <tr><td><code>ApplicationPasswordLoginHelper</code></td><td>WordPress/app</td><td>API 发现、构建授权 URL、存储 Application Password 凭据</td></tr>
+    <tr><td><code>ApplicationPasswordLoginActivity</code></td><td>WordPress/app</td><td>接收 Application Password 授权回调 Deep Link</td></tr>
+    <tr><td><code>LoginMagicLinkInterceptActivity</code></td><td>WordPress/app</td><td>接收 Magic Link Deep Link 并转发</td></tr>
+    <tr><td><code>LoginViewModel</code></td><td>WordPress/app</td><td>处理站点错误和无 Jetpack 站点的导航事件</td></tr>
+    <tr><td><code>LoginFlow</code></td><td>WordPress/app</td><td>枚举定义 8 种登录流程变体</td></tr>
+    <tr><td><code>UnifiedLoginTracker</code></td><td>WordPress/app</td><td>统一登录分析追踪（source/flow/step/click/failure）</td></tr>
+    <tr><td><code>AccountStore</code></td><td>FluxC</td><td>FluxC 单例 Store：管理 access_token、AccountModel、认证状态</td></tr>
+    <tr><td><code>Authenticator</code></td><td>FluxC</td><td>Volley 网络客户端：用户名/密码认证、2FA、WebAuthn、Magic Link 邮件</td></tr>
+    <tr><td><code>AccessToken</code></td><td>FluxC</td><td>将 WP.com Bearer Token 持久化到 SharedPreferences</td></tr>
+    <tr><td><code>WPcomLoginClient</code></td><td>FluxC</td><td>OkHttp 客户端：OAuth2 authorization code → token 交换</td></tr>
+    <tr><td><code>SiteStore</code></td><td>FluxC</td><td>管理站点列表，处理 Application Password 站点获取</td></tr>
+    <tr><td><code>WpLoginClient</code></td><td>FluxC</td><td>Rust 库封装：站点 API Discovery</td></tr>
+    <tr><td><code>ApiRootUrlCache</code></td><td>WordPress/app</td><td>内存单例缓存，在 API 发现和回调之间传递 API Root URL</td></tr>
+    <tr><td><code>WordPressCookieAuthenticator</code></td><td>WordPress/app</td><td>使用 Bearer Token 获取 WP.com Session Cookies（WebView 用）</td></tr>
+</table>
+</div>
+
+<div class="note" style="margin-top:2rem;">
+    <strong>文档生成时间</strong>：2026-05-31 &nbsp;|&nbsp; 基于项目源码静态分析自动生成
+</div>
+
+</div>
+</body>
+</html>

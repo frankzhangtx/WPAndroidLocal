@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordPress Android 发帖流程分析</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5efe6;
+            --surface: rgba(255, 252, 247, 0.94);
+            --ink: #241d16;
+            --muted: #695b4f;
+            --line: rgba(74, 55, 38, 0.12);
+            --accent: #9a4d1e;
+            --accent-soft: rgba(154, 77, 30, 0.12);
+            --green: #246b53;
+            --green-soft: rgba(36, 107, 83, 0.11);
+            --gold: #9a7a2b;
+            --gold-soft: rgba(154, 122, 43, 0.12);
+            --shadow: 0 24px 70px rgba(44, 28, 12, 0.10);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --max: 1320px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", "Helvetica Neue", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(154, 77, 30, 0.16), transparent 24%),
+                radial-gradient(circle at top right, rgba(36, 107, 83, 0.15), transparent 26%),
+                linear-gradient(180deg, #fffaf4 0%, var(--bg) 38%, #efe5d7 100%);
+        }
+
+        h1, h2, h3, p { margin: 0; }
+
+        code {
+            padding: 0.12em 0.38em;
+            border-radius: 8px;
+            background: rgba(37, 27, 18, 0.06);
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 0.92em;
+        }
+
+        .page {
+            width: min(calc(100% - 32px), var(--max));
+            margin: 0 auto;
+            padding: 28px 0 72px;
+        }
+
+        .hero,
+        .panel,
+        .diagram-panel {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 34px;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: -120px -80px auto auto;
+            width: 300px;
+            height: 300px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(154, 77, 30, 0.16), transparent 68%);
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto auto -140px -120px;
+            width: 340px;
+            height: 340px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(36, 107, 83, 0.14), transparent 68%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(36, 107, 83, 0.10);
+            color: var(--green);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            margin-top: 18px;
+            max-width: 940px;
+            font-size: clamp(30px, 4.1vw, 52px);
+            line-height: 1.05;
+        }
+
+        .lead {
+            margin-top: 14px;
+            max-width: 980px;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.78;
+        }
+
+        .meta-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .meta-item {
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.56);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+            gap: 18px;
+            margin-top: 24px;
+        }
+
+        .hero-card,
+        .summary-card,
+        .panel {
+            background: rgba(255, 255, 255, 0.62);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+        }
+
+        .hero-card {
+            padding: 18px 20px;
+        }
+
+        .hero-card strong,
+        .section-title {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--green);
+            letter-spacing: 0.01em;
+        }
+
+        .hero-card p,
+        .summary-card p,
+        .section-note {
+            color: var(--muted);
+            line-height: 1.76;
+            font-size: 14px;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .mini-card {
+            padding: 14px 15px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.62);
+        }
+
+        .mini-card h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .mini-card p {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+            gap: 20px;
+            margin-top: 22px;
+        }
+
+        .panel {
+            padding: 26px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: end;
+            margin-bottom: 18px;
+        }
+
+        .panel-title {
+            font-size: 26px;
+            line-height: 1.18;
+        }
+
+        .panel-subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.68;
+            max-width: 640px;
+        }
+
+        .summary-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .summary-card {
+            padding: 16px;
+        }
+
+        .summary-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .section {
+            margin-top: 20px;
+        }
+
+        .section h2 {
+            margin-bottom: 12px;
+            font-size: 22px;
+            line-height: 1.22;
+        }
+
+        .section .section-note {
+            margin-bottom: 14px;
+        }
+
+        .code-shell {
+            overflow: auto;
+            padding: 18px;
+            border: 1px solid rgba(44, 28, 12, 0.08);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(245, 238, 225, 0.96) 100%);
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre;
+            font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+            font-size: 13.2px;
+            line-height: 1.8;
+            color: #1f261f;
+        }
+
+        .comment { color: var(--green); }
+        .callout { color: var(--accent); }
+        .branch { color: var(--gold); }
+        .muted { color: var(--muted); }
+
+        .diagram-panel {
+            margin-top: 20px;
+            padding: 26px;
+        }
+
+        .diagram-wrap {
+            overflow: auto;
+            padding: 10px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(239, 232, 220, 0.96));
+            border: 1px solid var(--line);
+        }
+
+        svg {
+            width: 100%;
+            min-width: 1120px;
+            height: auto;
+            display: block;
+        }
+
+        .caption {
+            margin-top: 14px;
+            color: var(--muted);
+            line-height: 1.74;
+            font-size: 14px;
+        }
+
+        .toc {
+            margin-top: 18px;
+            padding: 18px 20px;
+            border-radius: 20px;
+            background: rgba(36, 107, 83, 0.08);
+            border: 1px solid rgba(36, 107, 83, 0.12);
+        }
+
+        .toc ul {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            color: var(--muted);
+            line-height: 1.76;
+        }
+
+        .toc li { margin: 3px 0; }
+
+        .toc a {
+            color: var(--green);
+            text-decoration: none;
+        }
+
+        .toc a:hover { text-decoration: underline; }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 11px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--muted);
+            font-size: 12.5px;
+        }
+
+        .chip.green { background: var(--green-soft); color: var(--green); }
+        .chip.gold { background: var(--gold-soft); color: #8b6a18; }
+        .chip.orange { background: var(--accent-soft); color: var(--accent); }
+
+        @media (max-width: 1100px) {
+            .hero-grid,
+            .layout,
+            .card-grid,
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .page { width: min(calc(100% - 20px), var(--max)); padding: 16px 0 56px; }
+            .hero,
+            .panel,
+            .diagram-panel { padding: 18px; }
+            .hero h1 { font-size: 30px; }
+            .lead { font-size: 16px; }
+            .panel-title { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="hero">
+        <div class="eyebrow">Feature Analysis</div>
+        <h1>WordPress Android 发帖流程分析</h1>
+        <p class="lead">
+            这份文档沿着实际源码串起“新建或编辑帖子 -> 预发布设置 -> 确认发帖 -> 落库与上传 -> 结果提示”这条主链路。
+            代码上，它不是一条单文件流程，而是由 <code>ActivityLauncher</code>、两个编辑器宿主
+            <code>EditPostActivity</code>/<code>GutenbergKitActivity</code>、预发布底部页
+            <code>Prepublishing*</code>、以及上传层 <code>StorePostViewModel</code> / <code>UploadUtils</code> 共同完成。
+        </p>
+        <div class="meta-list">
+            <div class="meta-item">主入口：<code>WordPress/src/main/java/org/wordpress/android/ui/ActivityLauncher.java</code></div>
+            <div class="meta-item">编辑器宿主：<code>WordPress/src/main/java/org/wordpress/android/ui/posts/EditPostActivity.kt</code></div>
+            <div class="meta-item">块编辑器宿主：<code>WordPress/src/main/java/org/wordpress/android/ui/posts/GutenbergKitActivity.kt</code></div>
+            <div class="meta-item">上传与反馈：<code>WordPress/src/main/java/org/wordpress/android/ui/uploads/UploadUtils.java</code></div>
+        </div>
+
+        <div class="hero-grid">
+            <div class="hero-card">
+                <strong>我对这条链路的结论</strong>
+                <p>
+                    触发发帖动作的按钮，绝大多数不会直接调用上传接口，而是先进入预发布底部页。
+                    用户在底部页里只是在切换 <code>Publish / Tags / Categories / Social</code> 等状态，
+                    真正的“提交”会回到宿主 Activity，再由它统一做邮箱校验、空内容校验、状态写回和上传。
+                </p>
+                <div class="chip-row">
+                    <span class="chip green">预发布页是状态机，不是上传层</span>
+                    <span class="chip orange">真正上传前会先更新 PostModel</span>
+                    <span class="chip gold">无网时会落本地并排队上传</span>
+                </div>
+            </div>
+            <div class="hero-card">
+                <strong>阅读顺序</strong>
+                <p>先看入口，再看底部页如何导航，随后看提交时的校验与写库，最后看上传完成后的 snackbar 收尾。</p>
+                <div class="toc">
+                    <strong>目录</strong>
+                    <ul>
+                        <li><a href="#overview">1. 流程总览</a></li>
+                        <li><a href="#entry">2. 入口与起点</a></li>
+                        <li><a href="#sheet">3. 预发布底部页</a></li>
+                        <li><a href="#submit">4. 提交与发布</a></li>
+                        <li><a href="#result">5. 结果处理</a></li>
+                        <li><a href="#snippet">6. 关键代码片段</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div class="mini-card">
+                <h3>入口层</h3>
+                <p><code>ActivityLauncher.editPostOrPageForResult()</code> 会把站点和 postLocalId 交给编辑器，避免直接传巨大的 PostModel。</p>
+            </div>
+            <div class="mini-card">
+                <h3>动作层</h3>
+                <p><code>performPrimaryAction()</code> 根据主按钮类型决定是打开预发布页，还是直接保存草稿。</p>
+            </div>
+            <div class="mini-card">
+                <h3>提交层</h3>
+                <p><code>performPostUpdateAndPublish()</code> 先改 <code>PostModel</code> 状态，再交给 <code>StorePostViewModel</code> 保存并上传。</p>
+            </div>
+            <div class="mini-card">
+                <h3>反馈层</h3>
+                <p><code>UploadUtils.handleEditPostModelResultSnackbars()</code> 依据结果 extras 决定提示、重试或“查看/同步”。</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="layout">
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="section-title">流程总览</div>
+                    <h2 class="panel-title" id="overview">发帖流程的真实执行顺序</h2>
+                </div>
+                <p class="panel-subtitle">
+                    这条链路的关键不是“点了发布就立刻上传”，而是先把编辑器中的内容、站点能力和发布意图统一收口，
+                    再由宿主 Activity 决定是否能真正进入上传阶段。
+                </p>
+            </div>
+
+            <div class="section">
+                <h2 id="entry">1. 入口与起点</h2>
+                <p class="section-note">
+                    从列表页、我的站点、阅读页、通知页等入口发起新建或编辑时，都会走到
+                    <code>ActivityLauncher</code> 的编辑器启动方法。对“已有帖子”的编辑场景，
+                    关键方法是 <code>editPostOrPageForResult()</code>。它只传
+                    <code>site</code> 和 <code>postLocalId</code>，避免把整个 <code>PostModel</code> 直接塞进 Intent。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 入口只负责把站点和本地 post id 交给编辑器。</span>
+public static void editPostOrPageForResult(Activity activity, @NonNull SiteModel site, @Nullable PostModel post) {
+    if (post == null) {
+        ToastUtils.showToast(activity, R.string.post_not_found, ToastUtils.Duration.SHORT);
+        return;
+    }
+
+    EditorLauncherParams params = EditorLauncherParams.Builder.forSite(site)
+            .postLocalId(post.getId())
+            .loadAutoSaveRevision(false)
+            .build();
+
+    Intent editorIntent = EditorLauncher.getInstance().createEditorIntent(activity, params);
+    activity.startActivityForResult(editorIntent, RequestCodes.EDIT_POST);
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>为什么这里不直接传 PostModel</h3>
+                        <p>源码里已经写明原因：内容字段很大，直接传对象容易触发 <code>TransactionTooLargeException</code>，所以改为传 <code>postLocalId</code>。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>新建与编辑的区别</h3>
+                        <p>新建帖子会走 <code>addNewPostForResult()</code>，编辑已有帖子会走 <code>editPostOrPageForResult()</code>。两者最终都落到编辑器宿主 Activity。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="sheet">2. 预发布底部页</h2>
+                <p class="section-note">
+                    <code>performPrimaryAction()</code> 是宿主 Activity 的主按钮分流点。除 <code>SAVE</code> 外，大多数动作都会先打开
+                    <code>PrepublishingBottomSheetFragment</code>，让用户在提交前确认发布方式、标签、分类和社交联动。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 主按钮分流：保存直接走本地保存，其余大多先打开底部页。</span>
+private fun performPrimaryAction() {
+    when (primaryAction) {
+        PrimaryEditorAction.PUBLISH_NOW -> {
+            analyticsTrackerWrapper.track(Stat.EDITOR_POST_PUBLISH_TAPPED)
+            showPrepublishingNudgeBottomSheet()
+            return
+        }
+
+        PrimaryEditorAction.UPDATE,
+        PrimaryEditorAction.CONTINUE,
+        PrimaryEditorAction.SCHEDULE,
+        PrimaryEditorAction.SUBMIT_FOR_REVIEW -> {
+            showPrepublishingNudgeBottomSheet()
+            return
+        }
+
+        PrimaryEditorAction.SAVE -> uploadPost(false)
+    }
+}</pre>
+                </div>
+
+                <p class="section-note" style="margin-top: 14px;">
+                    底部页本身也不是上传层，它更像一个导航壳。<code>PrepublishingViewModel</code> 维护当前屏幕，
+                    处理返回键，并把最终的提交意图发回宿主 Activity。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// Bottom sheet 负责屏幕切换和最终提交事件转发。</span>
+fun onActionClicked(actionType: ActionType, bundle: Bundle? = null) {
+    when (actionType) {
+        is ActionType.PrepublishingScreenNavigation -> {
+            currentScreen = actionType.prepublishingScreen
+            navigateToScreen(actionType.prepublishingScreen, bundle)
+        }
+        is ActionType.Action -> handleAction(actionType)
+    }
+}
+
+fun onSubmitButtonClicked(publishPost: PublishPost) {
+    onCloseClicked()
+    _triggerOnSubmitButtonClickedListener.postValue(Event(publishPost))
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>当前屏幕</h3>
+                        <p><code>HOME</code>、<code>PUBLISH</code>、<code>TAGS</code>、<code>CATEGORIES</code>、<code>ADD_CATEGORY</code>、<code>SOCIAL</code> 构成完整的预发布界面状态机。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>返回键逻辑</h3>
+                        <p>在 <code>CATEGORIES</code> 和 <code>ADD_CATEGORY</code> 页面按返回键时，先触发子页面回传，再逐级回到 <code>HOME</code>，最后才关闭底部页。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="submit">3. 提交与发布</h2>
+                <p class="section-note">
+                    这里才是“发帖”真正发生的地方。提交按钮回到宿主 Activity 后，先把编辑器里的 title/content 同步回
+                    <code>EditPostRepository</code>，然后检查邮箱是否验证、内容是否可发布，最后才决定是写入数据库、直接上传，还是仅本地保存。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 发布前先过两个硬校验：邮箱验证和内容可发布性。</span>
+private fun shouldPerformPostUpdateAndPublish() : Boolean {
+    val account: AccountModel = accountStore.account
+    if (!account.emailVerified) {
+        storePostViewModel.hideSavingProgressDialog()
+        // 弹窗要求先验证邮箱，用户确认后会退回草稿保存路径。
+        return false
+    }
+
+    editPostRepository.getPost()?.let {
+        if (!postUtilsWrapper.isPublishable(it)) {
+            storePostViewModel.hideSavingProgressDialog()
+            editPostRepository.updateStatusFromPostSnapshotWhenEditorOpened()
+            ToastUtils.showToast(this, getString(R.string.error_publish_empty_post), ToastUtils.Duration.SHORT)
+            return false
+        }
+    }
+    return true
+}</pre>
+                </div>
+
+                <div class="code-shell" style="margin-top: 12px;">
+<pre><span class="comment">// 通过校验后，先写回 PostModel 的状态，再交给 StorePostViewModel。</span>
+private fun performPostUpdateAndPublish(publishPost: Boolean) {
+    storePostViewModel.showSavingProgressDialog()
+    val isFirstTimePublish: Boolean = isFirstTimePublish(publishPost)
+    editPostRepository.updateAsync({ postModel: PostModel ->
+        if (publishPost) {
+            if (postModel.status == PostStatus.SCHEDULED.toString()) {
+                postModel.setDateCreated(dateTimeUtils.currentTimeInIso8601())
+            }
+            if (uploadUtilsWrapper.userCanPublish(site)) {
+                postModel.setStatus(PostStatus.PUBLISHED.toString())
+            } else {
+                postModel.setStatus(PostStatus.PENDING.toString())
+            }
+            postEditorAnalyticsSession?.setOutcome(Outcome.PUBLISH)
+        } else {
+            postEditorAnalyticsSession?.setOutcome(Outcome.SAVE)
+        }
+        postModel.setChangesConfirmedContentHashcode(postModel.contentHashcode())
+        true
+    }) { _: PostImmutableModel?, result: UpdatePostResult ->
+        if (result === Updated) {
+            val activityFinishState: ActivityFinishState = savePostOnline(isFirstTimePublish)
+            storePostViewModel.finish(activityFinishState)
+        }
+    }
+}</pre>
+                </div>
+
+                <div class="two-col">
+                    <div class="summary-card">
+                        <h3>publishPost = true 时发生什么</h3>
+                        <p>如果用户有权限，会把状态设为 <code>PUBLISHED</code>；如果没有权限，则改成 <code>PENDING</code>，也就是提交审核而不是立即公开。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>publishPost = false 时发生什么</h3>
+                        <p>这条分支更像“保存并退出”。它仍然会写入内容快照，但不会强制改成发布态。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="result">4. 结果处理</h2>
+                <p class="section-note">
+                    <code>StorePostViewModel.savePostOnline()</code> 负责先落库，再在有网时触发上传服务。
+                    宿主 Activity 收到 <code>onFinish</code> 后，会把结果编码成 extras，并交给外层列表页或宿主视图做 snackbar 收尾。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 保存到数据库，再根据网络状态决定是否立刻触发上传。</span>
+fun savePostOnline(
+    isFirstTimePublish: Boolean,
+    context: Context,
+    editPostRepository: EditPostRepository,
+    site: SiteModel
+): ActivityFinishState {
+    savePostToDbUseCase.savePostToDb(editPostRepository, site)
+    return if (networkUtils.isNetworkAvailable()) {
+        uploadService.uploadPost(
+            context, editPostRepository.id, isFirstTimePublish,
+            "StorePostViewModel#savePostOnline"
+        )
+        SAVED_ONLINE
+    } else {
+        SAVED_LOCALLY
+    }
+}</pre>
+                </div>
+
+                <p class="section-note" style="margin-top: 14px;">
+                    上传层的最终反馈在 <code>UploadUtils.handleEditPostModelResultSnackbars()</code>。
+                    它会读取 <code>EXTRA_HAS_CHANGES</code>、<code>EXTRA_UPLOAD_NOT_STARTED</code>、<code>EXTRA_HAS_FAILED_MEDIA</code> 和帖子状态，
+                    决定是展示“已保存/已发布”、给“发布/同步”按钮，还是提示离线排队和失败媒体重试。
+                </p>
+
+                <div class="code-shell">
+<pre><span class="comment">// 结果收尾：把上传结果转成对应的 snackbar 交互。</span>
+public static void handleEditPostModelResultSnackbars(...) {
+    boolean hasChanges = data.getBooleanExtra(EditorConstants.EXTRA_HAS_CHANGES, false);
+    if (!hasChanges) {
+        return;
+    }
+
+    boolean uploadNotStarted = data.getBooleanExtra(EditorConstants.EXTRA_UPLOAD_NOT_STARTED, false);
+    if (uploadNotStarted && !NetworkUtils.isNetworkAvailable(activity)) {
+        // 离线时：排队上传，展示可取消的提示。
+        UploadWorkerKt.enqueueUploadWorkRequestForSite(site);
+        return;
+    }
+
+    boolean hasFailedMedia = data.getBooleanExtra(EditorConstants.EXTRA_HAS_FAILED_MEDIA, false);
+    if (hasFailedMedia) {
+        // 媒体失败时：给“编辑”按钮，回到编辑器修复。
+        return;
+    }
+    // 根据 postStatus / uploadNotStarted 选择 publish / sync / view 文案。
+}</pre>
+                </div>
+            </div>
+        </section>
+
+        <aside class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="section-title">阅读指南</div>
+                    <h2 class="panel-title">看这条链路时先抓住这几个点</h2>
+                </div>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>1. 入口不等于发帖</h3>
+                    <p>列表页打开编辑器只是第一步，真正的发帖动作要等到宿主 Activity 的主按钮进入预发布提交路径。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>2. 底部页是状态机</h3>
+                    <p><code>PrepublishingViewModel</code> 负责屏幕切换、返回键退栈、标签预取和提交事件，不承担上传责任。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>3. 提交前有硬校验</h3>
+                    <p>邮箱未验证或内容不可发布时，会直接中断上传，避免把明显无效的帖子送进发布链路。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>4. 保存和上传被拆开了</h3>
+                    <p><code>StorePostViewModel.savePostOnline()</code> 先写数据库，再按网络状态决定是否立刻起 <code>UploadService</code>。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>5. 结果由 extras 决定</h3>
+                    <p>宿主 Activity 把“是否有改动、是否离线、是否有失败媒体”编码到 Intent extras，后续 snackbar 分支就完全依赖这些标记。</p>
+                </div>
+                <div class="summary-card">
+                    <h3>6. Classic 和 Gutenberg 共享主流程</h3>
+                    <p>两个编辑器宿主的函数名和实现细节不同，但主干都是 <code>performPrimaryAction()</code> -> 预发布页 -> <code>uploadPost()</code>。</p>
+                </div>
+            </div>
+
+            <div class="section" style="margin-top: 18px;">
+                <h2 id="snippet">关键代码片段索引</h2>
+                <p class="section-note">
+                    下面这些源码位置是这份分析的锚点，后续如果要继续细化某一段，可以直接从这里切进去。
+                </p>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <h3><code>ActivityLauncher.java:1073-1122</code></h3>
+                        <p>编辑器入口，负责把站点和 postLocalId 送入 <code>EditorLauncher</code>。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3><code>EditPostActivity.kt:1861-2302</code></h3>
+                        <p>主按钮分流、预发布弹层、发布校验、状态更新和上传触发都在这里。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3><code>PrepublishingViewModel.kt:63-152</code></h3>
+                        <p>预发布页状态机，负责回退、屏幕切换和提交事件回传。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3><code>StorePostViewModel.kt:89-108</code></h3>
+                        <p>先保存到数据库，再按网络情况触发 <code>UploadService.uploadPost()</code>。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3><code>UploadUtils.java:191-306, 436-464</code></h3>
+                        <p>结果 snackbar 的分支树，以及真正发起上传的静态工具方法。</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3><code>PostsListActivity.kt:433-449</code></h3>
+                        <p>编辑器返回后的结果入口，必要时还会重新打开编辑器或交给页面状态处理。</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <section class="diagram-panel">
+        <div class="panel-header" style="margin-bottom: 14px;">
+            <div>
+                <div class="section-title">流程图</div>
+                <h2 class="panel-title">发帖流程主干图</h2>
+            </div>
+            <p class="panel-subtitle">
+                图里画的是主干，不是所有旁路。蓝色节点代表 UI/宿主 Activity，绿色节点代表预发布状态机，橙色节点代表真正的发布与上传动作。
+            </p>
+        </div>
+
+        <div class="diagram-wrap">
+            <svg viewBox="0 0 1240 1060" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC',sans-serif" font-size="13">
+                <defs>
+                    <linearGradient id="bgCard" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stop-color="#fffdf8"/>
+                        <stop offset="100%" stop-color="#f6ede0"/>
+                    </linearGradient>
+                    <linearGradient id="accentFill" x1="0" x2="1" y1="0" y2="1">
+                        <stop offset="0%" stop-color="#9a4d1e"/>
+                        <stop offset="100%" stop-color="#bf6a2e"/>
+                    </linearGradient>
+                    <marker id="arrow" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="10" markerHeight="8" orient="auto">
+                        <polygon points="0 0, 10 4, 0 8" fill="#6b5a4b"/>
+                    </marker>
+                    <marker id="arrowAccent" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="10" markerHeight="8" orient="auto">
+                        <polygon points="0 0, 10 4, 0 8" fill="#9a4d1e"/>
+                    </marker>
+                </defs>
+
+                <rect x="18" y="16" width="1204" height="1024" rx="30" fill="url(#bgCard)" stroke="rgba(74,55,38,0.10)"/>
+
+                <!-- Start -->
+                <rect x="420" y="42" width="400" height="52" rx="26" fill="url(#accentFill)"/>
+                <text x="620" y="75" text-anchor="middle" fill="#fff" font-weight="700">入口：列表页 / 我的站点 / 阅读页 / 通知页 打开编辑器</text>
+
+                <line x1="620" y1="94" x2="620" y2="126" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="350" y="126" width="540" height="72" rx="18" fill="#f6fbff" stroke="#b9cbe0"/>
+                <text x="620" y="154" text-anchor="middle" fill="#274362" font-weight="700">ActivityLauncher.editPostOrPageForResult()</text>
+                <text x="620" y="174" text-anchor="middle" fill="#56708a" font-size="11">传 site + postLocalId，不直接传巨大的 PostModel</text>
+
+                <line x1="620" y1="198" x2="620" y2="232" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="350" y="232" width="540" height="72" rx="18" fill="#f6fbff" stroke="#b9cbe0"/>
+                <text x="620" y="260" text-anchor="middle" fill="#274362" font-weight="700">编辑器宿主：EditPostActivity / GutenbergKitActivity</text>
+                <text x="620" y="280" text-anchor="middle" fill="#56708a" font-size="11">初始化 editPostRepository、storePostViewModel、prepublishingViewModel</text>
+
+                <line x1="620" y1="304" x2="620" y2="338" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="350" y="338" width="540" height="84" rx="18" fill="#eef9f2" stroke="#b5dcc3"/>
+                <text x="620" y="366" text-anchor="middle" fill="#21624b" font-weight="700">performPrimaryAction()</text>
+                <text x="620" y="386" text-anchor="middle" fill="#56708a" font-size="11">PUBLISH_NOW / UPDATE / CONTINUE / SCHEDULE / SUBMIT_FOR_REVIEW</text>
+                <text x="620" y="405" text-anchor="middle" fill="#56708a" font-size="11">大多走预发布页，SAVE 直接走 uploadPost(false)</text>
+
+                <line x1="620" y1="422" x2="620" y2="456" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="240" y="456" width="760" height="94" rx="18" fill="#fff7ea" stroke="#e8c78b"/>
+                <text x="620" y="484" text-anchor="middle" fill="#8b6514" font-weight="700">PrepublishingBottomSheetFragment + PrepublishingViewModel</text>
+                <text x="620" y="504" text-anchor="middle" fill="#8c6f2a" font-size="11">HOME / PUBLISH / TAGS / CATEGORIES / ADD_CATEGORY / SOCIAL</text>
+                <text x="620" y="523" text-anchor="middle" fill="#8c6f2a" font-size="11">处理返回键、屏幕切换、标签预取，并把 submit 事件回传宿主 Activity</text>
+
+                <line x1="620" y1="550" x2="620" y2="584" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <!-- decision diamond email -->
+                <polygon points="620,584 718,648 620,712 522,648" fill="#fff" stroke="#caa15f" stroke-width="2"/>
+                <text x="620" y="642" text-anchor="middle" fill="#8b6514" font-weight="700">邮箱已验证？</text>
+                <text x="620" y="661" text-anchor="middle" fill="#8c6f2a" font-size="11">shouldPerformPostUpdateAndPublish()</text>
+
+                <line x1="620" y1="712" x2="620" y2="744" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+                <text x="642" y="736" fill="#9a4d1e" font-size="12" font-weight="700">否</text>
+                <rect x="120" y="738" width="360" height="76" rx="18" fill="#fff4ec" stroke="#efc4a8"/>
+                <text x="300" y="768" text-anchor="middle" fill="#9a4d1e" font-weight="700">提示验证邮箱</text>
+                <text x="300" y="788" text-anchor="middle" fill="#8d6e5b" font-size="11">用户确认后走 savePostAndOptionallyFinish()，不会继续上传</text>
+                <line x1="300" y1="738" x2="300" y2="718" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <!-- publishable diamond -->
+                <line x1="748" y1="648" x2="900" y2="648" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+                <text x="860" y="640" fill="#9a4d1e" font-size="12" font-weight="700">是</text>
+                <polygon points="930,584 1028,648 930,712 832,648" fill="#fff" stroke="#caa15f" stroke-width="2"/>
+                <text x="930" y="642" text-anchor="middle" fill="#8b6514" font-weight="700">内容可发布？</text>
+                <text x="930" y="661" text-anchor="middle" fill="#8c6f2a" font-size="11">postUtilsWrapper.isPublishable()</text>
+
+                <line x1="930" y1="712" x2="930" y2="744" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+                <text x="952" y="736" fill="#9a4d1e" font-size="12" font-weight="700">否</text>
+                <rect x="720" y="738" width="420" height="76" rx="18" fill="#fff4ec" stroke="#efc4a8"/>
+                <text x="930" y="768" text-anchor="middle" fill="#9a4d1e" font-weight="700">回退并提示“空帖子不能发布”</text>
+                <text x="930" y="788" text-anchor="middle" fill="#8d6e5b" font-size="11">恢复 snapshot，阻断 uploadPost()</text>
+                <line x1="930" y1="738" x2="930" y2="718" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <!-- valid path to update -->
+                <line x1="1028" y1="648" x2="1120" y2="648" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+                <text x="1080" y="640" fill="#21624b" font-size="12" font-weight="700">是</text>
+
+                <rect x="114" y="858" width="1010" height="118" rx="18" fill="#eef9f2" stroke="#b5dcc3"/>
+                <text x="619" y="888" text-anchor="middle" fill="#21624b" font-weight="700">editPostRepository.updateAsync() -> savePostOnline()</text>
+                <text x="619" y="909" text-anchor="middle" fill="#56708a" font-size="11">先更新 status / changesConfirmedContentHashcode / 发表日期，再 savePostToDb()</text>
+                <text x="619" y="929" text-anchor="middle" fill="#56708a" font-size="11">有网则触发 UploadService.uploadPost()，无网则只返回 SAVED_LOCALLY 并等后续同步</text>
+                <text x="619" y="949" text-anchor="middle" fill="#56708a" font-size="11">onFinish 把 ActivityFinishState 编码成 extras，交给外层宿主做结果处理</text>
+                <line x1="930" y1="818" x2="930" y2="858" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrowAccent)"/>
+
+                <!-- result path -->
+                <line x1="619" y1="976" x2="619" y2="1012" stroke="#6b5a4b" stroke-width="2" marker-end="url(#arrow)"/>
+                <rect x="290" y="1012" width="660" height="0" rx="0" fill="transparent"/>
+
+                <text x="619" y="1018" text-anchor="middle" fill="#9a4d1e" font-size="12" font-weight="700">结果处理：UploadUtils.handleEditPostModelResultSnackbars()</text>
+                <text x="619" y="1036" text-anchor="middle" fill="#8d6e5b" font-size="11">根据 hasChanges / uploadNotStarted / hasFailedMedia / postStatus 展示 publish、sync、view、retry 等提示</text>
+            </svg>
+        </div>
+        <p class="caption">
+            读这张图时，把最左边看成“入口”，最中间看成“确认提交”，最下方看成“数据库与上传”，最右侧看成“结果提示”。
+            真正的上传动作不在预发布页，也不在按钮点击那一刻，而是在宿主 Activity 完成校验和状态改写之后。
+        </p>
+    </section>
+</div>
+</body>
+</html>
