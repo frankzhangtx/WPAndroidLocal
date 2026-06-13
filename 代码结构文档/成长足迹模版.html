@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>成长足迹模版 - A3</title>
+  <style>
+    @page {
+      size: A3 portrait;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #d9cfbf;
+      font-family: "Arial", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #2f2631;
+    }
+
+    body {
+      padding: 18px;
+    }
+
+    .sheet {
+      position: relative;
+      width: 297mm;
+      height: 420mm;
+      margin: 0 auto;
+      overflow: hidden;
+      background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 7px),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 9px),
+        #73529d;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      box-shadow: 0 14px 38px rgba(35, 22, 48, 0.28);
+    }
+
+    .sheet::before {
+      content: "";
+      position: absolute;
+      inset: 7mm;
+      border: 2px dashed rgba(255, 255, 255, 0.32);
+      pointer-events: none;
+    }
+
+    .headline {
+      position: absolute;
+      left: 21mm;
+      top: 12mm;
+      right: 17mm;
+      display: flex;
+      align-items: flex-end;
+      gap: 5mm;
+      z-index: 4;
+    }
+
+    h1 {
+      margin: 0;
+      flex: 1;
+      font-size: 31mm;
+      line-height: 0.9;
+      letter-spacing: 0;
+      font-weight: 900;
+      text-align: center;
+      text-shadow:
+        2px 2px 0 #24192d,
+        -2px 2px 0 #24192d,
+        2px -2px 0 #24192d,
+        -2px -2px 0 #24192d,
+        5px 6px 0 rgba(36, 25, 45, 0.36);
+      -webkit-text-stroke: 2px #fff8e9;
+    }
+
+    h1 span {
+      display: inline-block;
+      padding: 0 0.7mm;
+      transform-origin: 50% 80%;
+    }
+
+    h1 span:nth-child(1) {
+      color: #ff5858;
+      transform: rotate(-6deg);
+    }
+
+    h1 span:nth-child(2) {
+      color: #ffd54f;
+      transform: rotate(4deg) translateY(1mm);
+    }
+
+    h1 span:nth-child(3) {
+      color: #38b7df;
+      transform: rotate(-4deg);
+    }
+
+    h1 span:nth-child(4) {
+      color: #7bd381;
+      transform: rotate(6deg) translateY(1mm);
+    }
+
+    .subtitle {
+      position: absolute;
+      left: 91mm;
+      top: 49mm;
+      padding: 2mm 6mm;
+      background: #fff0a8;
+      border: 2px solid #24192d;
+      color: #4a315a;
+      font-size: 6.5mm;
+      font-weight: 800;
+      transform: rotate(-1deg);
+      box-shadow: 2px 3px 0 rgba(36, 25, 45, 0.42);
+      z-index: 5;
+    }
+
+    .profile-card {
+      width: 55mm;
+      padding: 4mm;
+      background: #fff8e9;
+      border: 2px solid #24192d;
+      box-shadow: 3px 4px 0 rgba(36, 25, 45, 0.28);
+      transform: rotate(2deg);
+      font-size: 4mm;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+
+    .profile-card div {
+      border-bottom: 1px dashed rgba(47, 38, 49, 0.48);
+      min-height: 6.4mm;
+    }
+
+    .profile-card span {
+      color: #7a527f;
+      font-weight: 600;
+    }
+
+    .film {
+      position: absolute;
+      left: 122.5mm;
+      top: 70mm;
+      width: 52mm;
+      height: 316mm;
+      padding: 6mm 7.5mm;
+      background: #1f1b22;
+      border: 2px solid #fff8e9;
+      border-radius: 6px;
+      box-shadow: 4px 5px 0 rgba(36, 25, 45, 0.45);
+      z-index: 3;
+    }
+
+    .film::before,
+    .film::after {
+      content: "";
+      position: absolute;
+      top: 4mm;
+      bottom: 4mm;
+      width: 4mm;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          #fff8e9 0 2.5mm,
+          transparent 2.5mm 5.2mm
+        );
+      border-radius: 3px;
+    }
+
+    .film::before {
+      left: 1.6mm;
+    }
+
+    .film::after {
+      right: 1.6mm;
+    }
+
+    .film-title {
+      position: absolute;
+      left: 105mm;
+      top: 60mm;
+      width: 86mm;
+      height: 31mm;
+      z-index: 6;
+      pointer-events: none;
+    }
+
+    .film-inner {
+      display: grid;
+      grid-template-rows: repeat(7, 1fr);
+      gap: 3.2mm;
+      height: 100%;
+    }
+
+    .film-frame {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 0;
+      padding: 2mm 2.5mm;
+      border: 1.5px solid #fff8e9;
+      color: #fff8e9;
+      text-align: center;
+      border-radius: 3px;
+      font-weight: 800;
+    }
+
+    .film-frame strong {
+      display: block;
+      margin-bottom: 1mm;
+      font-size: 7.2mm;
+      line-height: 1;
+    }
+
+    .film-frame span {
+      display: block;
+      font-size: 3.4mm;
+      line-height: 1.24;
+      font-weight: 700;
+    }
+
+    .film-frame:nth-child(1) { background: #3f80b8; }
+    .film-frame:nth-child(2) { background: #bd6f83; }
+    .film-frame:nth-child(3) { background: #e08947; }
+    .film-frame:nth-child(4) { background: #6aa663; }
+    .film-frame:nth-child(5) { background: #5f86b6; }
+    .film-frame:nth-child(6) { background: #8967aa; }
+    .film-frame:nth-child(7) { background: #c65774; }
+
+    .cluster {
+      position: absolute;
+      padding: 5mm;
+      border-radius: 6px;
+      border: 2px solid rgba(255, 248, 233, 0.78);
+      box-shadow: 4px 5px 0 rgba(36, 25, 45, 0.25);
+      z-index: 2;
+    }
+
+    .cluster::after {
+      content: "";
+      position: absolute;
+      inset: 3mm;
+      border: 1px dashed rgba(255, 248, 233, 0.52);
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    .cluster h2 {
+      position: absolute;
+      left: 5mm;
+      top: -8mm;
+      margin: 0;
+      padding: 1.4mm 3mm;
+      background: #fff8e9;
+      border: 2px solid #24192d;
+      border-radius: 4px;
+      font-size: 5.4mm;
+      line-height: 1;
+      color: #33243b;
+      box-shadow: 2px 2px 0 rgba(36, 25, 45, 0.28);
+      z-index: 3;
+    }
+
+    .cluster small {
+      display: block;
+      margin-top: 1mm;
+      font-size: 3.2mm;
+      line-height: 1.35;
+      font-weight: 800;
+      color: #281d2c;
+    }
+
+    .photos {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 3mm;
+    }
+
+    .two-cols {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .photo {
+      position: relative;
+      min-height: 38mm;
+      background: #fff8e9;
+      border: 2px solid #fff8e9;
+      box-shadow: 2px 3px 0 rgba(36, 25, 45, 0.26);
+      overflow: hidden;
+    }
+
+    .photo.tall {
+      min-height: 64mm;
+    }
+
+    .photo.wide {
+      min-height: 45mm;
+    }
+
+    .photo svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: inherit;
+      background: #e9eef5;
+    }
+
+    .caption {
+      position: relative;
+      z-index: 2;
+      margin-top: 3mm;
+      padding: 2.5mm 3mm;
+      background: rgba(255, 248, 233, 0.92);
+      border: 1.5px solid #24192d;
+      border-radius: 4px;
+      font-size: 4mm;
+      line-height: 1.35;
+      font-weight: 700;
+      transform: rotate(-1deg);
+    }
+
+    .memo {
+      position: absolute;
+      z-index: 5;
+      padding: 2mm 3mm;
+      border-radius: 4px;
+      border: 1.5px solid rgba(36, 25, 45, 0.9);
+      color: #fff8e9;
+      font-size: 3.6mm;
+      line-height: 1.25;
+      font-weight: 800;
+      text-align: center;
+      box-shadow: 2px 2px 0 rgba(36, 25, 45, 0.24);
+    }
+
+    .age-0 {
+      left: 17mm;
+      top: 76mm;
+      width: 92mm;
+      background: #39a8c5;
+      transform: rotate(2deg);
+    }
+
+    .age-1 {
+      right: 18mm;
+      top: 82mm;
+      width: 82mm;
+      background: #c75272;
+      transform: rotate(-3deg);
+    }
+
+    .age-2 {
+      left: 21mm;
+      top: 156mm;
+      width: 86mm;
+      background: #ffe3a8;
+      transform: rotate(-1deg);
+    }
+
+    .age-3 {
+      right: 19mm;
+      top: 158mm;
+      width: 88mm;
+      background: #93c98b;
+      transform: rotate(2deg);
+    }
+
+    .age-4 {
+      left: 14mm;
+      top: 259mm;
+      width: 98mm;
+      background: #f28b1f;
+      transform: rotate(1deg);
+    }
+
+    .age-5 {
+      right: 17mm;
+      top: 252mm;
+      width: 89mm;
+      background: #ffd1c9;
+      transform: rotate(-1.5deg);
+    }
+
+    .age-6 {
+      right: 19mm;
+      bottom: 7mm;
+      width: 94mm;
+      background: #fff3a8;
+      transform: rotate(1.2deg);
+    }
+
+    .age-6 .photos {
+      grid-template-columns: 1.05fr 0.95fr;
+    }
+
+    .sticker {
+      position: absolute;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2mm 3mm;
+      min-width: 21mm;
+      min-height: 11mm;
+      border: 2px solid #24192d;
+      border-radius: 4px;
+      background: #ffdf4d;
+      color: #33243b;
+      font-size: 4mm;
+      line-height: 1.15;
+      text-align: center;
+      font-weight: 900;
+      box-shadow: 2px 2px 0 rgba(36, 25, 45, 0.32);
+    }
+
+    .heart {
+      border-radius: 45% 45% 55% 55%;
+      background: #ef4a47;
+      color: #fff8e9;
+      transform: rotate(-8deg);
+    }
+
+    .star {
+      position: absolute;
+      z-index: 1;
+      width: 13mm;
+      height: 13mm;
+      color: #fff8e9;
+      opacity: 0.88;
+    }
+
+    .star svg,
+    .doodle svg,
+    .film-title svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .doodle {
+      position: absolute;
+      z-index: 1;
+      color: rgba(255, 248, 233, 0.85);
+    }
+
+    .doodle.line-1 {
+      left: 103mm;
+      top: 122mm;
+      width: 22mm;
+      height: 38mm;
+    }
+
+    .doodle.line-2 {
+      right: 102mm;
+      top: 132mm;
+      width: 22mm;
+      height: 36mm;
+      transform: scaleX(-1);
+    }
+
+    .doodle.line-3 {
+      left: 104mm;
+      top: 252mm;
+      width: 24mm;
+      height: 50mm;
+    }
+
+    .memo.m0 { left: 22mm; top: 67mm; background: #39699e; transform: rotate(-4deg); }
+    .memo.m1 { right: 61mm; top: 76mm; background: #bf5f75; transform: rotate(4deg); }
+    .memo.m2 { left: 79mm; top: 223mm; background: #8cbfd2; transform: rotate(-2deg); }
+    .memo.m3 { right: 87mm; top: 219mm; background: #7a9c58; transform: rotate(2deg); }
+    .memo.m4 { left: 17mm; bottom: 31mm; background: #6b8ebf; transform: rotate(-3deg); }
+    .memo.m5 { right: 19mm; bottom: 15mm; background: #7091c5; transform: rotate(2deg); }
+
+    .s1 { left: 32mm; top: 135mm; transform: rotate(18deg); }
+    .s2 { left: 111mm; top: 92mm; transform: rotate(-11deg); }
+    .s3 { right: 35mm; top: 62mm; transform: rotate(28deg); }
+    .s4 { right: 24mm; top: 210mm; transform: rotate(-16deg); }
+    .s5 { left: 57mm; bottom: 37mm; transform: rotate(8deg); }
+    .s6 { right: 113mm; bottom: 40mm; transform: rotate(18deg); }
+
+    .sticker.a { left: 72mm; bottom: 18mm; background: #ef4a47; color: #fff8e9; }
+    .sticker.b { left: 100mm; bottom: 19mm; background: #ef4a47; color: #fff8e9; transform: rotate(3deg); }
+    .sticker.c { right: 24mm; top: 198mm; background: #f7a665; transform: rotate(5deg); }
+
+    [contenteditable="true"] {
+      outline: none;
+    }
+
+    [contenteditable="true"]:focus {
+      background: rgba(255, 255, 255, 0.35);
+      box-shadow: 0 0 0 2px rgba(255, 248, 233, 0.85);
+    }
+
+    @media print {
+      html,
+      body {
+        width: 297mm;
+        height: 420mm;
+        padding: 0;
+        background: #fff;
+      }
+
+      .sheet {
+        margin: 0;
+        border: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet" aria-label="A3 成长足迹模版">
+    <section class="headline" aria-label="标题和资料">
+      <h1 aria-label="成长足迹">
+        <span>成</span><span>长</span><span>足</span><span>迹</span>
+      </h1>
+      <div class="profile-card">
+        <div>姓名：<span contenteditable="true">宝宝姓名</span></div>
+        <div>生日：<span contenteditable="true">出生日期</span></div>
+        <div>班级：<span contenteditable="true">幼儿园/班级</span></div>
+      </div>
+    </section>
+
+    <div class="subtitle" contenteditable="true">0-6 岁时光胶片纪念册</div>
+
+    <div class="film-title" aria-hidden="true">
+      <svg viewBox="0 0 320 120">
+        <path d="M38 60 C44 22 91 25 107 47 C121 17 172 18 185 52 C208 30 257 37 265 73 C269 94 246 105 220 96 C205 118 157 109 151 85 C135 107 88 108 80 81 C60 94 32 86 38 60Z" fill="#fff0a8" stroke="#24192d" stroke-width="8"/>
+        <rect x="78" y="42" width="164" height="52" rx="8" fill="#b86145" stroke="#24192d" stroke-width="5"/>
+        <text x="160" y="63" text-anchor="middle" font-size="22" font-family="Arial, sans-serif" font-weight="800" fill="#fff8e9">GROWTH</text>
+        <text x="160" y="86" text-anchor="middle" font-size="17" font-family="Arial, sans-serif" font-weight="800" fill="#fff8e9">0-6 YEARS</text>
+        <circle cx="55" cy="69" r="24" fill="#2b252d" stroke="#fff8e9" stroke-width="5"/>
+        <circle cx="55" cy="69" r="12" fill="#6e5a76"/>
+        <path d="M47 38 L25 26 L25 112 L47 99Z" fill="#2b252d" stroke="#fff8e9" stroke-width="5"/>
+      </svg>
+    </div>
+
+    <section class="film" aria-label="0 到 6 岁时间轴">
+      <div class="film-inner">
+        <div class="film-frame"><strong>0岁</strong><span contenteditable="true"></span></div>
+        <div class="film-frame"><strong>1岁</strong><span contenteditable="true"></span></div>
+        <div class="film-frame"><strong>2岁</strong><span contenteditable="true"></span></div>
+        <div class="film-frame"><strong>3岁</strong><span contenteditable="true"></span></div>
+        <div class="film-frame"><strong>4岁</strong><span contenteditable="true"></span></div>
+        <div class="film-frame"><strong>5岁</strong><span contenteditable="true"></span></div>
+        <div class="film-frame"><strong>6岁</strong><span contenteditable="true"></span></div>
+      </div>
+    </section>
+
+    <section class="cluster age-0" aria-label="0岁照片区">
+      <h2>0岁</h2>
+      <div class="photos two-cols">
+        <figure class="photo">
+          <svg viewBox="0 0 160 118" role="img" aria-label="照片占位图">
+            <rect width="160" height="118" fill="#d7e8f8"/>
+            <circle cx="126" cy="20" r="14" fill="#fff3a8"/>
+            <path d="M0 92 C36 68 70 74 101 92 C122 103 139 100 160 86 L160 118 L0 118Z" fill="#95c7df"/>
+            <rect x="32" y="51" width="93" height="29" rx="14" fill="#fff8e9"/>
+            <circle cx="61" cy="51" r="16" fill="#f0b79f"/>
+            <path d="M50 47 C57 41 65 41 73 47" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M80 57 C91 50 109 55 120 66" fill="none" stroke="#5c94bd" stroke-width="8" stroke-linecap="round"/>
+            <text x="80" y="108" text-anchor="middle" font-size="12" font-weight="800" fill="#ffffff">替换照片</text>
+          </svg>
+        </figure>
+        <figure class="photo">
+          <svg viewBox="0 0 160 118" role="img" aria-label="照片占位图">
+            <rect width="160" height="118" fill="#f6d9c8"/>
+            <rect x="18" y="20" width="124" height="78" rx="8" fill="#fff8e9"/>
+            <circle cx="80" cy="54" r="28" fill="#efb39a"/>
+            <path d="M57 48 Q64 42 71 48" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M89 48 Q96 42 103 48" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M66 66 Q80 78 95 66" fill="none" stroke="#2f2631" stroke-width="4" stroke-linecap="round"/>
+            <text x="80" y="109" text-anchor="middle" font-size="12" font-weight="800" fill="#a25c61">替换照片</text>
+          </svg>
+        </figure>
+      </div>
+      <p class="caption" contenteditable="true"></p>
+    </section>
+
+    <section class="cluster age-1" aria-label="1岁照片区">
+      <h2>1岁</h2>
+      <div class="photos">
+        <figure class="photo wide">
+          <svg viewBox="0 0 220 136" role="img" aria-label="照片占位图">
+            <rect width="220" height="136" fill="#d8f0df"/>
+            <path d="M0 105 C47 84 82 98 121 87 C154 78 184 84 220 69 L220 136 L0 136Z" fill="#82c689"/>
+            <rect x="22" y="76" width="176" height="13" rx="6" fill="#fff8e9"/>
+            <circle cx="110" cy="40" r="20" fill="#efb39a"/>
+            <path d="M94 38 Q100 33 106 38 M114 38 Q120 33 126 38" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M97 54 Q110 62 123 54" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M86 66 L134 66 L128 104 L92 104Z" fill="#ed6b66"/>
+            <path d="M89 76 L62 91 M131 76 L158 91" stroke="#efb39a" stroke-width="8" stroke-linecap="round"/>
+            <path d="M98 104 L88 124 M123 104 L133 124" stroke="#4c5b9f" stroke-width="8" stroke-linecap="round"/>
+            <text x="110" y="128" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff">替换照片</text>
+          </svg>
+        </figure>
+      </div>
+      <p class="caption" contenteditable="true"></p>
+    </section>
+
+    <section class="cluster age-2" aria-label="2岁照片区">
+      <h2>2岁</h2>
+      <div class="photos">
+        <figure class="photo tall">
+          <svg viewBox="0 0 178 220" role="img" aria-label="照片占位图">
+            <rect width="178" height="220" fill="#f6d8b8"/>
+            <rect x="18" y="18" width="142" height="174" rx="7" fill="#fff8e9"/>
+            <path d="M34 177 C64 134 109 139 144 177 L144 192 L34 192Z" fill="#71a7d7"/>
+            <circle cx="89" cy="74" r="31" fill="#efb39a"/>
+            <path d="M67 55 C77 35 104 35 113 55 C104 48 81 48 67 55Z" fill="#4a2d28"/>
+            <path d="M72 75 Q79 69 86 75 M94 75 Q101 69 108 75" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M79 93 Q89 101 101 93" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="51" cy="144" r="12" fill="#ffdf4d"/>
+            <circle cx="128" cy="145" r="10" fill="#ef4a47"/>
+            <text x="89" y="211" text-anchor="middle" font-size="13" font-weight="800" fill="#a85f35">替换照片</text>
+          </svg>
+        </figure>
+      </div>
+      <p class="caption" contenteditable="true"></p>
+    </section>
+
+    <section class="cluster age-3" aria-label="3岁照片区">
+      <h2>3岁</h2>
+      <div class="photos two-cols">
+        <figure class="photo tall">
+          <svg viewBox="0 0 150 210" role="img" aria-label="照片占位图">
+            <rect width="150" height="210" fill="#cfe7d5"/>
+            <rect x="22" y="20" width="106" height="150" rx="6" fill="#fff8e9"/>
+            <path d="M44 142 L106 142 L113 170 L37 170Z" fill="#354560"/>
+            <circle cx="75" cy="71" r="27" fill="#efb39a"/>
+            <path d="M50 61 C55 35 97 35 102 61 C86 52 65 52 50 61Z" fill="#2f2631"/>
+            <path d="M58 71 Q64 65 70 71 M80 71 Q86 65 92 71" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M65 88 Q75 95 86 88" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <rect x="49" y="106" width="52" height="46" rx="4" fill="#fff8e9"/>
+            <path d="M49 106 L75 128 L101 106" fill="none" stroke="#354560" stroke-width="5"/>
+            <text x="75" y="199" text-anchor="middle" font-size="12" font-weight="800" fill="#5e8357">替换照片</text>
+          </svg>
+        </figure>
+        <figure class="photo tall">
+          <svg viewBox="0 0 150 210" role="img" aria-label="照片占位图">
+            <rect width="150" height="210" fill="#f7e6a2"/>
+            <path d="M0 160 C40 132 90 144 150 122 L150 210 L0 210Z" fill="#8bc892"/>
+            <circle cx="54" cy="78" r="22" fill="#efb39a"/>
+            <circle cx="99" cy="82" r="22" fill="#df9b85"/>
+            <path d="M39 72 Q46 66 52 72 M58 72 Q64 66 70 72 M85 76 Q92 70 98 76 M104 76 Q110 70 116 76" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M45 91 Q55 98 66 91 M91 95 Q101 102 112 95" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M34 112 L75 112 L70 160 L39 160Z" fill="#ed6b66"/>
+            <path d="M79 116 L121 116 L116 164 L84 164Z" fill="#66a5d8"/>
+            <path d="M69 130 Q76 122 84 130" fill="none" stroke="#2f2631" stroke-width="5" stroke-linecap="round"/>
+            <text x="75" y="199" text-anchor="middle" font-size="12" font-weight="800" fill="#6d7f35">替换照片</text>
+          </svg>
+        </figure>
+      </div>
+      <p class="caption" contenteditable="true"></p>
+    </section>
+
+    <section class="cluster age-4" aria-label="4岁照片区">
+      <h2>4岁</h2>
+      <div class="photos two-cols">
+        <figure class="photo">
+          <svg viewBox="0 0 150 118" role="img" aria-label="照片占位图">
+            <rect width="150" height="118" fill="#d7ebff"/>
+            <path d="M0 93 C31 78 63 84 91 75 C114 68 132 70 150 61 L150 118 L0 118Z" fill="#8ec076"/>
+            <circle cx="74" cy="35" r="16" fill="#efb39a"/>
+            <path d="M60 57 L88 57 L98 92 L51 92Z" fill="#fff8e9"/>
+            <path d="M62 61 L40 78 M87 61 L111 47" stroke="#efb39a" stroke-width="7" stroke-linecap="round"/>
+            <path d="M61 91 L43 108 M88 91 L105 108" stroke="#354560" stroke-width="7" stroke-linecap="round"/>
+            <text x="75" y="111" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff">替换照片</text>
+          </svg>
+        </figure>
+        <figure class="photo">
+          <svg viewBox="0 0 150 118" role="img" aria-label="照片占位图">
+            <rect width="150" height="118" fill="#f5ddb8"/>
+            <rect x="27" y="21" width="96" height="66" rx="5" fill="#fff8e9" stroke="#6a463e" stroke-width="3"/>
+            <circle cx="58" cy="52" r="13" fill="#ef4a47"/>
+            <rect x="76" y="39" width="28" height="28" fill="#38b7df"/>
+            <path d="M44 82 L108 31" stroke="#7bd381" stroke-width="6" stroke-linecap="round"/>
+            <text x="75" y="109" text-anchor="middle" font-size="11" font-weight="800" fill="#b65e23">替换照片</text>
+          </svg>
+        </figure>
+        <figure class="photo">
+          <svg viewBox="0 0 150 118" role="img" aria-label="照片占位图">
+            <rect width="150" height="118" fill="#cae9f2"/>
+            <path d="M0 74 L35 40 L57 74 L80 49 L116 91 L150 63 L150 118 L0 118Z" fill="#89a9be"/>
+            <path d="M0 90 C39 74 90 76 150 64 L150 118 L0 118Z" fill="#fff8e9"/>
+            <circle cx="49" cy="76" r="11" fill="#efb39a"/>
+            <circle cx="93" cy="72" r="11" fill="#df9b85"/>
+            <path d="M40 91 L58 91 L64 113 L34 113Z" fill="#ed6b66"/>
+            <path d="M84 87 L103 87 L109 113 L79 113Z" fill="#66a5d8"/>
+            <text x="75" y="109" text-anchor="middle" font-size="11" font-weight="800" fill="#6b8799">替换照片</text>
+          </svg>
+        </figure>
+        <figure class="photo">
+          <svg viewBox="0 0 150 118" role="img" aria-label="照片占位图">
+            <rect width="150" height="118" fill="#f8d2d0"/>
+            <rect x="38" y="54" width="74" height="36" rx="4" fill="#fff8e9"/>
+            <path d="M42 54 C52 37 67 48 75 34 C83 48 98 37 108 54Z" fill="#ffdf4d"/>
+            <rect x="72" y="24" width="6" height="18" fill="#38b7df"/>
+            <path d="M75 20 C79 15 79 12 75 8 C71 12 71 15 75 20Z" fill="#ef4a47"/>
+            <text x="75" y="109" text-anchor="middle" font-size="11" font-weight="800" fill="#b45b5b">替换照片</text>
+          </svg>
+        </figure>
+      </div>
+      <p class="caption" contenteditable="true"></p>
+    </section>
+
+    <section class="cluster age-5" aria-label="5岁照片区">
+      <h2>5岁</h2>
+      <div class="photos two-cols">
+        <figure class="photo tall">
+          <svg viewBox="0 0 150 210" role="img" aria-label="照片占位图">
+            <rect width="150" height="210" fill="#2d2732"/>
+            <circle cx="75" cy="62" r="24" fill="#efb39a"/>
+            <path d="M53 57 C60 37 91 37 98 57 C83 49 67 49 53 57Z" fill="#2f2631"/>
+            <path d="M60 64 Q67 58 73 64 M78 64 Q85 58 91 64" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M65 81 Q75 88 86 81" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M48 103 L102 103 L114 176 L36 176Z" fill="#fff8e9"/>
+            <path d="M50 103 L75 135 L100 103" fill="none" stroke="#3f80b8" stroke-width="6"/>
+            <circle cx="25" cy="34" r="3" fill="#fff8e9"/>
+            <circle cx="126" cy="28" r="4" fill="#ffdf4d"/>
+            <circle cx="118" cy="161" r="3" fill="#fff8e9"/>
+            <text x="75" y="199" text-anchor="middle" font-size="12" font-weight="800" fill="#fff8e9">替换照片</text>
+          </svg>
+        </figure>
+        <figure class="photo tall">
+          <svg viewBox="0 0 150 210" role="img" aria-label="照片占位图">
+            <rect width="150" height="210" fill="#e9eef5"/>
+            <rect x="16" y="24" width="118" height="76" rx="5" fill="#fff8e9" stroke="#8aa3bc" stroke-width="3"/>
+            <path d="M31 58 L61 42 L93 64 L118 38" fill="none" stroke="#38b7df" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="76" cy="130" r="23" fill="#efb39a"/>
+            <path d="M53 123 C61 101 93 101 100 123 C83 116 68 116 53 123Z" fill="#34262c"/>
+            <path d="M59 133 Q66 127 72 133 M80 133 Q87 127 93 133" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M66 149 Q76 156 88 149" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <text x="75" y="199" text-anchor="middle" font-size="12" font-weight="800" fill="#71849a">替换照片</text>
+          </svg>
+        </figure>
+      </div>
+      <p class="caption" contenteditable="true"></p>
+    </section>
+
+    <section class="cluster age-6" aria-label="6岁照片区">
+      <h2>6岁</h2>
+      <div class="photos">
+        <figure class="photo wide">
+          <svg viewBox="0 0 178 136" role="img" aria-label="照片占位图">
+            <rect width="178" height="136" fill="#d7e8f8"/>
+            <rect x="15" y="22" width="148" height="84" rx="5" fill="#fff8e9"/>
+            <path d="M35 48 L89 27 L143 48 L89 69Z" fill="#354560"/>
+            <path d="M53 61 L125 61 L117 97 L61 97Z" fill="#3f80b8"/>
+            <circle cx="89" cy="70" r="19" fill="#efb39a"/>
+            <path d="M70 65 Q77 59 83 65 M95 65 Q102 59 108 65" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M78 82 Q89 90 101 82" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <text x="89" y="126" text-anchor="middle" font-size="12" font-weight="800" fill="#5c7f9e">替换照片</text>
+          </svg>
+        </figure>
+        <figure class="photo wide">
+          <svg viewBox="0 0 178 136" role="img" aria-label="照片占位图">
+            <rect width="178" height="136" fill="#f8d2d0"/>
+            <path d="M0 91 C28 75 53 88 81 73 C116 55 144 70 178 48 L178 136 L0 136Z" fill="#8fc8d3"/>
+            <path d="M31 95 C54 61 79 69 89 95 C99 69 125 61 148 95 L148 112 L31 112Z" fill="#fff8e9"/>
+            <circle cx="88" cy="54" r="20" fill="#efb39a"/>
+            <path d="M69 48 Q76 42 82 48 M94 48 Q101 42 107 48" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M78 67 Q88 74 100 67" fill="none" stroke="#2f2631" stroke-width="3" stroke-linecap="round"/>
+            <path d="M63 87 L113 87 L124 126 L52 126Z" fill="#7bd381"/>
+            <text x="89" y="128" text-anchor="middle" font-size="12" font-weight="800" fill="#ffffff">替换照片</text>
+          </svg>
+        </figure>
+      </div>
+      <p class="caption" contenteditable="true"></p>
+    </section>
+
+    <div class="memo m0" contenteditable="true">出生<br>第一天</div>
+    <div class="memo m1" contenteditable="true">第一次<br>迈步</div>
+    <div class="memo m2" contenteditable="true">童言<br>童语</div>
+    <div class="memo m3" contenteditable="true">朋友<br>和游戏</div>
+    <div class="memo m4" contenteditable="true">小小<br>探险家</div>
+    <div class="memo m5" contenteditable="true">准备<br>上一年级</div>
+
+    <div class="sticker heart a" contenteditable="true">快乐<br>成长</div>
+    <div class="sticker heart b" contenteditable="true">加油<br>宝贝</div>
+    <div class="sticker c" contenteditable="true">我的<br>闪光时刻</div>
+
+    <div class="star s1" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="star s2" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="star s3" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="star s4" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="star s5" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="star s6" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="doodle line-1" aria-hidden="true">
+      <svg viewBox="0 0 80 140">
+        <path d="M67 5 C20 28 71 63 31 89 C10 103 26 125 56 132" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 8"/>
+      </svg>
+    </div>
+    <div class="doodle line-2" aria-hidden="true">
+      <svg viewBox="0 0 80 140">
+        <path d="M67 5 C20 28 71 63 31 89 C10 103 26 125 56 132" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 8"/>
+      </svg>
+    </div>
+    <div class="doodle line-3" aria-hidden="true">
+      <svg viewBox="0 0 80 160">
+        <path d="M60 8 C13 36 74 70 27 107 C7 123 29 145 59 152" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 8"/>
+      </svg>
+    </div>
+  </main>
+</body>
+</html>
