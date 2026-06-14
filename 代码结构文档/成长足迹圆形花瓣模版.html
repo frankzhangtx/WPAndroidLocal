@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>成长足迹圆形花瓣模版 - A3</title>
+  <style>
+    @page {
+      size: A3 portrait;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #d9cfbf;
+      font-family: "Arial", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #2f2631;
+    }
+
+    body {
+      padding: 18px;
+    }
+
+    .sheet {
+      position: relative;
+      width: 297mm;
+      height: 420mm;
+      margin: 0 auto;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 47%, rgba(255, 248, 233, 0.16) 0 78mm, transparent 79mm),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 7px),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 9px),
+        #73529d;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      box-shadow: 0 14px 38px rgba(35, 22, 48, 0.28);
+    }
+
+    .sheet::before {
+      content: "";
+      position: absolute;
+      inset: 7mm;
+      border: 2px dashed rgba(255, 255, 255, 0.32);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .headline {
+      position: absolute;
+      left: 19mm;
+      top: 11mm;
+      right: 17mm;
+      display: flex;
+      align-items: flex-end;
+      gap: 5mm;
+      z-index: 10;
+    }
+
+    h1 {
+      margin: 0;
+      flex: 1;
+      font-size: 29mm;
+      line-height: 0.9;
+      letter-spacing: 0;
+      font-weight: 900;
+      text-align: center;
+      text-shadow:
+        2px 2px 0 #24192d,
+        -2px 2px 0 #24192d,
+        2px -2px 0 #24192d,
+        -2px -2px 0 #24192d,
+        5px 6px 0 rgba(36, 25, 45, 0.36);
+      -webkit-text-stroke: 2px #fff8e9;
+    }
+
+    h1 span {
+      display: inline-block;
+      padding: 0 0.7mm;
+      transform-origin: 50% 80%;
+    }
+
+    h1 span:nth-child(1) {
+      color: #ff5858;
+      transform: rotate(-6deg);
+    }
+
+    h1 span:nth-child(2) {
+      color: #ffd54f;
+      transform: rotate(4deg) translateY(1mm);
+    }
+
+    h1 span:nth-child(3) {
+      color: #38b7df;
+      transform: rotate(-4deg);
+    }
+
+    h1 span:nth-child(4) {
+      color: #7bd381;
+      transform: rotate(6deg) translateY(1mm);
+    }
+
+    .profile-card {
+      width: 55mm;
+      padding: 4mm;
+      background: #fff8e9;
+      border: 2px solid #24192d;
+      box-shadow: 3px 4px 0 rgba(36, 25, 45, 0.28);
+      transform: rotate(2deg);
+      font-size: 4mm;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+
+    .profile-card div {
+      border-bottom: 1px dashed rgba(47, 38, 49, 0.48);
+      min-height: 6.4mm;
+    }
+
+    .profile-card span {
+      color: #7a527f;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      position: absolute;
+      left: 86mm;
+      top: 58mm;
+      z-index: 10;
+      padding: 2mm 6mm;
+      background: #fff0a8;
+      border: 2px solid #24192d;
+      color: #4a315a;
+      font-size: 6mm;
+      font-weight: 800;
+      transform: rotate(-1deg);
+      box-shadow: 2px 3px 0 rgba(36, 25, 45, 0.42);
+    }
+
+    .flower-field {
+      position: absolute;
+      left: 0;
+      top: 72mm;
+      width: 297mm;
+      height: 330mm;
+      z-index: 3;
+    }
+
+    .petal {
+      position: absolute;
+      width: 76mm;
+      height: 88mm;
+      padding: 10mm 8mm 8mm;
+      border: 2px solid rgba(255, 248, 233, 0.9);
+      border-radius: 50% 50% 46% 46% / 58% 58% 42% 42%;
+      box-shadow: 4px 5px 0 rgba(36, 25, 45, 0.24);
+      transform-origin: 50% 58%;
+      transform: rotate(var(--petal-rotate, 0deg));
+      z-index: 3;
+    }
+
+    .petal::before {
+      content: "";
+      position: absolute;
+      inset: 5mm;
+      border: 1.5px dashed rgba(255, 248, 233, 0.72);
+      border-radius: inherit;
+      pointer-events: none;
+    }
+
+    .petal h2 {
+      position: absolute;
+      left: 50%;
+      top: 6mm;
+      z-index: 4;
+      margin: 0;
+      padding: 1.5mm 4mm;
+      min-width: 19mm;
+      background: #fff8e9;
+      border: 2px solid #24192d;
+      border-radius: 999px;
+      color: #33243b;
+      font-size: 5.2mm;
+      line-height: 1;
+      text-align: center;
+      font-weight: 900;
+      box-shadow: 2px 2px 0 rgba(36, 25, 45, 0.26);
+      transform: translateX(-50%) rotate(var(--label-rotate, 0deg));
+    }
+
+    .photo-area {
+      position: absolute;
+      left: 9mm;
+      right: 9mm;
+      top: 20mm;
+      bottom: 9mm;
+      z-index: 2;
+      background:
+        linear-gradient(135deg, rgba(255, 248, 233, 0.88), rgba(255, 255, 255, 0.72));
+      border: 2px solid rgba(36, 25, 45, 0.58);
+      border-radius: 50% 50% 44% 44% / 60% 60% 40% 40%;
+      box-shadow: inset 0 0 0 2px rgba(255, 248, 233, 0.72);
+    }
+
+    .petal-0 {
+      --petal-rotate: 0deg;
+      --label-rotate: 0deg;
+      left: 110.5mm;
+      top: 0;
+      background: #39a8c5;
+    }
+
+    .petal-1 {
+      --petal-rotate: 38deg;
+      --label-rotate: -38deg;
+      left: 196mm;
+      top: 42mm;
+      background: #c75272;
+    }
+
+    .petal-2 {
+      --petal-rotate: 78deg;
+      --label-rotate: -78deg;
+      left: 202mm;
+      top: 145mm;
+      background: #ffe3a8;
+    }
+
+    .petal-3 {
+      --petal-rotate: 142deg;
+      --label-rotate: -142deg;
+      left: 160mm;
+      top: 236mm;
+      background: #93c98b;
+    }
+
+    .petal-4 {
+      --petal-rotate: -142deg;
+      --label-rotate: 142deg;
+      left: 61mm;
+      top: 236mm;
+      background: #f28b1f;
+    }
+
+    .petal-5 {
+      --petal-rotate: -78deg;
+      --label-rotate: 78deg;
+      left: 20mm;
+      top: 145mm;
+      background: #ffd1c9;
+    }
+
+    .petal-6 {
+      --petal-rotate: -38deg;
+      --label-rotate: 38deg;
+      left: 25mm;
+      top: 42mm;
+      background: #fff3a8;
+    }
+
+    .timeline {
+      position: absolute;
+      left: 73.5mm;
+      top: 120mm;
+      width: 150mm;
+      height: 150mm;
+      z-index: 7;
+    }
+
+    .timeline-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        conic-gradient(
+          #3f80b8 0deg 51.42deg,
+          #bd6f83 51.42deg 102.84deg,
+          #e08947 102.84deg 154.26deg,
+          #6aa663 154.26deg 205.68deg,
+          #5f86b6 205.68deg 257.1deg,
+          #8967aa 257.1deg 308.52deg,
+          #c65774 308.52deg 360deg
+        );
+      box-shadow:
+        0 0 0 2mm #fff8e9,
+        0 0 0 3mm #24192d,
+        5px 7px 0 rgba(36, 25, 45, 0.36);
+    }
+
+    .timeline-track::before {
+      content: "";
+      position: absolute;
+      inset: 10mm;
+      border-radius: 50%;
+      background:
+        repeating-conic-gradient(
+          from 0deg,
+          rgba(255, 248, 233, 0.95) 0deg 3deg,
+          transparent 3deg 8deg
+        );
+    }
+
+    .timeline-track::after {
+      content: "";
+      position: absolute;
+      inset: 20mm;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(255, 248, 233, 0.12), transparent 34mm),
+        #73529d;
+      border: 2mm solid #24192d;
+    }
+
+    .center-label {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 9;
+      width: 62mm;
+      min-height: 42mm;
+      padding: 9mm 6mm 7mm;
+      background: #fff0a8;
+      border: 2px solid #24192d;
+      border-radius: 50%;
+      text-align: center;
+      box-shadow: 3px 4px 0 rgba(36, 25, 45, 0.35);
+      transform: translate(-50%, -50%) rotate(-2deg);
+    }
+
+    .center-label strong {
+      display: block;
+      margin-bottom: 2mm;
+      color: #b86145;
+      font-size: 8mm;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .center-label span {
+      display: block;
+      color: #4a315a;
+      font-size: 5mm;
+      line-height: 1.2;
+      font-weight: 900;
+    }
+
+    .node {
+      position: absolute;
+      z-index: 10;
+      width: 34mm;
+      min-height: 24mm;
+      padding: 2.2mm 2.6mm;
+      background: #fff8e9;
+      border: 2px solid #24192d;
+      border-radius: 6px;
+      text-align: center;
+      box-shadow: 2px 3px 0 rgba(36, 25, 45, 0.28);
+      transform: translate(-50%, -50%);
+    }
+
+    .node strong {
+      display: block;
+      margin-bottom: 1mm;
+      color: #33243b;
+      font-size: 5.2mm;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .node span {
+      display: block;
+      font-family: "HanziPen SC", "Kaiti SC", "STKaiti", "Comic Sans MS", "Marker Felt", "Chalkboard SE", cursive;
+      color: #4a315a;
+      font-size: 2.8mm;
+      line-height: 1.2;
+      font-weight: 800;
+    }
+
+    .node-0 { left: 50%; top: 5%; }
+    .node-1 { left: 87%; top: 22%; }
+    .node-2 { left: 94%; top: 58%; }
+    .node-3 { left: 72%; top: 90%; }
+    .node-4 { left: 28%; top: 90%; }
+    .node-5 { left: 6%; top: 58%; }
+    .node-6 { left: 13%; top: 22%; }
+
+    .memo {
+      position: absolute;
+      z-index: 12;
+      padding: 2mm 3mm;
+      border-radius: 4px;
+      border: 1.5px solid rgba(36, 25, 45, 0.9);
+      color: #fff8e9;
+      font-size: 3.6mm;
+      line-height: 1.25;
+      font-weight: 800;
+      text-align: center;
+      box-shadow: 2px 2px 0 rgba(36, 25, 45, 0.24);
+    }
+
+    .memo.m0 {
+      left: 28mm;
+      top: 70mm;
+      background: #39699e;
+      transform: rotate(-4deg);
+    }
+
+    .memo.m1 {
+      right: 27mm;
+      bottom: 18mm;
+      background: #7091c5;
+      transform: rotate(2deg);
+    }
+
+    .sticker {
+      position: absolute;
+      z-index: 12;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2mm 3mm;
+      min-width: 21mm;
+      min-height: 11mm;
+      border: 2px solid #24192d;
+      border-radius: 45% 45% 55% 55%;
+      background: #ef4a47;
+      color: #fff8e9;
+      font-size: 4mm;
+      line-height: 1.15;
+      text-align: center;
+      font-weight: 900;
+      box-shadow: 2px 2px 0 rgba(36, 25, 45, 0.32);
+    }
+
+    .sticker.a {
+      left: 83mm;
+      bottom: 17mm;
+      transform: rotate(-8deg);
+    }
+
+    .sticker.b {
+      left: 112mm;
+      bottom: 18mm;
+      transform: rotate(3deg);
+    }
+
+    .star {
+      position: absolute;
+      z-index: 2;
+      width: 13mm;
+      height: 13mm;
+      color: #fff8e9;
+      opacity: 0.88;
+    }
+
+    .star svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .s1 { left: 36mm; top: 122mm; transform: rotate(18deg); }
+    .s2 { right: 36mm; top: 112mm; transform: rotate(-12deg); }
+    .s3 { left: 30mm; bottom: 92mm; transform: rotate(8deg); }
+    .s4 { right: 34mm; bottom: 104mm; transform: rotate(21deg); }
+    .s5 { left: 139mm; bottom: 28mm; transform: rotate(-14deg); }
+
+    [contenteditable="true"] {
+      outline: none;
+    }
+
+    [contenteditable="true"]:focus {
+      background: rgba(255, 255, 255, 0.35);
+      box-shadow: 0 0 0 2px rgba(255, 248, 233, 0.85);
+    }
+
+    @media print {
+      html,
+      body {
+        width: 297mm;
+        height: 420mm;
+        padding: 0;
+        background: #fff;
+      }
+
+      .sheet {
+        margin: 0;
+        border: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet" aria-label="A3 成长足迹圆形花瓣模版">
+    <section class="headline" aria-label="标题和资料">
+      <h1 aria-label="成长足迹">
+        <span>成</span><span>长</span><span>足</span><span>迹</span>
+      </h1>
+      <div class="profile-card">
+        <div>姓名：<span contenteditable="true"></span></div>
+        <div>生日：<span contenteditable="true"></span></div>
+        <div>班级：<span contenteditable="true"></span></div>
+      </div>
+    </section>
+
+    <div class="subtitle" contenteditable="true">0-6 岁圆形时光花园</div>
+
+    <section class="flower-field" aria-label="花瓣照片区域">
+      <article class="petal petal-0" aria-label="0岁照片区域">
+        <h2>0岁</h2>
+        <div class="photo-area"></div>
+      </article>
+      <article class="petal petal-1" aria-label="1岁照片区域">
+        <h2>1岁</h2>
+        <div class="photo-area"></div>
+      </article>
+      <article class="petal petal-2" aria-label="2岁照片区域">
+        <h2>2岁</h2>
+        <div class="photo-area"></div>
+      </article>
+      <article class="petal petal-3" aria-label="3岁照片区域">
+        <h2>3岁</h2>
+        <div class="photo-area"></div>
+      </article>
+      <article class="petal petal-4" aria-label="4岁照片区域">
+        <h2>4岁</h2>
+        <div class="photo-area"></div>
+      </article>
+      <article class="petal petal-5" aria-label="5岁照片区域">
+        <h2>5岁</h2>
+        <div class="photo-area"></div>
+      </article>
+      <article class="petal petal-6" aria-label="6岁照片区域">
+        <h2>6岁</h2>
+        <div class="photo-area"></div>
+      </article>
+    </section>
+
+    <section class="timeline" aria-label="0 到 6 岁圆形时间轴">
+      <div class="timeline-track" aria-hidden="true"></div>
+      <div class="center-label" contenteditable="true">
+        <strong>GROWTH</strong>
+        <span>0-6 YEARS</span>
+      </div>
+      <div class="node node-0"><strong>0岁</strong><span contenteditable="true">来到世界<br>在爱里慢慢长大</span></div>
+      <div class="node node-1"><strong>1岁</strong><span contenteditable="true">迈出小脚步<br>开始探索身边</span></div>
+      <div class="node node-2"><strong>2岁</strong><span contenteditable="true">学会说好多话<br>好奇心天天发芽</span></div>
+      <div class="node node-3"><strong>3岁</strong><span contenteditable="true">第一次上托班<br>学着离开怀抱</span></div>
+      <div class="node node-4"><strong>4岁</strong><span contenteditable="true">走进幼儿园<br>认识更多朋友</span></div>
+      <div class="node node-5"><strong>5岁</strong><span contenteditable="true">更勇敢地表达<br>每一天都闪光</span></div>
+      <div class="node node-6"><strong>6岁</strong><span contenteditable="true">带着成长礼物<br>准备迎接小学</span></div>
+    </section>
+
+    <div class="memo m0" contenteditable="true">出生<br>第一天</div>
+    <div class="memo m1" contenteditable="true">准备<br>上一年级</div>
+    <div class="sticker a" contenteditable="true">快乐<br>成长</div>
+    <div class="sticker b" contenteditable="true">加油<br>宝贝</div>
+
+    <div class="star s1" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="star s2" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="star s3" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="star s4" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="star s5" aria-hidden="true">
+      <svg viewBox="0 0 64 64"><path d="M32 4 L39 24 L60 25 L43 38 L49 59 L32 47 L15 59 L21 38 L4 25 L25 24Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>
+    </div>
+  </main>
+</body>
+</html>
