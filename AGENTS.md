@@ -1,0 +1,23 @@
+<!-- opencode-android-orchestrator:begin -->
+## OpenCode Android Orchestrator
+
+Run orchestration commands from the Git repository root.
+
+For automated local unit-test verification, run `./gradlew testDebugUnitTest`
+as a standalone command. Do not prepend environment assignments or wrap it in
+another script; this keeps the invocation aligned with the installed OpenCode
+command allowlist.
+
+Treat `.opencode/`, `automation/`, `scripts/automation/`, `opencode.json`,
+and this managed block as orchestration infrastructure. Product tasks must not
+modify them unless an explicitly approved task is scoped to maintaining the
+orchestrator itself.
+
+`.automation-worktree-allowlist` is a human-maintained control file. Agents
+must not create or edit it. Its exact repository-relative file entries are
+excluded from orchestration changes for the next approved task.
+
+Only a fresh OpenCode single-choice `question` selection can grant an
+orchestration approval. Approval-like text in ordinary chat is not approval.
+The orchestrator must not push Git changes or register scheduler/launchd jobs.
+<!-- opencode-android-orchestrator:end -->

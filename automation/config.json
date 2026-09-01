@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 3,
+  "enabled": true,
+  "mode": "orchestrated",
+  "workspaceStrategy": "inPlaceExclusive",
+  "originalBranchDriftPolicy": "block",
+  "worktreeBase": "",
+  "maxFixLoops": 1,
+  "maxReviewCycles": 1,
+  "maxReviewerRestarts": 2,
+  "autoCleanupWorktrees": true,
+  "pushAfterAcceptance": false,
+  "approvalPhrases": {
+    "proposal": "批准方案，生成计划和任务合同。",
+    "contract": "合同已复核，批准自动执行到人工验收阶段。",
+    "acceptance": "验收通过，提交到原分支。",
+    "abort": "中止任务，封存修改并恢复原分支。"
+  },
+  "plugins": {
+    "superpowers": "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0"
+  },
+  "requiredSkills": [
+    "brainstorming",
+    "writing-plans",
+    "scheduled-quality-orchestrator",
+    "scheduled-quality-coder",
+    "scheduled-quality-reviewer",
+    "test-driven-development",
+    "systematic-debugging",
+    "verification-before-completion"
+  ],
+  "gradleVerification": {
+    "fullUnitTestTasks": [
+      "testDebugUnitTest",
+      ":WordPress:testWordpressDebugUnitTest",
+      ":WordPress:testJetpackDebugUnitTest"
+    ],
+    "focusedTestTasks": [
+      ":WordPress:testWordpressDebugUnitTest",
+      ":WordPress:testJetpackDebugUnitTest",
+      ":libs:analytics:testDebugUnitTest",
+      ":libs:editor:testDebugUnitTest",
+      ":libs:fluxc:testDebugUnitTest",
+      ":libs:image-editor:testDebugUnitTest",
+      ":libs:mocks:testDebugUnitTest",
+      ":libs:networking:testDebugUnitTest",
+      ":libs:posttypes:testDebugUnitTest"
+    ],
+    "assembleTasks": [
+      "assembleDebug"
+    ],
+    "lintTasks": [
+      "lint"
+    ],
+    "deviceTestTasks": [
+      "connectedDebugAndroidTest",
+      ":WordPress:connectedWordpressDebugAndroidTest",
+      ":WordPress:connectedJetpackDebugAndroidTest"
+    ]
+  },
+  "protectedPaths": [
+    ".automation-worktree-allowlist",
+    ".opencode/",
+    ".automation-plugin/",
+    "automation/",
+    "scripts/automation/",
+    "opencode.json",
+    "opencode.jsonc",
+    "AGENTS.md",
+    "gradle/",
+    "gradlew",
+    "gradlew.bat",
+    "settings.gradle",
+    "settings.gradle.kts",
+    "build.gradle",
+    "build.gradle.kts",
+    "**/build.gradle",
+    "**/build.gradle.kts",
+    "WordPress/build.gradle",
+    "libs/analytics/build.gradle",
+    "libs/editor/build.gradle",
+    "libs/fluxc/build.gradle",
+    "libs/image-editor/build.gradle",
+    "libs/mocks/build.gradle",
+    "libs/networking/build.gradle",
+    "libs/posttypes/build.gradle"
+  ],
+  "androidProject": {
+    "name": "WPAndroid",
+    "gradleDsl": "groovy",
+    "settingsFile": "settings.gradle",
+    "moduleScope": "all",
+    "primaryModule": ":WordPress",
+    "modules": [
+      {
+        "gradlePath": ":WordPress",
+        "directory": "WordPress",
+        "buildFile": "WordPress/build.gradle",
+        "dsl": "groovy",
+        "type": "application",
+        "namespace": "org.wordpress.android",
+        "applicationId": "org.wordpress.android"
+      },
+      {
+        "gradlePath": ":libs:analytics",
+        "directory": "libs/analytics",
+        "buildFile": "libs/analytics/build.gradle",
+        "dsl": "groovy",
+        "type": "library",
+        "namespace": "org.wordpress.android.analytics",
+        "applicationId": null
+      },
+      {
+        "gradlePath": ":libs:editor",
+        "directory": "libs/editor",
+        "buildFile": "libs/editor/build.gradle",
+        "dsl": "groovy",
+        "type": "library",
+        "namespace": "org.wordpress.android.editor",
+        "applicationId": null
+      },
+      {
+        "gradlePath": ":libs:fluxc",
+        "directory": "libs/fluxc",
+        "buildFile": "libs/fluxc/build.gradle",
+        "dsl": "groovy",
+        "type": "library",
+        "namespace": "org.wordpress.android.fluxc",
+        "applicationId": null
+      },
+      {
+        "gradlePath": ":libs:image-editor",
+        "directory": "libs/image-editor",
+        "buildFile": "libs/image-editor/build.gradle",
+        "dsl": "groovy",
+        "type": "library",
+        "namespace": "org.wordpress.android.imageeditor",
+        "applicationId": null
+      },
+      {
+        "gradlePath": ":libs:mocks",
+        "directory": "libs/mocks",
+        "buildFile": "libs/mocks/build.gradle",
+        "dsl": "groovy",
+        "type": "library",
+        "namespace": "org.wordpress.android.mocks",
+        "applicationId": null
+      },
+      {
+        "gradlePath": ":libs:networking",
+        "directory": "libs/networking",
+        "buildFile": "libs/networking/build.gradle",
+        "dsl": "groovy",
+        "type": "library",
+        "namespace": "org.wordpress.android.networking",
+        "applicationId": null
+      },
+      {
+        "gradlePath": ":libs:posttypes",
+        "directory": "libs/posttypes",
+        "buildFile": "libs/posttypes/build.gradle",
+        "dsl": "groovy",
+        "type": "library",
+        "namespace": "org.wordpress.android.posttypes",
+        "applicationId": null
+      }
+    ],
+    "productionPaths": [
+      "WordPress/src/main/**",
+      "libs/analytics/src/main/**",
+      "libs/editor/src/main/**",
+      "libs/fluxc/src/main/**",
+      "libs/image-editor/src/main/**",
+      "libs/mocks/src/main/**",
+      "libs/networking/src/main/**",
+      "libs/posttypes/src/main/**"
+    ],
+    "testPaths": [
+      "WordPress/src/test/**",
+      "WordPress/src/androidTest/**",
+      "libs/analytics/src/test/**",
+      "libs/analytics/src/androidTest/**",
+      "libs/editor/src/test/**",
+      "libs/editor/src/androidTest/**",
+      "libs/fluxc/src/test/**",
+      "libs/fluxc/src/androidTest/**",
+      "libs/image-editor/src/test/**",
+      "libs/image-editor/src/androidTest/**",
+      "libs/mocks/src/test/**",
+      "libs/mocks/src/androidTest/**",
+      "libs/networking/src/test/**",
+      "libs/networking/src/androidTest/**",
+      "libs/posttypes/src/test/**",
+      "libs/posttypes/src/androidTest/**"
+    ]
+  }
+}
