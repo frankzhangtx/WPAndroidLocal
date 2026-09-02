@@ -5,6 +5,6 @@
   },
   "plugin": [
     "superpowers@git+https://github.com/obra/superpowers.git#v6.2.0",
-    "@frankzhang2026/opencode-android-orchestrator@0.6.0"
+    "@frankzhang2026/opencode-android-orchestrator@0.6.1"
   ]
 }
