@@ -11,6 +11,7 @@ import org.wordpress.android.fluxc.network.utils.CurrentDateUtils
 import org.wordpress.android.fluxc.utils.SiteUtils
 import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 
 @RunWith(MockitoJUnitRunner::class)
 class StatsUtilsTest {
@@ -44,7 +45,7 @@ class StatsUtilsTest {
 
     @Test
     fun `moves the date forward when the site timezone is different`() {
-        val cal = Calendar.getInstance(Locale.UK)
+        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.UK)
         cal.set(2018, 10, 10, 23, 55)
 
         val timeZone = SiteUtils.getNormalizedTimezone("+5")
@@ -55,7 +56,7 @@ class StatsUtilsTest {
 
     @Test
     fun `moves the date back when the site timezone is different`() {
-        val cal = Calendar.getInstance(Locale.UK)
+        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.UK)
         cal.set(2018, 10, 10, 0, 15)
 
         val timeZone = SiteUtils.getNormalizedTimezone("-5")

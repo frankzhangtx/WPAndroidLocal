@@ -154,7 +154,7 @@ class BlazeCampaignsStoreTest {
                 )
             ).thenReturn(payload)
 
-            store.fetchBlazeCampaigns(siteModel, SKIP)
+            store.fetchBlazeCampaigns(siteModel, SKIP, locale = "en")
 
             verify(blazeCampaignsDao).insertCampaigns(
                 SITE_ID,

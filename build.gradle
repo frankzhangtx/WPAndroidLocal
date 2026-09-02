@@ -1,6 +1,12 @@
 import com.automattic.android.measure.reporters.InternalA8cCiReporter
 import com.automattic.android.measure.reporters.RemoteBuildCacheMetricsReporter
 import com.automattic.android.measure.reporters.SlowSlowTasksMetricsReporter
+import org.gradle.api.file.FileCollection
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.testing.Test
+import org.gradle.process.CommandLineArgumentProvider
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -54,6 +60,28 @@ measureBuilds {
 allprojects {
     apply plugin: libs.plugins.checkstyle.get().pluginId
     apply plugin: libs.plugins.detekt.get().pluginId
+
+    pluginManager.withPlugin("org.jetbrains.kotlinx.kover") {
+        if (project.path in [':WordPress', ':libs:fluxc', ':libs:image-editor']) {
+            def mockitoAgentConfiguration = configurations.create("mockitoAgent")
+            dependencies.add("mockitoAgent", libs.mockito.core) {
+                transitive = false
+            }
+
+            tasks.withType(Test).configureEach {
+                jvmArgumentProviders.add(new CommandLineArgumentProvider() {
+                    @InputFiles
+                    @PathSensitive(PathSensitivity.RELATIVE)
+                    FileCollection agentClasspath = mockitoAgentConfiguration
+
+                    @Override
+                    Iterable<String> asArguments() {
+                        ["-javaagent:${agentClasspath.singleFile.absolutePath}"]
+                    }
+                })
+            }
+        }
+    }
 
     tasks.register("checkstyle", Checkstyle) {
         source 'src'
