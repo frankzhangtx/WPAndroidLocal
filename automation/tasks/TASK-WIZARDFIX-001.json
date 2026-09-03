@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "TASK-WIZARDFIX-001",
+  "title": "Preserve last valid wizard step index when showNextStep throws",
+  "designApproved": true,
+  "planPath": "docs/plans/TASK-WIZARDFIX-001.md",
+  "ambiguityPolicy": "BLOCKED",
+  "maxFixLoops": 1,
+  "maxChangedFiles": 2,
+  "allowedPaths": [
+    "WordPress/src/main/java/org/wordpress/android/util/wizard/WizardManager.kt",
+    "WordPress/src/test/java/org/wordpress/android/util/wizard/WizardManagerTest.kt"
+  ],
+  "forbiddenPaths": [
+    ".automation-worktree-allowlist",
+    ".opencode/**",
+    ".automation-plugin/**",
+    "automation/**",
+    "scripts/automation/**",
+    "opencode.json",
+    "opencode.jsonc",
+    "AGENTS.md",
+    "gradle/**",
+    "gradlew",
+    "gradlew.bat",
+    "settings.gradle",
+    "settings.gradle.kts",
+    "build.gradle",
+    "build.gradle.kts",
+    "**/build.gradle",
+    "**/build.gradle.kts",
+    "WordPress/build.gradle",
+    "libs/analytics/build.gradle",
+    "libs/editor/build.gradle",
+    "libs/fluxc/build.gradle",
+    "libs/image-editor/build.gradle",
+    "libs/mocks/build.gradle",
+    "libs/networking/build.gradle",
+    "libs/posttypes/build.gradle",
+    "docs/plans/TASK-WIZARDFIX-001.md"
+  ],
+  "allowedSuperpowers": [
+    "test-driven-development",
+    "systematic-debugging",
+    "verification-before-completion"
+  ],
+  "acceptanceCriteria": [
+    "showNextStep on the last step still throws IllegalStateException with the Invalid index. message",
+    "After the exception, currentStep equals the last valid index and never equals steps.size or a larger value",
+    "Repeated showNextStep calls after the first failure each throw and leave currentStep unchanged at the last valid index",
+    "Successful navigation still advances exactly one step per call and emits a navigatorLiveData event only for the reached step",
+    "The focused regression test in WizardManagerTest fails before the fix (RED) and passes after the fix",
+    ":WordPress:testWordpressDebugUnitTest passes"
+  ],
+  "nonGoals": [
+    "No change to onBackPressed boundary behavior below index zero",
+    "No change to setCurrentStepIndex, stepPosition, isLastStep, or any public API signature",
+    "No change to the exception message or to success-path LiveData event timing",
+    "No changes to SiteCreationMainVM, RestoreViewModel, BackupDownloadViewModel, or any other caller",
+    "No device or instrumentation tests; no dependency, Gradle, or build-file changes; no documentation changes"
+  ],
+  "targetTests": [
+    {
+      "gradleTask": ":WordPress:testWordpressDebugUnitTest",
+      "filter": "org.wordpress.android.util.wizard.WizardManagerTest"
+    }
+  ],
+  "deviceTestsRequired": false,
+  "testPolicy": "required",
+  "testPolicyReason": "A behavior regression requires a focused unit test proving the retained step index after the exception"
+}

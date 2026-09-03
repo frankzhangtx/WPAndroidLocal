@@ -18,7 +18,9 @@ class WizardManager<T : WizardStep>(
 
     @Suppress("UseCheckOrError")
     fun showNextStep() {
-        if (isIndexValid(++currentStepIndex)) {
+        val nextStepIndex = currentStepIndex + 1
+        if (isIndexValid(nextStepIndex)) {
+            currentStepIndex = nextStepIndex
             _navigatorLiveData.value = steps[currentStepIndex]
         } else {
             throw IllegalStateException("Invalid index.")

@@ -81,6 +81,17 @@ class WizardManagerTest : BaseUnitTest() {
         manager.showNextStep()
     }
 
+    @Test
+    fun `showNextStep past last step throws but keeps last valid step index`() {
+        manager = createWizardManager(initialStepIndex = LAST_STEP_INDEX)
+        try {
+            manager.showNextStep()
+            throw AssertionError("Expected IllegalStateException")
+        } catch (expected: IllegalStateException) {
+            assertThat(manager.currentStep).isEqualTo(LAST_STEP_INDEX)
+        }
+    }
+
     private fun createWizardManager(initialStepIndex: Int): WizardManager<SiteCreationStep> {
         val wizardManager = WizardManager(STEPS)
         wizardManager.setCurrentStepIndex(initialStepIndex)
