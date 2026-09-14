@@ -14,6 +14,11 @@ fi
 
 automation_validate_task_id "$task_id"
 automation_require_orchestrated
+queued_workspace="$(automation_workspace_path "$task_id")"
+if [[ -f "$queued_workspace" && -n "$(jq -r '.queueKey // empty' "$queued_workspace")" ]]; then
+    automation_die "queued acceptance must request integration through the repository queue"
+    exit 1
+fi
 automation_require_approval acceptance "$approval"
 [[ "$(automation_read_state "$task_id")" == "AWAITING_HUMAN" ]] || automation_die "$task_id is not awaiting human acceptance"
 [[ "$(automation_config_value '.pushAfterAcceptance')" == "false" ]] || automation_die "automatic push is forbidden"
@@ -74,6 +79,7 @@ sealed_diff_sha="$(automation_worktree_diff_sha "$task_root")"
 )
 report_file="$evidence_dir/acceptance-report.json"
 [[ "$(jq -er '.sealedDiffSha256' "$report_file")" == "$sealed_diff_sha" ]] || automation_die "acceptance report is stale"
+automation_read_commit_message_prefix_at "$source_root" >/dev/null
 
 automation_acquire_run_lock "$task_id"
 integration_complete=0
@@ -132,9 +138,10 @@ while IFS= read -r path; do
     [[ -n "$path" ]] && commit_paths+=("$path")
 done < <(automation_changed_paths_at "$task_root")
 [[ "${#commit_paths[@]}" -ge 3 ]] || automation_die "final commit must contain product changes and both planning artifacts"
-git -C "$task_root" add -- "${commit_paths[@]}"
 title="$(jq -er '.title' "$task_root/automation/tasks/$task_id.json")"
-git -C "$task_root" commit --only -m "Implement $title ($task_id)" -- "${commit_paths[@]}"
+commit_message="$(automation_commit_message_at "$source_root" "Implement $title ($task_id)")"
+git -C "$task_root" add -- "${commit_paths[@]}"
+git -C "$task_root" commit --only -m "$commit_message" -- "${commit_paths[@]}"
 product_commit="$(git -C "$task_root" rev-parse HEAD)"
 automation_worktree_is_clean "$task_root" || automation_die "task root is dirty after the combined task commit"
 git -C "$task_root" merge-base --is-ancestor "$baseline_head" "$product_commit" || automation_die "combined task commit is not based on the recorded pre-task baseline"

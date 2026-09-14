@@ -13,12 +13,13 @@ if [[ "$#" -ne 2 ]]; then
 fi
 
 automation_validate_task_id "$task_id"
+automation_require_queue_execution "$task_id"
 automation_require_orchestrated
 automation_require_approval abort "$approval"
 
 current_state="$(automation_read_state "$task_id")"
 case "$current_state" in
-    PREPARING|PENDING|CODING|READY_FOR_REVIEW|REVIEWING|CHANGES_REQUESTED|AWAITING_HUMAN|BLOCKED|TEST_FAILED|NEEDS_HUMAN|INTEGRATION_BLOCKED) ;;
+    PREPARING|PENDING|CODING|READY_FOR_REVIEW|REVIEWING|CHANGES_REQUESTED|AWAITING_HUMAN|READY_TO_COMMIT|BLOCKED|TEST_FAILED|NEEDS_HUMAN|INTEGRATION_BLOCKED) ;;
     *) automation_die "cannot abort $task_id from state $current_state" ;;
 esac
 
@@ -86,8 +87,9 @@ if [[ -d "$task_root" ]]; then
                 fi
             done
             if [[ "$product_path_count" -gt 0 ]]; then
+                commit_message="$(automation_commit_message_at "$source_root" "Archive aborted work for $task_id")"
                 git -C "$task_root" add -- "${changed_paths[@]}"
-                git -C "$task_root" commit --only -m "Archive aborted work for $task_id" -- "${changed_paths[@]}"
+                git -C "$task_root" commit --only -m "$commit_message" -- "${changed_paths[@]}"
                 recovery_commit="$(git -C "$task_root" rev-parse HEAD)"
             else
                 plan_rel="$(jq -er '.planPath' "$origin_file")"
