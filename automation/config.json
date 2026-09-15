@@ -87,7 +87,7 @@
     "libs/networking/build.gradle",
     "libs/posttypes/build.gradle"
   ],
-  "commitPolicy": "humanApproval",
+  "commitPolicy": "autoCommit",
   "queue": {
     "scanIntervalMs": 5000,
     "maxWorkspaces": 3,
