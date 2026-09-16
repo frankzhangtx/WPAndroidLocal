@@ -4,6 +4,6 @@
     "paths": [".opencode/skills"]
   },
   "plugin": [
-    "@frankzhang2026/opencode-android-orchestrator@1.0.2"
+    "@frankzhang2026/opencode-android-orchestrator@1.0.3"
   ]
 }
