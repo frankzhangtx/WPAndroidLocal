@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 2,
+  "id": "TASK-STRICTDATE-002",
+  "title": "Reject non-existent calendar dates in WeeklyRoundupUtils strict parsing",
+  "designApproved": true,
+  "planPath": "docs/plans/TASK-STRICTDATE-002.md",
+  "ambiguityPolicy": "BLOCKED",
+  "maxFixLoops": 1,
+  "maxChangedFiles": 2,
+  "allowedPaths": [
+    "WordPress/src/main/java/org/wordpress/android/workers/weeklyroundup/WeeklyRoundupUtils.kt",
+    "WordPress/src/test/java/org/wordpress/android/workers/weeklyroundup/WeeklyRoundupUtilsTest.kt"
+  ],
+  "forbiddenPaths": [
+    ".automation-worktree-allowlist",
+    ".opencode/**",
+    ".automation-plugin/**",
+    "automation/**",
+    "scripts/automation/**",
+    "opencode.json",
+    "opencode.jsonc",
+    "AGENTS.md",
+    "gradle/**",
+    "gradlew",
+    "gradlew.bat",
+    "settings.gradle",
+    "settings.gradle.kts",
+    "build.gradle",
+    "build.gradle.kts",
+    "**/build.gradle",
+    "**/build.gradle.kts",
+    "WordPress/build.gradle",
+    "libs/analytics/build.gradle",
+    "libs/editor/build.gradle",
+    "libs/fluxc/build.gradle",
+    "libs/image-editor/build.gradle",
+    "libs/mocks/build.gradle",
+    "libs/networking/build.gradle",
+    "libs/posttypes/build.gradle",
+    "docs/plans/TASK-STRICTDATE-002.md"
+  ],
+  "allowedWorkflowSkills": [
+    "android-orchestrator-test-driven-development",
+    "android-orchestrator-systematic-debugging",
+    "android-orchestrator-verification-before-completion"
+  ],
+  "acceptanceCriteria": [
+    "parseStandardDate(\"2021-02-30\") returns null instead of the SMART-resolved 2021-02-28",
+    "parseWeekPeriodDate(\"2021W02W30\") returns null instead of the SMART-resolved 2021-02-28",
+    "parseStandardDate(\"2023-02-29\") and parseWeekPeriodDate(\"2023W02W29\") return null for the non-leap year, while parseStandardDate(\"2024-02-29\") and parseWeekPeriodDate(\"2024W02W29\") return LocalDate.of(2024, 2, 29)",
+    "Day overflow in 30-day months returns null: parseStandardDate(\"2021-04-31\"), parseStandardDate(\"2021-06-31\"), parseWeekPeriodDate(\"2021W04W31\"), parseWeekPeriodDate(\"2021W06W31\")",
+    "Out-of-range month and day values stay null: parseStandardDate(\"2021-13-01\"), parseStandardDate(\"2021-00-10\"), parseStandardDate(\"2021-08-00\"), parseWeekPeriodDate(\"2021W13W01\"), parseWeekPeriodDate(\"2021W00W10\"), parseWeekPeriodDate(\"2021W08W00\")",
+    "Accepted valid inputs are unchanged: parseStandardDate(\"2021-08-10\"), parseWeekPeriodDate(\"2021W08W10\"), parseStandardDate(\"2021-01-01\"), parseStandardDate(\"2021-12-31\") keep their previous LocalDate values; \"invalid\" and the empty string still return null",
+    "The new focused regression tests are captured RED before the implementation with assertion failures caused by non-null clamped dates, not by compilation or fixture errors, and pass GREEN afterwards",
+    "The focused filter run and the standalone ./gradlew testDebugUnitTest both pass; assembleDebug passes; independent Review passes",
+    "Public signatures parseStandardDate(date: String): LocalDate? and parseWeekPeriodDate(date: String): LocalDate? are unchanged, as are the return type, the AppLog.e(T.NOTIFS, ...) rejection logging, and the WeeklyRoundupRepository null-handling call chain"
+  ],
+  "nonGoals": [
+    "No change to the accepted date text formats, Locale.ROOT, public signatures, or return types",
+    "No change to log content, log level, or logging channel on parse rejection",
+    "No change to WeeklyRoundupRepository.kt, WeeklyRoundupRepositoryTest.kt, or any other file in the weeklyroundup package",
+    "No ISO week-based-year semantics and no support for additional date formats",
+    "No new dependencies, no Gradle or build configuration changes, no refactors outside WeeklyRoundupUtils, no documentation changes",
+    "No new exception types, no exception propagation, and no change to the failure return contract of null"
+  ],
+  "targetTests": [
+    {
+      "gradleTask": ":WordPress:testWordpressDebugUnitTest",
+      "filter": "org.wordpress.android.workers.weeklyroundup.WeeklyRoundupUtilsTest"
+    }
+  ],
+  "deviceTestsRequired": false,
+  "testPolicy": "required",
+  "testPolicyReason": "A parser behavior regression requires focused unit tests proving that non-existent calendar dates return null while valid inputs and the null return contract are preserved"
+}
