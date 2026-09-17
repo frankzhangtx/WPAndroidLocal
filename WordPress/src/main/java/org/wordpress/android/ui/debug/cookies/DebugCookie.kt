@@ -25,6 +25,11 @@ data class DebugCookie(
     fun encode(gson: Gson): String = gson.toJson(this)
 
     companion object {
-        fun decode(gson: Gson, encoded: String?): DebugCookie? = gson.fromJson(encoded, DebugCookie::class.java)
+        fun decode(gson: Gson, encoded: String?): DebugCookie? = runCatching {
+            val decoded = gson.fromJson(encoded, DebugCookie::class.java)
+            val host: String? = decoded?.host
+            val name: String? = decoded?.name
+            if (decoded == null || host.isNullOrBlank() || name.isNullOrBlank()) null else decoded
+        }.getOrNull()
     }
 }

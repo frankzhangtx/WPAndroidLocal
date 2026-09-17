@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 3,
+  "id": "TASK-DEBUGCK-001",
+  "title": "DebugCookie.decode 容错增强：null、非法 JSON 与缺失必填字段返回 null",
+  "designApproved": true,
+  "planPath": "docs/plans/TASK-DEBUGCK-001.md",
+  "ambiguityPolicy": "BLOCKED",
+  "maxFixLoops": 1,
+  "maxChangedFiles": 2,
+  "allowedPaths": [
+    "WordPress/src/main/java/org/wordpress/android/ui/debug/cookies/DebugCookie.kt",
+    "WordPress/src/test/java/org/wordpress/android/ui/debug/cookies/DebugCookieTest.kt"
+  ],
+  "forbiddenPaths": [
+    ".automation-worktree-allowlist",
+    ".opencode/**",
+    ".automation-plugin/**",
+    "automation/**",
+    "scripts/automation/**",
+    "opencode.json",
+    "opencode.jsonc",
+    "AGENTS.md",
+    "gradle/**",
+    "gradlew",
+    "gradlew.bat",
+    "settings.gradle",
+    "settings.gradle.kts",
+    "build.gradle",
+    "build.gradle.kts",
+    "**/build.gradle",
+    "**/build.gradle.kts",
+    "WordPress/build.gradle",
+    "libs/analytics/build.gradle",
+    "libs/editor/build.gradle",
+    "libs/fluxc/build.gradle",
+    "libs/image-editor/build.gradle",
+    "libs/mocks/build.gradle",
+    "libs/networking/build.gradle",
+    "libs/posttypes/build.gradle",
+    "docs/plans/TASK-DEBUGCK-001.md",
+    "WordPress/src/main/java/org/wordpress/android/ui/debug/cookies/DebugCookieManager.kt",
+    "WordPress/src/main/java/org/wordpress/android/ui/debug/cookies/DebugCookiesActivity.kt",
+    "WordPress/src/main/java/org/wordpress/android/ui/debug/cookies/DebugCookiesAdapter.kt",
+    "WordPress/src/main/java/org/wordpress/android/ui/debug/cookies/DebugCookiesFragment.kt",
+    "WordPress/src/main/java/org/wordpress/android/ui/debug/cookies/DebugCookiesViewModel.kt"
+  ],
+  "allowedWorkflowSkills": [
+    "android-orchestrator-test-driven-development",
+    "android-orchestrator-systematic-debugging",
+    "android-orchestrator-verification-before-completion"
+  ],
+  "acceptanceCriteria": [
+    "decode(gson, null) 返回 null，且不抛出任何异常",
+    "非法 JSON 文本（not-json）与非法 JSON 结构（方括号数组）都返回 null，Gson 解析异常不再传播给调用方",
+    "可解析为 JSON 对象但缺少必填字段时返回 null：空对象、仅含 name 字段的对象、仅含 host 字段的对象",
+    "host 或 name 为空白字符串（空串或空格）时返回 null",
+    "合法 Cookie 行为不变：value 分别为 abc、空串、null 时，decode(gson, cookie.encode(gson)) 与 cookie 相等",
+    "合法 Cookie 的 encode 输出与改动前基线逐字一致（固定 cookie，serializeNulls Gson）",
+    "合法 Cookie 的派生成员不变：key 为 host 下划线 name，oldRfcDomain 为点号加 host，headerValue 为 name 等号加 value（value 为 null 时取空串）",
+    "新增聚焦测试在实现前捕获 RED，失败原因必须是 Gson 解析异常或非空断言失败，不能是编译错误或夹具错误；实现后同一测试全部 GREEN",
+    "聚焦过滤测试、独立 ./gradlew testDebugUnitTest、assembleDebug 与独立 Reviewer 复核全部通过；decode 的公开签名与返回类型不变"
+  ],
+  "nonGoals": [
+    "不修改 encode(gson) 的实现与合法 Cookie 的序列化输出",
+    "不修改 DebugCookieManager.kt 及其 getAll/add/remove 逻辑、SharedPreferences 键名与 Gson 构造",
+    "不修改 DebugCookie 的公开签名、构造参数以及 key/oldRfcDomain/headerValue/toURI/toHttpCookie 的实现",
+    "不新增依赖，不做 Gradle 或构建配置变更，不新增仪器化或设备测试，不做无关重构与文档改动",
+    "不引入超出必填字段空值判定的 Gson 强类型校验：数值到字符串强制转换等 Gson 宽松行为保持原样，也不作为验收断言",
+    "不改变 decode 的失败返回契约：失败一律返回 null，不新增异常类型，不新增日志"
+  ],
+  "targetTests": [
+    {
+      "gradleTask": ":WordPress:testWordpressDebugUnitTest",
+      "filter": "org.wordpress.android.ui.debug.cookies.DebugCookieTest"
+    }
+  ],
+  "deviceTestsRequired": false,
+  "testPolicy": "required",
+  "testPolicyReason": "行为变更需要聚焦单元测试证明非法输入返回 null，并证明合法 Cookie 的编解码与派生成员保持基线值",
+  "verification": {
+    "version": 1,
+    "maxPreparationFixes": 1,
+    "cases": [
+      {
+        "id": "NULL-INPUT",
+        "criterion": 1,
+        "intent": "observe",
+        "before": "observe",
+        "after": "pass",
+        "source": "baselineCapture",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.ui.debug.cookies.DebugCookieTest",
+          "name": "given null encoded string, when decoding, then returns null"
+        }
+      },
+      {
+        "id": "MALFORMED-JSON",
+        "criterion": 2,
+        "intent": "change",
+        "before": "fail",
+        "after": "pass",
+        "source": "userRequirement",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.ui.debug.cookies.DebugCookieTest",
+          "name": "given malformed json text, when decoding, then returns null"
+        },
+        "expectedFailure": {
+          "type": "com.google.gson.JsonSyntaxException",
+          "origin": "DebugCookie.kt 中 companion object 的 decode 直接调用 gson.fromJson 的表达式"
+        }
+      },
+      {
+        "id": "NON-OBJECT-JSON",
+        "criterion": 2,
+        "intent": "change",
+        "before": "fail",
+        "after": "pass",
+        "source": "userRequirement",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.ui.debug.cookies.DebugCookieTest",
+          "name": "given json array text, when decoding, then returns null"
+        },
+        "expectedFailure": {
+          "type": "com.google.gson.JsonSyntaxException",
+          "origin": "同一个 gson.fromJson 调用在数组输入下抛出并被 Gson 包装"
+        }
+      },
+      {
+        "id": "MISSING-FIELDS",
+        "criterion": 3,
+        "intent": "change",
+        "before": "fail",
+        "after": "pass",
+        "source": "userRequirement",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.ui.debug.cookies.DebugCookieTest",
+          "name": "given json object missing required fields, when decoding, then returns null"
+        },
+        "expectedFailure": {
+          "type": "java.lang.AssertionError",
+          "origin": "DebugCookieTest 缺字段用例的 isNull 断言：当前 decode 返回非空实例"
+        }
+      },
+      {
+        "id": "BLANK-FIELDS",
+        "criterion": 4,
+        "intent": "change",
+        "before": "fail",
+        "after": "pass",
+        "source": "userRequirement",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.ui.debug.cookies.DebugCookieTest",
+          "name": "given json object with blank required fields, when decoding, then returns null"
+        },
+        "expectedFailure": {
+          "type": "java.lang.AssertionError",
+          "origin": "DebugCookieTest 空白字段用例的 isNull 断言：当前 decode 返回非空实例"
+        }
+      },
+      {
+        "id": "ROUND-TRIP-PRESERVED",
+        "criterion": 5,
+        "intent": "preserve",
+        "before": "pass",
+        "after": "pass",
+        "source": "baselineCapture",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.ui.debug.cookies.DebugCookieTest",
+          "name": "given valid cookie, when encoding and decoding, then the cookie is preserved"
+        }
+      },
+      {
+        "id": "ENCODE-BASELINE",
+        "criterion": 6,
+        "intent": "preserve",
+        "before": "pass",
+        "after": "pass",
+        "source": "baselineCapture",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.ui.debug.cookies.DebugCookieTest",
+          "name": "given valid cookie, when encoding, then the json matches the captured baseline"
+        }
+      },
+      {
+        "id": "MEMBERS-PRESERVED",
+        "criterion": 7,
+        "intent": "preserve",
+        "before": "pass",
+        "after": "pass",
+        "source": "baselineCapture",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.ui.debug.cookies.DebugCookieTest",
+          "name": "given valid cookie, when reading derived members, then the values match the captured baseline"
+        }
+      }
+    ]
+  }
+}
