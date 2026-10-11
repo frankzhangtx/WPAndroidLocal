@@ -2,7 +2,7 @@
 
 If you're just looking to install WordPress for Android, you can find it on [Google Play](https://play.google.com/store/apps/details?id=org.wordpress.android&referrer=utm_source%3Dgithub%26utm_medium%3Dwebsite).
 If you're a developer wanting to contribute, read on.
-
+test
 ## Build Instructions ##
 
 1. Make sure you've installed [Android Studio](https://developer.android.com/studio).
