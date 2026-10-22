@@ -640,8 +640,8 @@
       "emptyBaseline": "reject"
     },
     "scope": {
-      "version": 1,
-      "mode": "affected",
+      "version": 2,
+      "mode": "affected-tests",
       "variants": "debug",
       "maxManualRetries": 1
     }
