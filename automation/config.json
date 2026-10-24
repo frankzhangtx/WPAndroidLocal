@@ -2,7 +2,7 @@
   "schemaVersion": 6,
   "enabled": true,
   "mode": "orchestrated",
-  "workspaceStrategy": "inPlaceExclusive",
+  "workspaceStrategy": "isolatedWorktree",
   "originalBranchDriftPolicy": "block",
   "worktreeBase": "",
   "maxFixLoops": 1,

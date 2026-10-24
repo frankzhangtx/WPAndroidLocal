@@ -4,6 +4,6 @@
     "paths": [".opencode/skills"]
   },
   "plugin": [
-    "@frankzhang2026/opencode-android-orchestrator@1.5.0"
+    "file:///Users/zhanglong/files/program/cctest/taskdescriptions/wordpress-150-online-20261024/frozen-installations/5c81f761d907756ffe7aab7c3632fa580db14d702fc2e5e16aadc1ab3bf7431b/node_modules/@frankzhang2026/opencode-android-orchestrator/dist/opencode-plugin.js"
   ]
 }
