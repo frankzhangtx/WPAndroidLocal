@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 8,
+  "id": "TASK-VERSION-OVERFLOW-20261024",
+  "title": "Return -1 instead of NumberFormatException when WhatsNewAppVersionUtils major/minor digits overflow Int",
+  "designApproved": true,
+  "planPath": "docs/plans/TASK-VERSION-OVERFLOW-20261024.md",
+  "ambiguityPolicy": "BLOCKED",
+  "maxFixLoops": 1,
+  "maxChangedFiles": 2,
+  "allowedPaths": [
+    "libs/fluxc/src/main/java/org/wordpress/android/fluxc/utils/WhatsNewAppVersionUtils.kt",
+    "libs/fluxc/src/test/java/org/wordpress/android/fluxc/utils/WhatsNewAppVersionOverflowTest.kt"
+  ],
+  "forbiddenPaths": [
+    ".automation-worktree-allowlist",
+    ".opencode/**",
+    ".automation-plugin/**",
+    "automation/**",
+    "scripts/automation/**",
+    "opencode.json",
+    "opencode.jsonc",
+    "AGENTS.md",
+    "gradle/**",
+    "gradlew",
+    "gradlew.bat",
+    "settings.gradle",
+    "settings.gradle.kts",
+    "build.gradle",
+    "build.gradle.kts",
+    "**/build.gradle",
+    "**/build.gradle.kts",
+    "libs/fluxc/build.gradle",
+    "docs/plans/TASK-VERSION-OVERFLOW-20261024.md",
+    "libs/fluxc/src/test/java/org/wordpress/android/fluxc/utils/WhatsNewAppVersionUtilsTest.kt"
+  ],
+  "allowedWorkflowSkills": [
+    "android-orchestrator-test-driven-development",
+    "android-orchestrator-systematic-debugging",
+    "android-orchestrator-verification-before-completion"
+  ],
+  "acceptanceCriteria": [
+    "versionNameToInt(\"2147483648.1\") returns -1 instead of throwing NumberFormatException; before the fix the new overflow test for this input fails with java.lang.AssertionError at its own test method because runCatching captures the exception and the -1 assertion compares against a null result.",
+    "versionNameToInt(\"1.2147483648\") returns -1 instead of throwing NumberFormatException; before the fix the new overflow test for this input fails with java.lang.AssertionError at its own test method.",
+    "Preserved behavior for a valid version name: the new test asserts versionNameToInt(\"14.1.2\") == 141, unchanged from the current implementation.",
+    "Preserved behavior for an invalid version name: the new test asserts versionNameToInt(\"alpha-222\") == -1, unchanged from the current implementation."
+  ],
+  "nonGoals": [
+    "Do not change the version-matching rule: the first Regex(\"(\\\\d+\\\\.)(\\\\d+)\") match is still used and the matched digits are still concatenated by removing the dot.",
+    "Do not change the failure return contract for unparsable input beyond the Int-range guard: no match still returns -1, and no new exception type or logging is introduced.",
+    "Do not change the public signature versionNameToInt(appVersion: String): Int.",
+    "Do not modify the existing libs/fluxc/src/test/java/org/wordpress/android/fluxc/utils/WhatsNewAppVersionUtilsTest.kt or any other existing test.",
+    "Do not add resources, dependencies, Gradle or build configuration changes, or unrelated refactors.",
+    "No device or instrumentation tests; no lint task; no documentation changes beyond the sealed plan; no git push."
+  ],
+  "targetTests": [
+    {
+      "gradleTask": ":libs:fluxc:testDebugUnitTest",
+      "filter": "org.wordpress.android.fluxc.utils.WhatsNewAppVersionOverflowTest"
+    }
+  ],
+  "deviceTestsRequired": false,
+  "testPolicy": "required",
+  "testPolicyReason": "The behavior change is only observable through a focused unit test that feeds an Int-overflowing major/minor version and asserts -1 instead of an exception, so RED evidence is required.",
+  "verification": {
+    "version": 2,
+    "maxPreparationFixes": 1,
+    "cases": [
+      {
+        "id": "MAJOR-OVERFLOW",
+        "criterion": 1,
+        "intent": "change",
+        "before": "fail",
+        "after": "pass",
+        "source": "userRequirement",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.fluxc.utils.WhatsNewAppVersionOverflowTest",
+          "name": "versionNameToInt returns -1 when the major version digits overflow Int"
+        },
+        "expectedFailure": {
+          "type": "java.lang.AssertionError",
+          "origin": {
+            "className": "org.wordpress.android.fluxc.utils.WhatsNewAppVersionOverflowTest",
+            "methodName": "versionNameToInt returns -1 when the major version digits overflow Int",
+            "fileName": "WhatsNewAppVersionOverflowTest.kt"
+          }
+        }
+      },
+      {
+        "id": "MINOR-OVERFLOW",
+        "criterion": 2,
+        "intent": "change",
+        "before": "fail",
+        "after": "pass",
+        "source": "userRequirement",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.fluxc.utils.WhatsNewAppVersionOverflowTest",
+          "name": "versionNameToInt returns -1 when the minor version digits overflow Int"
+        },
+        "expectedFailure": {
+          "type": "java.lang.AssertionError",
+          "origin": {
+            "className": "org.wordpress.android.fluxc.utils.WhatsNewAppVersionOverflowTest",
+            "methodName": "versionNameToInt returns -1 when the minor version digits overflow Int",
+            "fileName": "WhatsNewAppVersionOverflowTest.kt"
+          }
+        }
+      },
+      {
+        "id": "NORMAL-VERSION-PRESERVED",
+        "criterion": 3,
+        "intent": "observe",
+        "before": "observe",
+        "after": "pass",
+        "source": "measuredFact",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.fluxc.utils.WhatsNewAppVersionOverflowTest",
+          "name": "versionNameToInt keeps converting a normal major and minor version"
+        }
+      },
+      {
+        "id": "MALFORMED-VERSION-PRESERVED",
+        "criterion": 4,
+        "intent": "observe",
+        "before": "observe",
+        "after": "pass",
+        "source": "measuredFact",
+        "test": {
+          "target": 0,
+          "className": "org.wordpress.android.fluxc.utils.WhatsNewAppVersionOverflowTest",
+          "name": "versionNameToInt keeps returning -1 for a malformed version name"
+        }
+      }
+    ],
+    "inventory": {
+      "mode": "focusedBaseline",
+      "existingSkips": "reject",
+      "emptyBaseline": "allow"
+    },
+    "scope": {
+      "version": 3,
+      "mode": "bounded",
+      "maxManualRetries": 1,
+      "baseline": "snapshot",
+      "buildMode": "incremental",
+      "regressionTests": [
+        {
+          "gradleTask": ":libs:fluxc:testDebugUnitTest",
+          "filter": "org.wordpress.android.fluxc.utils.WhatsNewAppVersionUtilsTest"
+        }
+      ],
+      "tasks": {
+        "assembleTasks": [
+          ":libs:fluxc:assembleDebug"
+        ],
+        "lintTasks": [],
+        "deviceTestTasks": []
+      }
+    }
+  },
+  "recovery": {
+    "version": 1,
+    "scope": "baseline",
+    "maxEnvironmentRetries": 1,
+    "maxManualRetries": 1,
+    "maxSameFailureRetries": 1,
+    "maxElapsedMs": 600000,
+    "initialDelayMs": 1000,
+    "maxDelayMs": 10000
+  },
+  "execution": {
+    "version": 1,
+    "maxRunMs": 2700000,
+    "maxStageMs": 1800000,
+    "terminationGraceMs": 1000
+  },
+  "stageRecovery": {
+    "version": 1,
+    "maxEnvironmentRetries": 1,
+    "maxSameFailureRetries": 1,
+    "maxElapsedMs": 600000,
+    "initialDelayMs": 1000,
+    "maxDelayMs": 10000
+  },
+  "continuity": {
+    "version": 1,
+    "isolatedAutoIntegration": true,
+    "planningRefresh": "reject",
+    "planningInputs": [
+      "libs/fluxc/src/main/java/org/wordpress/android/fluxc/utils/WhatsNewAppVersionUtils.kt",
+      "libs/fluxc/src/test/java/org/wordpress/android/fluxc/utils/WhatsNewAppVersionOverflowTest.kt"
+    ]
+  },
+  "modelContinuation": {
+    "version": 1,
+    "maxContinuations": 1,
+    "maxCalls": 4,
+    "maxElapsedMs": 2700000,
+    "stepLimit": 128
+  }
+}
