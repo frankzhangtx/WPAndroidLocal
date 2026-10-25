@@ -5,7 +5,7 @@ object WhatsNewAppVersionUtils {
         val majorMinor = Regex("(\\d+\\.)(\\d+)").find(appVersion, 0)?.value
 
         majorMinor?.let {
-            return it.replace(".", "").toInt()
+            return it.replace(".", "").toIntOrNull() ?: -1
         }
         return -1
     }
